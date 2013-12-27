@@ -90,9 +90,11 @@ public abstract class BaseTradeApi {
         apiKeyPair = new ApiKeyPair();
         requestSender = new RequestSender();
     }
+    abstract void cleanAuth(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders);
     abstract void writeAuthParams(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders);
-    private String executeRequest(String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
-        writeAuthParams(urlParameters, requestSender.httpHeaders);
+    private String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
+        cleanAuth(urlParameters, requestSender.httpHeaders);
+        if(needAuth) writeAuthParams(urlParameters, requestSender.httpHeaders);
         switch (httpRequestType) {
             case Constants.REQUEST_GET:
                 return requestSender.getResponseString(requestSender.getRequest(url, urlParameters));
