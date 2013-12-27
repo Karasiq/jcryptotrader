@@ -1,16 +1,20 @@
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.SerializedName;
+import com.google.gson.reflect.TypeToken;
+import com.sun.org.apache.bcel.internal.generic.RET;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
-public class CryptsyTradeApi extends BaseTradeApi { // TODO: implement cryptsy
+public class CryptsyTradeApi extends BaseTradeApi {
+    private static final String PublicApiUrl = "http://pubapi.cryptsy.com/api.php";
+    private static final String JsonDateFormat = "yyyy-MM-dd HH:mm:ss";
     private int nonce = 0;
     private String makeSign(List<NameValuePair> urlParameters) throws NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
         return Utils.Crypto.Hashing.hmacDigest(requestSender.formatGetParamString(urlParameters), apiKeyPair.privateKey, Utils.Crypto.Hashing.HMAC_SHA512);
@@ -44,12 +48,116 @@ public class CryptsyTradeApi extends BaseTradeApi { // TODO: implement cryptsy
             e.printStackTrace();
         }
     }
-    public class Public {
-        public MarketsData getMarketData(String pair) {
 
+    class ApiStatus<ReturnType> {
+        int success;
+        @SerializedName("return")
+        ReturnType result;
+    }
+    class TradeOrder {
+        double price;
+        double quantity;
+        double total;
+    }
+    class TradeHistory extends TradeOrder {
+        int id;
+        Date time;
+    }
+    class CurrencyPair {
+        int marketid;
+        String label;
+        String primaryname;
+        String primarycode;
+        String secondaryname;
+        String secondarycode;
+    }
+    class OrderBookData extends CurrencyPair {
+        List<TradeOrder> sellorders = new ArrayList<TradeOrder>();
+        List<TradeOrder> buyorders = new ArrayList<TradeOrder>();
+    }
+    class OrderBook extends TreeMap<String, OrderBookData> {
+        public OrderBook() {
+            super();
         }
     }
-    public class Private {
+    class MarketData extends OrderBookData {
+        double lasttradeprice;
+        double volume;
+        Date lasttradetime;
+        List<TradeHistory> recenttrades = new ArrayList<TradeHistory>();
+    }
+    class Markets {
+        TreeMap<String, MarketData> markets = new TreeMap<String, MarketData>();
+    }
 
+    static Gson makeJsonParser() {
+        return new GsonBuilder().setDateFormat(JsonDateFormat).create();
+    }
+
+    public static int getMarketIdByPairName(Markets marketsData, String pair) {
+        for(Map.Entry<String, MarketData> entry : marketsData.markets.entrySet()) {
+            if(entry.getKey().equals(pair)) {
+                return entry.getValue().marketid;
+            }
+        }
+        throw new IllegalArgumentException("Pair " + pair + " not found on market");
+    }
+
+    public ApiStatus<Markets> getMarketData(String pair) throws IOException { // Pair: market id
+        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        if(pair == null || pair.equals("")) {
+            arguments.add(new BasicNameValuePair("method", "marketdatav2"));
+        } else {
+            arguments.add(new BasicNameValuePair("method", "singlemarketdata"));
+            arguments.add(new BasicNameValuePair("marketid", pair));
+        }
+        String json = executeRequest(false, PublicApiUrl, arguments, Constants.REQUEST_GET);
+        return makeJsonParser().fromJson(json, new TypeToken<ApiStatus<Markets>>() {
+        }.getType());
+    }
+
+    public ApiStatus<Markets> getMarketData(int marketId) throws IOException {
+        return getMarketData(Integer.toString(marketId));
+    }
+
+    public Object getOrders(String pair) throws IOException { // TODO: test
+        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        if(pair == null || pair.equals("")) {
+            arguments.add(new BasicNameValuePair("method", "orderdata"));
+        } else {
+            arguments.add(new BasicNameValuePair("method", "singleorderdata"));
+            arguments.add(new BasicNameValuePair("marketid", pair));
+        }
+        String json = executeRequest(false, PublicApiUrl, arguments, Constants.REQUEST_GET);
+        return makeJsonParser().fromJson(json, new TypeToken<ApiStatus<OrderBook>>() {
+        }.getType());
+    }
+
+    public Object getOrders(int marketId) throws IOException {
+        return getOrders(Integer.toString(marketId));
+    }
+
+    // Private
+    public Object getAccountInfo() { // TODO: implement private api
+        return null;
+    }
+    public Object getAccountHistory(String pair) {
+        return null;
+    }
+    public Object getOpenOrders(String pair) {
+        return null;
+    }
+    public Object getMarketInfo(String pair) {
+        return null;
+    }
+    public Object calculateFees(int orderType, double quantity, double price) {
+        return null;
+    }
+
+    public Object createOrder(String pair, int orderType, double quantity, double price) {
+        return null;
+    }
+    public Object cancelOrder(String orderId) {
+        return null;
     }
 }

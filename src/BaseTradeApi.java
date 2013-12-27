@@ -4,7 +4,6 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 
@@ -90,9 +89,20 @@ public abstract class BaseTradeApi {
         apiKeyPair = new ApiKeyPair();
         requestSender = new RequestSender();
     }
+
+    public BaseTradeApi(String publicKey, String privateKey) {
+        this();
+        apiKeyPair.publicKey = publicKey;
+        apiKeyPair.privateKey = privateKey;
+    }
+
+    public BaseTradeApi(ApiKeyPair keyPair) {
+        this(keyPair.publicKey, keyPair.privateKey);
+    }
+
     abstract void cleanAuth(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders);
     abstract void writeAuthParams(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders);
-    private String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
+    String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
         cleanAuth(urlParameters, requestSender.httpHeaders);
         if(needAuth) writeAuthParams(urlParameters, requestSender.httpHeaders);
         switch (httpRequestType) {
@@ -104,19 +114,16 @@ public abstract class BaseTradeApi {
                 throw new IllegalArgumentException("Unknown httpRequestType value");
         }
     }
+    // Public
+    public abstract Object getMarketData(String pair) throws IOException;
+    public abstract Object getOrders(String pair) throws IOException;
+    // Private
+    public abstract Object getAccountInfo();
+    public abstract Object getAccountHistory(String pair);
+    public abstract Object getOpenOrders(String pair);
+    public abstract Object getMarketInfo(String pair);
+    public abstract Object calculateFees(int orderType, double quantity, double price);
 
-    public abstract class Public {
-        public abstract Object getMarketData(String pair);
-        public abstract Object getOrders(String pair);
-    }
-    public abstract class Private { // Requires apiKeyPair
-        public abstract Object getAccountInfo();
-        public abstract Object getAccountHistory(String pair);
-        public abstract Object getOpenOrders(String pair);
-        public abstract Object getMarketInfo(String pair);
-        public abstract Object calculateFees(int orderType, double quantity, double price);
-
-        public abstract Object createOrder(String pair, int orderType, double quantity, double price);
-        public abstract Object cancelOrder(String orderId);
-    }
+    public abstract Object createOrder(String pair, int orderType, double quantity, double price);
+    public abstract Object cancelOrder(String orderId);
 }

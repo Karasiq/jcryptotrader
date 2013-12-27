@@ -3,6 +3,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
 
 public class Utils {
     public static class Crypto {
@@ -29,6 +30,12 @@ public class Utils {
                 }
                 return hash.toString();
             }
+        }
+    }
+    public static class Strings {
+        public static <T> String formatNumber(T value) {
+            DecimalFormat df = new java.text.DecimalFormat("####,###.########");
+            return df.format(value);
         }
     }
 }
