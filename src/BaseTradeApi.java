@@ -1,3 +1,6 @@
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.SerializedName;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
@@ -7,21 +10,24 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 
-
-import javax.lang.model.element.Name;
 import java.io.*;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 
 public abstract class BaseTradeApi {
+    public class TradeApiError extends Exception {
+        public TradeApiError(String message) {
+            super("Trading API error: " + message);
+        }
+    }
     public static final class Constants {
         static final int ORDER_BUY = 0;
         static final int ORDER_SELL = 1;
         static final int REQUEST_GET = 0;
         static final int REQUEST_POST = 1;
+        private static final String JsonDateFormat = "yyyy-MM-dd HH:mm:ss";
     }
     public class RequestSender {
         String requestEncoding = "UTF-8";
@@ -77,31 +83,122 @@ public abstract class BaseTradeApi {
             return result.toString();
         }
     }
-    public class ApiKeyPair implements Serializable {
+    public static class ApiKeyPair implements Serializable {
         String publicKey;
         String privateKey;
+        public ApiKeyPair() {
+            // do nothing
+        }
+        public ApiKeyPair(String publicKey, String privateKey) {
+            this.publicKey = publicKey;
+            this.privateKey = privateKey;
+        }
+        public ApiKeyPair(ApiKeyPair keyPair) {
+            this(keyPair.publicKey, keyPair.privateKey);
+        }
+        @Override public String toString() {
+            return "Public=" + publicKey + "; Private=" + privateKey;
+        }
     }
+    class ApiStatus<ReturnType> {
+        int success; // 0 - error, 1 - success
+        String error; // Error message
+        @SerializedName("return") ReturnType result; // Response
+    }
+
+    public static class StandartObjects { // Unified, api-independent objects
+        static class Prices {
+            double average;
+            double low;
+            double high;
+            double sell;
+            double buy;
+            double last;
+        }
+        static class Order {
+            public Order() {
+                super();
+            }
+            public Order(double price, double amount) {
+                this.price = price;
+                this.amount = amount;
+            }
+            int id;
+            Object pair;
+            double price;
+            double amount;
+            Date time;
+            int type; // ORDER_BUY/ORDER_SELL
+        }
+        static class Depth {
+            List<Order> sellOrders = new ArrayList<Order>(); // Ask
+            List<Order> buyOrders = new ArrayList<Order>(); // Bid
+        }
+        public static class MarketInfo {
+            String pairName;
+            Object pairId;
+            Prices price = new Prices();
+            Depth depth = new Depth();
+            // List<Order> history = new ArrayList<Order>();
+        }
+        public static class AccountInfo {
+            TreeMap<String, Double> balance = new TreeMap<String, Double>();
+            List<Order> orders = new ArrayList<Order>();
+            // List<Order> history = new ArrayList<Order>();
+        }
+    }
+
 
     ApiKeyPair apiKeyPair;
     RequestSender requestSender;
+    Gson jsonParser;
+
+    void addNonce(List<NameValuePair> urlParameters) {
+        urlParameters.add(new BasicNameValuePair("nonce", Long.toString(System.currentTimeMillis())));
+    }
 
     public BaseTradeApi() {
         apiKeyPair = new ApiKeyPair();
         requestSender = new RequestSender();
+        jsonParser = new GsonBuilder().setDateFormat(Constants.JsonDateFormat).create();
     }
 
-    public BaseTradeApi(String publicKey, String privateKey) {
+    public BaseTradeApi(ApiKeyPair apiKeyPair) {
         this();
-        apiKeyPair.publicKey = publicKey;
-        apiKeyPair.privateKey = privateKey;
+        this.apiKeyPair = apiKeyPair;
     }
 
-    public BaseTradeApi(ApiKeyPair keyPair) {
-        this(keyPair.publicKey, keyPair.privateKey);
+    String makeSign(List<NameValuePair> urlParameters) throws NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
+        return Utils.Crypto.Hashing.hmacDigest(requestSender.formatGetParamString(urlParameters), apiKeyPair.privateKey, Utils.Crypto.Hashing.HMAC_SHA512);
     }
-
-    abstract void cleanAuth(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders);
-    abstract void writeAuthParams(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders);
+    void cleanAuth(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
+        Iterator<NameValuePair> headerIterator = httpHeaders.iterator();
+        while(headerIterator.hasNext()) { // Cleaning
+            NameValuePair header = headerIterator.next();
+            if(header.getName().equals("Key") || header.getName().equals("Sign")) {
+                headerIterator.remove();
+            }
+        }
+        Iterator<NameValuePair> paramsIterator = urlParameters.iterator();
+        while(paramsIterator.hasNext()) { // Cleaning
+            NameValuePair header = paramsIterator.next();
+            if(header.getName().equals("nonce")) {
+                paramsIterator.remove();
+            }
+        }
+    }
+    void writeAuthParams(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
+        if(apiKeyPair == null || apiKeyPair.publicKey.isEmpty() || apiKeyPair.privateKey.isEmpty()) {
+            throw new IllegalArgumentException("Invalid API key pair");
+        }
+        addNonce(urlParameters);
+        try {
+            httpHeaders.add(new BasicNameValuePair("Sign", makeSign(urlParameters)));
+            httpHeaders.add(new BasicNameValuePair("Key", apiKeyPair.publicKey));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
         cleanAuth(urlParameters, requestSender.httpHeaders);
         if(needAuth) writeAuthParams(urlParameters, requestSender.httpHeaders);
@@ -114,16 +211,10 @@ public abstract class BaseTradeApi {
                 throw new IllegalArgumentException("Unknown httpRequestType value");
         }
     }
-    // Public
-    public abstract Object getMarketData(String pair) throws IOException;
-    public abstract Object getOrders(String pair) throws IOException;
-    // Private
-    public abstract Object getAccountInfo();
-    public abstract Object getAccountHistory(String pair);
-    public abstract Object getOpenOrders(String pair);
-    public abstract Object getMarketInfo(String pair);
-    public abstract Object calculateFees(int orderType, double quantity, double price);
+    public abstract List<StandartObjects.MarketInfo> getMarketData(Object pair, boolean retrieveOrders) throws TradeApiError, IOException;
+    public abstract StandartObjects.AccountInfo getAccountInfo(boolean retrieveOrders) throws TradeApiError, IOException;
+    public abstract double calculateFees(int orderType, double quantity, double price) throws TradeApiError, IOException;
 
-    public abstract Object createOrder(String pair, int orderType, double quantity, double price);
-    public abstract Object cancelOrder(String orderId);
+    public abstract int createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError;
+    public abstract boolean cancelOrder(int orderId) throws TradeApiError, IOException;
 }

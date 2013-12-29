@@ -4,6 +4,8 @@ import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 public class Utils {
     public static class Crypto {
@@ -34,7 +36,10 @@ public class Utils {
     }
     public static class Strings {
         public static <T> String formatNumber(T value) {
-            DecimalFormat df = new java.text.DecimalFormat("####,###.########");
+            DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.ENGLISH);
+            symbols.setDecimalSeparator('.');
+            symbols.setGroupingSeparator(',');
+            DecimalFormat df = new DecimalFormat("#################.########", symbols);
             return df.format(value);
         }
     }
