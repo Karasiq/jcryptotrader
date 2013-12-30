@@ -1,4 +1,4 @@
-package com.archean.jtradebot;
+package com.archean.jtradeapi;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -15,12 +15,13 @@ import java.util.Locale;
 public class Utils {
     public static class Crypto {
         public static class Hashing {
-            public static final String HMAC_MD5 = "HmacMD5";
-            public static final String HMAC_SHA1 = "HmacSHA1";
-            public static final String HMAC_SHA256 = "HmacSHA256";
-            public static final String HMAC_SHA384 = "HmacSHA384";
-            public static final String HMAC_SHA512 = "HmacSHA512";
+            public static final String MD5 = "MD5";
+            public static final String SHA1 = "SHA1";
+            public static final String SHA256 = "SHA256";
+            public static final String SHA384 = "SHA384";
+            public static final String SHA512 = "SHA512";
             public static String hmacDigest(String msg, String keyString, String algo) throws InvalidKeyException, NoSuchAlgorithmException, UnsupportedEncodingException {
+                algo = "Hmac" + algo;
                 SecretKeySpec key = new SecretKeySpec((keyString).getBytes("UTF-8"), algo);
                 Mac mac = Mac.getInstance(algo);
                 mac.init(key);

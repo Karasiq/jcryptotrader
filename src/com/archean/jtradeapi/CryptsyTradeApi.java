@@ -1,4 +1,4 @@
-package com.archean.jtradebot;
+package com.archean.jtradeapi;
 
 import com.google.gson.reflect.TypeToken;
 import org.apache.http.NameValuePair;

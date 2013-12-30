@@ -1,11 +1,10 @@
-package com.archean.jtradebot;
+package com.archean.jtradeapi;
 
 import com.google.gson.reflect.TypeToken;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 
 import java.io.IOException;
-import java.security.Timestamp;
 import java.util.*;
 
 public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api

@@ -1,4 +1,4 @@
-package com.archean.jtradebot;
+package com.archean.jtradeapi;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
@@ -202,7 +202,7 @@ public abstract class BaseTradeApi {
     }
 
     protected String makeSign(List<NameValuePair> urlParameters) throws NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
-        return Utils.Crypto.Hashing.hmacDigest(requestSender.formatGetParamString(urlParameters), apiKeyPair.privateKey, Utils.Crypto.Hashing.HMAC_SHA512);
+        return Utils.Crypto.Hashing.hmacDigest(requestSender.formatGetParamString(urlParameters), apiKeyPair.privateKey, Utils.Crypto.Hashing.SHA512);
     }
 
     protected void cleanAuth(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
