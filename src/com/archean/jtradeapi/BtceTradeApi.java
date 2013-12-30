@@ -46,6 +46,10 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
         addPairToMapper("USD", "RUR");
         addPairToMapper("EUR", "USD");
     }
+    public BtceTradeApi(ApiKeyPair pair) {
+        this();
+        apiKeyPair = pair;
+    }
     private static class BtceObjects {
         static class TickerData { // Current market data
             double high;
