@@ -316,14 +316,14 @@ public class CryptsyTradeApi extends BaseTradeApi {
     public long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
         ApiStatus<CryptsyObjects.Order> orderApiStatus = internalCreateOrder((Integer)pair, orderType, quantity, price);
         if(orderApiStatus.success != 1) {
-            throw new TradeApiError("Error creating order (" + orderApiStatus.error + ")");
+            throw new TradeApiError("Failed to create order (" + orderApiStatus.error + ")");
         }
         else return orderApiStatus.result.orderid;
     }
     public boolean cancelOrder(long orderId) throws TradeApiError, IOException {
         ApiStatus<String> cancelApiStatus = internalCancelOrder(orderId);
         if(cancelApiStatus.success != 1) {
-            throw new TradeApiError("Error cancelling order (" + cancelApiStatus.error + ")");
+            throw new TradeApiError("Failed to cancel order (" + cancelApiStatus.error + ")");
         }
         else return true;
     }
