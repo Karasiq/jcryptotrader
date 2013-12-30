@@ -1,3 +1,5 @@
+package com.archean.jtradebot;
+
 import com.google.gson.reflect.TypeToken;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;

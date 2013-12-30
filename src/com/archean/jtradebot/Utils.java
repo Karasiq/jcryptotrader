@@ -1,6 +1,11 @@
+package com.archean.jtradebot;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
@@ -35,12 +40,28 @@ public class Utils {
         }
     }
     public static class Strings {
-        public static <T> String formatNumber(T value) {
+        public static <T> String formatNumber(T value) { // json format
             DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.ENGLISH);
             symbols.setDecimalSeparator('.');
             symbols.setGroupingSeparator(',');
             DecimalFormat df = new DecimalFormat("#################.########", symbols);
             return df.format(value);
+        }
+    }
+    public static class Serialization {
+        public static void serializeObject(Object data, OutputStream outputStream) throws IOException {
+            ObjectOutput output = new ObjectOutputStream(new BufferedOutputStream(outputStream));
+            output.writeObject(data);
+        }
+        public static Object deSerializeObject(InputStream inputStream) throws IOException, ClassNotFoundException {
+            ObjectInput input = new ObjectInputStream(new BufferedInputStream(inputStream));
+            return input.readObject();
+        }
+        public static String jsonSerializeObject(Object data) {
+            return new Gson().toJson(data);
+        }
+        public static <T> T jsonDeSerializeObject(String jsonData) {
+            return new Gson().fromJson(jsonData, new TypeToken<T>(){}.getType());
         }
     }
 }

@@ -1,3 +1,4 @@
+package com.archean.jtradebot;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
@@ -29,7 +30,7 @@ public abstract class BaseTradeApi {
         static final int REQUEST_POST = 1;
         private static final String JsonDateFormat = "yyyy-MM-dd HH:mm:ss";
     }
-    public class RequestSender {
+    protected class RequestSender {
         String requestEncoding = "UTF-8";
         List<NameValuePair> httpHeaders = new ArrayList<NameValuePair>();
 
@@ -107,15 +108,15 @@ public abstract class BaseTradeApi {
     }
 
     public static class StandartObjects { // Unified, api-independent objects
-        static class Prices {
-            double average;
-            double low;
-            double high;
-            double sell;
-            double buy;
-            double last;
+        public static class Prices {
+            public double average;
+            public double low;
+            public double high;
+            public double sell;
+            public double buy;
+            public double last;
         }
-        static class Order {
+        public static class Order {
             public Order() {
                 super();
             }
@@ -123,28 +124,28 @@ public abstract class BaseTradeApi {
                 this.price = price;
                 this.amount = amount;
             }
-            int id;
-            Object pair;
-            double price;
-            double amount;
-            Date time;
-            int type; // ORDER_BUY/ORDER_SELL
+            public int id;
+            public Object pair;
+            public double price;
+            public double amount;
+            public Date time;
+            public int type; // ORDER_BUY/ORDER_SELL
         }
-        static class Depth {
-            List<Order> sellOrders = new ArrayList<Order>(); // Ask
-            List<Order> buyOrders = new ArrayList<Order>(); // Bid
+        public static class Depth {
+            public List<Order> sellOrders = new ArrayList<Order>(); // Ask
+            public List<Order> buyOrders = new ArrayList<Order>(); // Bid
         }
         public static class MarketInfo {
-            String pairName;
-            Object pairId;
-            Prices price = new Prices();
-            Depth depth = new Depth();
-            // List<Order> history = new ArrayList<Order>();
+            public String pairName;
+            public Object pairId;
+            public Prices price = new Prices();
+            public  Depth depth = new Depth();
+            // public List<Order> history = new ArrayList<Order>();
         }
         public static class AccountInfo {
-            TreeMap<String, Double> balance = new TreeMap<String, Double>();
-            List<Order> orders = new ArrayList<Order>();
-            // List<Order> history = new ArrayList<Order>();
+            public TreeMap<String, Double> balance = new TreeMap<String, Double>();
+            public List<Order> orders = new ArrayList<Order>();
+            // public List<Order> history = new ArrayList<Order>();
         }
     }
 
@@ -153,7 +154,7 @@ public abstract class BaseTradeApi {
     RequestSender requestSender;
     Gson jsonParser;
 
-    void addNonce(List<NameValuePair> urlParameters) {
+    protected void addNonce(List<NameValuePair> urlParameters) {
         urlParameters.add(new BasicNameValuePair("nonce", Long.toString(System.currentTimeMillis())));
     }
 
@@ -168,10 +169,11 @@ public abstract class BaseTradeApi {
         this.apiKeyPair = apiKeyPair;
     }
 
-    String makeSign(List<NameValuePair> urlParameters) throws NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
+    protected String makeSign(List<NameValuePair> urlParameters) throws NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
         return Utils.Crypto.Hashing.hmacDigest(requestSender.formatGetParamString(urlParameters), apiKeyPair.privateKey, Utils.Crypto.Hashing.HMAC_SHA512);
     }
-    void cleanAuth(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
+
+    protected void cleanAuth(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
         Iterator<NameValuePair> headerIterator = httpHeaders.iterator();
         while(headerIterator.hasNext()) { // Cleaning
             NameValuePair header = headerIterator.next();
@@ -187,7 +189,7 @@ public abstract class BaseTradeApi {
             }
         }
     }
-    void writeAuthParams(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
+    protected void writeAuthParams(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
         if(apiKeyPair == null || apiKeyPair.publicKey.isEmpty() || apiKeyPair.privateKey.isEmpty()) {
             throw new IllegalArgumentException("Invalid API key pair");
         }
@@ -199,7 +201,7 @@ public abstract class BaseTradeApi {
             e.printStackTrace();
         }
     }
-    String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
+    protected String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
         cleanAuth(urlParameters, requestSender.httpHeaders);
         if(needAuth) writeAuthParams(urlParameters, requestSender.httpHeaders);
         switch (httpRequestType) {
