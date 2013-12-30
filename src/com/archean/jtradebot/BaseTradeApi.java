@@ -124,7 +124,7 @@ public abstract class BaseTradeApi {
                 this.price = price;
                 this.amount = amount;
             }
-            public int id;
+            public long id;
             public Object pair;
             public double price;
             public double amount;
@@ -135,17 +135,49 @@ public abstract class BaseTradeApi {
             public List<Order> sellOrders = new ArrayList<Order>(); // Ask
             public List<Order> buyOrders = new ArrayList<Order>(); // Bid
         }
-        public static class MarketInfo {
+        public static class CurrencyPair {
             public String pairName;
             public Object pairId;
+            public String firstCurrency;
+            public String secondCurrency;
+        }
+        public static class MarketInfo extends CurrencyPair {
             public Prices price = new Prices();
-            public  Depth depth = new Depth();
+            public Depth depth = new Depth();
             // public List<Order> history = new ArrayList<Order>();
         }
         public static class AccountInfo {
-            public TreeMap<String, Double> balance = new TreeMap<String, Double>();
+            public static class AccountBalance extends TreeMap<String, Double> {
+                public AccountBalance() {
+                    super();
+                }
+                public AccountBalance(TreeMap<String, Double> stringDoubleTreeMap) {
+                    super(stringDoubleTreeMap);
+                }
+                public double getBalance(String currencyName) {
+                    for(Map.Entry<String, Double> entry : this.entrySet()) {
+                        if(entry.getKey().equalsIgnoreCase(currencyName)) {
+                            return entry.getValue();
+                        }
+                    }
+                    return 0.0;
+                }
+            }
+            public AccountBalance balance = new AccountBalance();
             public List<Order> orders = new ArrayList<Order>();
             // public List<Order> history = new ArrayList<Order>();
+        }
+        public static class CurrencyPairMapper extends TreeMap<Object, CurrencyPair> {
+            public CurrencyPairMapper() {
+                super();
+            }
+            public Map<String, CurrencyPair> makeNameInfoMap() {
+                Map<String, CurrencyPair> nameKeyMap = new TreeMap<String, CurrencyPair>();
+                for(Map.Entry<Object, CurrencyPair> entry : this.entrySet()) {
+                    nameKeyMap.put(entry.getValue().pairName, entry.getValue());
+                }
+                return nameKeyMap;
+            }
         }
     }
 
@@ -202,6 +234,7 @@ public abstract class BaseTradeApi {
         }
     }
     protected String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
+        if(urlParameters == null) urlParameters = new ArrayList<NameValuePair>(); // empty list
         cleanAuth(urlParameters, requestSender.httpHeaders);
         if(needAuth) writeAuthParams(urlParameters, requestSender.httpHeaders);
         switch (httpRequestType) {
@@ -213,10 +246,11 @@ public abstract class BaseTradeApi {
                 throw new IllegalArgumentException("Unknown httpRequestType value");
         }
     }
+    public abstract StandartObjects.CurrencyPairMapper getCurrencyPairs() throws IOException, TradeApiError;
     public abstract List<StandartObjects.MarketInfo> getMarketData(Object pair, boolean retrieveOrders) throws TradeApiError, IOException;
     public abstract StandartObjects.AccountInfo getAccountInfo(boolean retrieveOrders) throws TradeApiError, IOException;
-    public abstract double calculateFees(int orderType, double quantity, double price) throws TradeApiError, IOException;
+    public abstract double calculateFees(Object pair, int orderType, double quantity, double price) throws TradeApiError, IOException;
 
-    public abstract int createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError;
-    public abstract boolean cancelOrder(int orderId) throws TradeApiError, IOException;
+    public abstract long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError;
+    public abstract boolean cancelOrder(long orderId) throws TradeApiError, IOException;
 }
