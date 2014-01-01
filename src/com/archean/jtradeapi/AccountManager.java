@@ -1,9 +1,39 @@
 package com.archean.jtradeapi;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.io.Serializable;
+import java.sql.Array;
+import java.util.TreeMap;
+
 public class AccountManager {
     public static class AccountType {
         public static final int ACCOUNT_CRYPTSY = 0;
         public static final int ACCOUNT_BTCE = 1;
+    }
+    public static class Account implements Serializable {
+        public String label;
+        public int accountType;
+        public BaseTradeApi.ApiKeyPair keyPair = new BaseTradeApi.ApiKeyPair();
+        public Account() {
+            // do nothing
+        }
+        public Account(int accountType, BaseTradeApi.ApiKeyPair apiKeyPair) {
+            this.accountType = accountType;
+            this.keyPair = apiKeyPair;
+        }
+    }
+    public static class AccountDb extends TreeMap<String, Account> {
+        public void addAccount(String label, int accountType, BaseTradeApi.ApiKeyPair keyPair) {
+            this.put(label, new Account(accountType, keyPair));
+        }
+        public String saveToJson() {
+            return new Gson().toJson(this);
+        }
+        public void loadFromJson(String json) {
+            this.putAll((AccountDb)new Gson().fromJson(json, new TypeToken<AccountDb>(){}.getType()));
+        }
     }
     public static BaseTradeApi tradeApiInstance(int accountType, BaseTradeApi.ApiKeyPair pair) {
         switch(accountType) {
@@ -14,5 +44,8 @@ public class AccountManager {
             default:
                 throw new IllegalArgumentException("Unknown trade account type");
         }
+    }
+    public static BaseTradeApi tradeApiInstance(Account account) {
+        return tradeApiInstance(account.accountType, account.keyPair);
     }
 }
