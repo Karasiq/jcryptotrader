@@ -70,7 +70,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         }
 
         class Trade { // getAccountHistory
-            long tradeid;
+            long tradeid; // An integer identifier for this trade
             String tradetype; // Buy/Sell
             Date datetime;
             int marketid;
@@ -79,7 +79,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
             double fee;
             double total;
             String initiate_ordertype; // Buy/Sell
-            int order_id;
+            long order_id; // Original order id this trade was executed against
         }
 
         class Order extends TradeOrder {
@@ -145,7 +145,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         String json = executeRequest(true, PrivateApiUrl, arguments, Constants.REQUEST_POST);
         return jsonParser.fromJson(json, new TypeToken<ApiStatus<ArrayList<CryptsyObjects.MarketDataPrivate>>>() {}.getType());
     }
-    /* private ApiStatus<List<CryptsyObjects.Trade>> internalGetAccountHistory(int marketId) throws IOException {
+    private ApiStatus<List<CryptsyObjects.Trade>> internalGetAccountHistory(Integer marketId) throws IOException {
         List<NameValuePair> arguments = new ArrayList<NameValuePair>();
         if(marketId == 0) {
             arguments.add(new BasicNameValuePair("method", "allmytrades"));
@@ -157,8 +157,8 @@ public class CryptsyTradeApi extends BaseTradeApi {
         String json = executeRequest(true, PrivateApiUrl, arguments, Constants.REQUEST_POST);
         return jsonParser.fromJson(json, new TypeToken<ApiStatus<ArrayList<CryptsyObjects.Trade>>>() {
         }.getType());
-    } */
-    private ApiStatus<List<CryptsyObjects.Order>> internalGetMyOrders(int marketId) throws IOException {
+    }
+    private ApiStatus<List<CryptsyObjects.Order>> internalGetMyOrders(Integer marketId) throws IOException {
         List<NameValuePair> arguments = new ArrayList<NameValuePair>();
         if(marketId == 0) {
             arguments.add(new BasicNameValuePair("method", "allmyorders"));
@@ -177,7 +177,14 @@ public class CryptsyTradeApi extends BaseTradeApi {
         String json = executeRequest(true, PrivateApiUrl, arguments, Constants.REQUEST_POST);
         return jsonParser.fromJson(json, new TypeToken<ApiStatus<CryptsyObjects.DepthInfo>>() {}.getType());
     }
-    private ApiStatus<CryptsyObjects.Fee> internalCalculateFees(int orderType, double quantity, double price) throws IOException {
+    private ApiStatus<List<CryptsyObjects.Trade>> internalGetMarketHistory(Integer marketId) throws IOException {
+        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        arguments.add(new BasicNameValuePair("method", "markettrades"));
+        arguments.add(new BasicNameValuePair("marketid", Integer.toString(marketId)));
+        String json = executeRequest(true, PrivateApiUrl, arguments, Constants.REQUEST_POST);
+        return jsonParser.fromJson(json, new TypeToken<ApiStatus<List<CryptsyObjects.Trade>>>(){}.getType());
+    }
+    @Deprecated private ApiStatus<CryptsyObjects.Fee> internalCalculateFees(int orderType, double quantity, double price) throws IOException {
         List<NameValuePair> arguments = new ArrayList<NameValuePair>();
         arguments.add(new BasicNameValuePair("method", "calculatefees"));
         arguments.add(new BasicNameValuePair("ordertype", orderType == Constants.ORDER_BUY ? "Buy" : "Sell"));
@@ -242,10 +249,9 @@ public class CryptsyTradeApi extends BaseTradeApi {
         }
         return cachedMapper;
     }
-    public List<StandartObjects.MarketInfo> getMarketData(Object marketId, boolean retrieveOrders) throws TradeApiError, IOException {
+    public List<StandartObjects.MarketInfo> getMarketData(Object marketId, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException {
         List<StandartObjects.MarketInfo> marketInfoList = new ArrayList<StandartObjects.MarketInfo>();
         ApiStatus<List<CryptsyObjects.MarketDataPrivate>> generalInfo = internalGetMarketDataPrivate();
-
 
         if(generalInfo.success != 1) {
             throw new TradeApiError("Error retrieving market info (" + generalInfo.error + ")");
@@ -260,7 +266,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
                     marketInfo.price.buy = marketInfo.price.sell = marketInfo.price.last = entry.last_trade;
                     marketInfo.price.average = (entry.high_trade + entry.low_trade) / 2;
 
-                    if(retrieveOrders) {
+                    if(retrieveOrders && marketId != null && !marketId.equals(0)) {
                         ApiStatus<CryptsyObjects.DepthInfo> ordersInfo = internalGetMarketDepth(entry.marketid);
                         if(ordersInfo.success != 1) {
                             throw new TradeApiError("Error retrieving orders info (" + ordersInfo.error + ")");
@@ -272,13 +278,29 @@ public class CryptsyTradeApi extends BaseTradeApi {
                             marketInfo.depth.sellOrders.add(new StandartObjects.Order(depthEntry.get(0), depthEntry.get(1)));
                         }
                     }
+                    if(retrieveHistory && marketId != null && !marketId.equals(0)) {
+                        ApiStatus<List<CryptsyObjects.Trade>> history = internalGetMarketHistory((Integer)marketId);
+                        if(history.success != 1) {
+                            throw new TradeApiError("Error retrieving history info (" + history.error + ")");
+                        }
+                        for(CryptsyObjects.Trade trade : history.result) {
+                            StandartObjects.Order order = new StandartObjects.Order();
+                            order.amount = trade.quantity;
+                            order.id = trade.tradeid;
+                            order.pair = trade.marketid;
+                            order.price = trade.tradeprice;
+                            order.time = trade.datetime;
+                            order.type = trade.initiate_ordertype.equals("Sell") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
+                            marketInfo.history.add(order);
+                        }
+                    }
                     marketInfoList.add(marketInfo);
                 }
             }
         }
         return marketInfoList;
     }
-    public StandartObjects.AccountInfo getAccountInfo(boolean retrieveOrders) throws TradeApiError, IOException {
+    public StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException {
         StandartObjects.AccountInfo accountInfo = new StandartObjects.AccountInfo();
         ApiStatus<CryptsyObjects.AccountInfo> generalInfo = internalGetAccountInfo();
 
@@ -287,7 +309,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         } else {  // Conversion
             accountInfo.balance = new StandartObjects.AccountInfo.AccountBalance(generalInfo.result.balances_available);
             if(retrieveOrders) {
-                ApiStatus<List<CryptsyObjects.Order>> ordersInfo = internalGetMyOrders(0);
+                ApiStatus<List<CryptsyObjects.Order>> ordersInfo = internalGetMyOrders((Integer)pair);
                 if(ordersInfo.success != 1) {
                     throw new TradeApiError("Error retrieving orders info (" + ordersInfo.error + ")");
                 }
@@ -302,15 +324,28 @@ public class CryptsyTradeApi extends BaseTradeApi {
                     accountInfo.orders.add(uOrder);
                 }
             }
+            if(retrieveHistory) {
+                ApiStatus<List<CryptsyObjects.Trade>> historyApiStatus = internalGetAccountHistory((Integer)pair);
+                if(historyApiStatus.success != 1) {
+                    throw new TradeApiError("Error retrieving account history (" + historyApiStatus.error + ")");
+                }
+                for(CryptsyObjects.Trade trade : historyApiStatus.result) {
+                    StandartObjects.Order order = new StandartObjects.Order();
+                    order.amount = trade.quantity;
+                    order.id = trade.tradeid;
+                    order.pair = trade.marketid;
+                    order.price = trade.tradeprice;
+                    order.time = trade.datetime;
+                    order.type = trade.initiate_ordertype.equals("Sell") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
+                    accountInfo.history.add(order);
+                }
+            }
         }
         return accountInfo;
     }
-    public double calculateFees(Object pair, int orderType, double quantity, double price) throws TradeApiError, IOException {
-        ApiStatus<CryptsyObjects.Fee> feeApiStatus = internalCalculateFees(orderType, quantity, price);
-        if(feeApiStatus.success != 1) {
-            throw new TradeApiError("Error calculating fee (" + feeApiStatus.error + ")");
-        }
-        else return feeApiStatus.result.fee;
+
+    public double getFeePercent(Object pair) throws TradeApiError, IOException {
+        return 0.2;
     }
 
     public long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
