@@ -49,6 +49,7 @@ public class TraderMainForm extends JPanel {
         sliderBuyOrderAmount = new JSlider();
         labelBuyOrderTotal = new JLabel();
         labelBuyOrderTotalValue = new JLabel();
+        buttonCommitBuyOrder = new JButton();
         panelSell = new JPanel();
         labelSellOrderPrice = new JLabel();
         spinnerSellOrderPrice = new JSpinner();
@@ -58,6 +59,7 @@ public class TraderMainForm extends JPanel {
         sliderSellOrderAmount = new JSlider();
         labelSellOrderTotal = new JLabel();
         labelSellOrderTotalValue = new JLabel();
+        buttonCommitSellOrder = new JButton();
         tabbedPaneInfo = new JTabbedPane();
         panelOrders = new JPanel();
         scrollPane4 = new JScrollPane();
@@ -81,7 +83,10 @@ public class TraderMainForm extends JPanel {
         tableMarketHistory = new JTable();
         panelSettings = new JPanel();
         labelFeePercent = new JLabel();
-        spinner2 = new JSpinner();
+        spinnerFeePercent = new JSpinner();
+        label1 = new JLabel();
+        spinnerUpdateInterval = new JSpinner();
+        buttonApplySettings = new JButton();
         panelLog = new JPanel();
         scrollPane5 = new JScrollPane();
         textPaneLog = new JTextPane();
@@ -210,6 +215,12 @@ public class TraderMainForm extends JPanel {
                     //---- labelBuyOrderTotalValue ----
                     labelBuyOrderTotalValue.setText("0 / 0");
                     panelBuy.add(labelBuyOrderTotalValue, CC.xy(5, 5, CC.RIGHT, CC.DEFAULT));
+
+                    //---- buttonCommitBuyOrder ----
+                    buttonCommitBuyOrder.setText(bundle.getString("TraderMainForm.buttonCommitBuyOrder.text"));
+                    buttonCommitBuyOrder.setFont(buttonCommitBuyOrder.getFont().deriveFont(buttonCommitBuyOrder.getFont().getStyle() | Font.BOLD));
+                    buttonCommitBuyOrder.setBackground(new Color(46, 195, 23, 122));
+                    panelBuy.add(buttonCommitBuyOrder, CC.xy(7, 5, CC.LEFT, CC.DEFAULT));
                 }
                 tabbedPaneTrade.addTab(bundle.getString("TraderMainForm.panelBuy.tab.title"), panelBuy);
 
@@ -252,6 +263,12 @@ public class TraderMainForm extends JPanel {
                     //---- labelSellOrderTotalValue ----
                     labelSellOrderTotalValue.setText("0 / 0");
                     panelSell.add(labelSellOrderTotalValue, CC.xy(5, 5, CC.RIGHT, CC.DEFAULT));
+
+                    //---- buttonCommitSellOrder ----
+                    buttonCommitSellOrder.setText(bundle.getString("TraderMainForm.buttonCommitSellOrder.text"));
+                    buttonCommitSellOrder.setBackground(new Color(255, 82, 82, 226));
+                    buttonCommitSellOrder.setFont(buttonCommitSellOrder.getFont().deriveFont(buttonCommitSellOrder.getFont().getStyle() | Font.BOLD));
+                    panelSell.add(buttonCommitSellOrder, CC.xy(7, 5, CC.LEFT, CC.DEFAULT));
                 }
                 tabbedPaneTrade.addTab(bundle.getString("TraderMainForm.panelSell.title"), panelSell);
             }
@@ -512,16 +529,30 @@ public class TraderMainForm extends JPanel {
                 //======== panelSettings ========
                 {
                     panelSettings.setLayout(new FormLayout(
-                        "5dlu, 2*($lcgap, 40dlu)",
+                        "5dlu, $lcgap, 67dlu, $lcgap, 57dlu, 2*($lcgap, default)",
                         "2*(default, $lgap), default"));
 
                     //---- labelFeePercent ----
                     labelFeePercent.setText(bundle.getString("TraderMainForm.labelFeePercent.text"));
+                    labelFeePercent.setLabelFor(spinnerFeePercent);
                     panelSettings.add(labelFeePercent, CC.xy(3, 1));
 
-                    //---- spinner2 ----
-                    spinner2.setModel(new SpinnerNumberModel(0.2, 0.0, 100.0, 0.1));
-                    panelSettings.add(spinner2, CC.xy(5, 1));
+                    //---- spinnerFeePercent ----
+                    spinnerFeePercent.setModel(new SpinnerNumberModel(0.2, 0.0, 100.0, 0.1));
+                    panelSettings.add(spinnerFeePercent, CC.xy(5, 1));
+
+                    //---- label1 ----
+                    label1.setText(bundle.getString("TraderMainForm.label1.text"));
+                    label1.setLabelFor(spinnerUpdateInterval);
+                    panelSettings.add(label1, CC.xy(3, 3));
+
+                    //---- spinnerUpdateInterval ----
+                    spinnerUpdateInterval.setModel(new SpinnerNumberModel(250, 0, 30000, 50));
+                    panelSettings.add(spinnerUpdateInterval, CC.xy(5, 3));
+
+                    //---- buttonApplySettings ----
+                    buttonApplySettings.setText(bundle.getString("TraderMainForm.buttonApplySettings.text"));
+                    panelSettings.add(buttonApplySettings, CC.xywh(3, 5, 3, 1));
                 }
                 tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelSettings.tab.title"), panelSettings);
 
@@ -571,6 +602,7 @@ public class TraderMainForm extends JPanel {
     private JSlider sliderBuyOrderAmount;
     private JLabel labelBuyOrderTotal;
     private JLabel labelBuyOrderTotalValue;
+    private JButton buttonCommitBuyOrder;
     private JPanel panelSell;
     private JLabel labelSellOrderPrice;
     private JSpinner spinnerSellOrderPrice;
@@ -580,6 +612,7 @@ public class TraderMainForm extends JPanel {
     private JSlider sliderSellOrderAmount;
     private JLabel labelSellOrderTotal;
     private JLabel labelSellOrderTotalValue;
+    private JButton buttonCommitSellOrder;
     private JTabbedPane tabbedPaneInfo;
     private JPanel panelOrders;
     private JScrollPane scrollPane4;
@@ -603,7 +636,10 @@ public class TraderMainForm extends JPanel {
     private JTable tableMarketHistory;
     private JPanel panelSettings;
     private JLabel labelFeePercent;
-    private JSpinner spinner2;
+    private JSpinner spinnerFeePercent;
+    private JLabel label1;
+    private JSpinner spinnerUpdateInterval;
+    private JButton buttonApplySettings;
     private JPanel panelLog;
     private JScrollPane scrollPane5;
     private JTextPane textPaneLog;

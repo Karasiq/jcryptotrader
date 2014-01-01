@@ -215,6 +215,16 @@ new FormModel {
 						"gridY": 5
 						"hAlign": sfield com.jgoodies.forms.layout.CellConstraints RIGHT
 					} )
+					add( new FormComponent( "javax.swing.JButton" ) {
+						name: "buttonCommitBuyOrder"
+						"text": new FormMessage( null, "TraderMainForm.buttonCommitBuyOrder.text" )
+						"font": new com.jformdesigner.model.SwingDerivedFont( null, 1, 0, false )
+						"background": new java.awt.Color( 46, 195, 23, 122 )
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 7
+						"gridY": 5
+						"hAlign": sfield com.jgoodies.forms.layout.CellConstraints LEFT
+					} )
 				}, new FormLayoutConstraints( null ) {
 					"title": new FormMessage( null, "TraderMainForm.panelBuy.tab.title" )
 				} )
@@ -285,6 +295,16 @@ new FormModel {
 						"gridX": 5
 						"gridY": 5
 						"hAlign": sfield com.jgoodies.forms.layout.CellConstraints RIGHT
+					} )
+					add( new FormComponent( "javax.swing.JButton" ) {
+						name: "buttonCommitSellOrder"
+						"text": new FormMessage( null, "TraderMainForm.buttonCommitSellOrder.text" )
+						"background": new java.awt.Color( 255, 82, 82, 226 )
+						"font": new com.jformdesigner.model.SwingDerivedFont( null, 1, 0, false )
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 7
+						"gridY": 5
+						"hAlign": sfield com.jgoodies.forms.layout.CellConstraints LEFT
 					} )
 				}, new FormLayoutConstraints( null ) {
 					"title": new FormMessage( null, "TraderMainForm.panelSell.title" )
@@ -533,23 +553,47 @@ new FormModel {
 					"title": new FormMessage( null, "TraderMainForm.panelHistory.tab.title" )
 				} )
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
-					"$columnSpecs": "5dlu, labelcompgap, 40dlu, labelcompgap, 40dlu"
+					"$columnSpecs": "5dlu, labelcompgap, 67dlu, labelcompgap, 57dlu, labelcompgap, default, labelcompgap, default"
 					"$rowSpecs": "default, linegap, default, linegap, default"
 				} ) {
 					name: "panelSettings"
 					add( new FormComponent( "javax.swing.JLabel" ) {
 						name: "labelFeePercent"
 						"text": new FormMessage( null, "TraderMainForm.labelFeePercent.text" )
+						"labelFor": new FormReference( "spinnerFeePercent" )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 3
 						"gridY": 1
 					} )
 					add( new FormComponent( "javax.swing.JSpinner" ) {
-						name: "spinner2"
+						name: "spinnerFeePercent"
 						"model": new javax.swing.SpinnerNumberModel( 0.2, 0.0, 100.0, 0.1 )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 5
 						"gridY": 1
+					} )
+					add( new FormComponent( "javax.swing.JLabel" ) {
+						name: "label1"
+						"text": new FormMessage( null, "TraderMainForm.label1.text" )
+						"labelFor": new FormReference( "spinnerUpdateInterval" )
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 3
+						"gridY": 3
+					} )
+					add( new FormComponent( "javax.swing.JSpinner" ) {
+						name: "spinnerUpdateInterval"
+						"model": new javax.swing.SpinnerNumberModel( 250, 0, 30000, 50 )
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 5
+						"gridY": 3
+					} )
+					add( new FormComponent( "javax.swing.JButton" ) {
+						name: "buttonApplySettings"
+						"text": new FormMessage( null, "TraderMainForm.buttonApplySettings.text" )
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 3
+						"gridY": 5
+						"gridWidth": 3
 					} )
 				}, new FormLayoutConstraints( null ) {
 					"title": new FormMessage( null, "TraderMainForm.panelSettings.tab.title" )

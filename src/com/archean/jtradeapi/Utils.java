@@ -58,11 +58,5 @@ public class Utils {
             ObjectInput input = new ObjectInputStream(new BufferedInputStream(inputStream));
             return input.readObject();
         }
-        public static String jsonSerializeObject(Object data) {
-            return new Gson().toJson(data);
-        }
-        public static <T> T jsonDeSerializeObject(String jsonData) {
-            return new Gson().fromJson(jsonData, new TypeToken<T>(){}.getType());
-        }
     }
 }

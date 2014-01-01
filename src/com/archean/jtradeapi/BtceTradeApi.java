@@ -63,7 +63,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
             long updated;
             long server_time;
         }
-        /* class Trade { // History
+        class Trade { // History
             long date;
             double price;
             double amount;
@@ -71,7 +71,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
             String price_currency;
             String item;
             String trade_type; // ask/bid
-        } */
+        }
         static class Depth {
             List<List<Double>> asks = new ArrayList<List<Double>>(); // [0] - price, [1] - amount
             List<List<Double>> bids = new ArrayList<List<Double>>();
@@ -95,6 +95,11 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
             long timestamp_created;
             int status;
         }
+        private static class AccountTrade extends Order { // History
+            long order_id;
+            int is_your_order;
+            long timestamp;
+        }
         private static class OpenOrderStatus {
             double received;
             double remains;
@@ -113,9 +118,6 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
     }
 
     private BtceObjects.TickerData internalGetTicker(String pair) throws IOException {
-        class TickerStub {
-            BtceObjects.TickerData ticker = new BtceObjects.TickerData();
-        }
         String url = publicApiFormatUrl(pair, "ticker");
         String json = executeRequest(false, url, null, Constants.REQUEST_GET);
         TreeMap<String, BtceObjects.TickerData> map = jsonParser.fromJson(json, new TypeToken<TreeMap<String, BtceObjects.TickerData>>(){}.getType());
@@ -128,7 +130,13 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
         return jsonParser.fromJson(json, new TypeToken<BtceObjects.Depth>(){}.getType());
     }
 
-    private StandartObjects.MarketInfo internalUnifiedGetMarketData(Object pair, boolean retrieveOrders) throws IOException {
+    private List<BtceObjects.Trade> internalGetHistory(String pair) throws IOException {
+        String url = publicApiFormatUrl(pair, "trades");
+        String json = executeRequest(false, url, null, Constants.REQUEST_GET);
+        return jsonParser.fromJson(json, new TypeToken<List<BtceObjects.Trade>>(){}.getType());
+    }
+
+    private StandartObjects.MarketInfo internalUnifiedGetMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws IOException {
         BtceObjects.TickerData tickerData = internalGetTicker((String)pair);
         StandartObjects.MarketInfo marketInfo = new StandartObjects.MarketInfo();
         marketInfo.pairId = pair;
@@ -151,6 +159,19 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
             }
             for(List<Double> entry : depth.bids) {
                 marketInfo.depth.buyOrders.add(new StandartObjects.Order(entry.get(0), entry.get(1)));
+            }
+        }
+        if(retrieveHistory) {
+            List<BtceObjects.Trade> history = internalGetHistory((String)pair);
+            for(BtceObjects.Trade trade : history) {
+                StandartObjects.Order order = new StandartObjects.Order();
+                order.amount = trade.amount;
+                order.id = trade.tid;
+                order.pair = pair;
+                order.price = trade.price;
+                order.time = new Date(trade.date * 1000);
+                order.type = trade.trade_type.equals("ask") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
+                marketInfo.history.add(order);
             }
         }
         return marketInfo;
@@ -187,6 +208,15 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
         String json = executeRequest(true, privateApiUrl, httpParameters, Constants.REQUEST_POST);
         return jsonParser.fromJson(json, new TypeToken<ApiStatus<TreeMap<Long, BtceObjects.Order>>>(){}.getType());
     }
+    private ApiStatus<TreeMap<Long, BtceObjects.AccountTrade>> internalGetAccountHistory(String pair) throws IOException {
+        List<NameValuePair> httpParameters = new ArrayList<NameValuePair>();
+        httpParameters.add(new BasicNameValuePair("method", "TradeHistory"));
+        if(pair != null && !pair.isEmpty() && !pair.equals("")) {
+            httpParameters.add(new BasicNameValuePair("pair", pair));
+        }
+        String json = executeRequest(true, privateApiUrl, httpParameters, Constants.REQUEST_POST);
+        return jsonParser.fromJson(json, new TypeToken<ApiStatus<TreeMap<Long, BtceObjects.AccountTrade>>>(){}.getType());
+    }
     private ApiStatus<BtceObjects.OpenOrderStatus> internalOpenOrder(String pair, int type, double amount, double price) throws IOException {
         List<NameValuePair> httpParameters = new ArrayList<NameValuePair>();
         httpParameters.add(new BasicNameValuePair("method", "Trade"));
@@ -209,16 +239,16 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
     public StandartObjects.CurrencyPairMapper getCurrencyPairs() throws IOException, TradeApiError {
         return pairMapper;
     }
-    public List<StandartObjects.MarketInfo> getMarketData(Object pair, boolean retrieveOrders) throws TradeApiError, IOException {
+    public List<StandartObjects.MarketInfo> getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException {
         List<StandartObjects.MarketInfo> marketInfoList = new ArrayList<StandartObjects.MarketInfo>();
         if(pair != null && !pair.equals("")) {
-            marketInfoList.add(internalUnifiedGetMarketData(pair, retrieveOrders));
+            marketInfoList.add(internalUnifiedGetMarketData(pair, retrieveOrders, retrieveHistory));
         } else for(Map.Entry<Object, StandartObjects.CurrencyPair> entry : pairMapper.entrySet()) {
-            marketInfoList.add(internalUnifiedGetMarketData(entry.getKey(), retrieveOrders));
+            marketInfoList.add(internalUnifiedGetMarketData(entry.getKey(), retrieveOrders, retrieveHistory));
         }
         return marketInfoList;
     }
-    public StandartObjects.AccountInfo getAccountInfo(boolean retrieveOrders) throws TradeApiError, IOException {
+    public StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException {
         ApiStatus<BtceObjects.AccountInfo> accountInfoApiStatus = internalGetAccountInfo();
         if(accountInfoApiStatus.success != 1) {
             throw new TradeApiError("Error retrieving account info (" + accountInfoApiStatus.error + ")");
@@ -241,11 +271,26 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
                 accountInfo.orders.add(order);
             }
         }
+        if(retrieveHistory) {
+            ApiStatus<TreeMap<Long, BtceObjects.AccountTrade>> accountHistoryStatus = internalGetAccountHistory((String)pair);
+            if(accountHistoryStatus.success != 1) {
+                throw new TradeApiError("Error retrieving account history info (" + accountHistoryStatus.error + ")");
+            }
+            for(Map.Entry<Long, BtceObjects.AccountTrade> tradeEntry : accountHistoryStatus.result.entrySet()) {
+                StandartObjects.Order order = new StandartObjects.Order();
+                order.id = tradeEntry.getKey();
+                order.amount = tradeEntry.getValue().amount;
+                order.pair = tradeEntry.getValue().pair;
+                order.price = tradeEntry.getValue().rate;
+                order.time = new Date(tradeEntry.getValue().timestamp * 1000);
+                order.type = tradeEntry.getValue().type.equals("sell") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
+                accountInfo.history.add(order);
+            }
+        }
         return accountInfo;
     }
-    public double calculateFees(Object pair, int orderType, double quantity, double price) throws TradeApiError, IOException {
-        double percent = internalGetFeePercent((String)pair);
-        return (quantity * price) * percent / 100.0;
+    public double getFeePercent(Object pair) throws TradeApiError, IOException {
+        return internalGetFeePercent((String)pair);
     }
 
     public long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {

@@ -144,7 +144,7 @@ public abstract class BaseTradeApi {
         public static class MarketInfo extends CurrencyPair {
             public Prices price = new Prices();
             public Depth depth = new Depth();
-            // public List<Order> history = new ArrayList<Order>();
+            public List<Order> history = new ArrayList<Order>();
         }
         public static class AccountInfo {
             public static class AccountBalance extends TreeMap<String, Double> {
@@ -165,7 +165,7 @@ public abstract class BaseTradeApi {
             }
             public AccountBalance balance = new AccountBalance();
             public List<Order> orders = new ArrayList<Order>();
-            // public List<Order> history = new ArrayList<Order>();
+            public List<Order> history = new ArrayList<Order>();
         }
         public static class CurrencyPairMapper extends TreeMap<Object, CurrencyPair> {
             public CurrencyPairMapper() {
@@ -247,9 +247,12 @@ public abstract class BaseTradeApi {
         }
     }
     public abstract StandartObjects.CurrencyPairMapper getCurrencyPairs() throws IOException, TradeApiError;
-    public abstract List<StandartObjects.MarketInfo> getMarketData(Object pair, boolean retrieveOrders) throws TradeApiError, IOException;
-    public abstract StandartObjects.AccountInfo getAccountInfo(boolean retrieveOrders) throws TradeApiError, IOException;
-    public abstract double calculateFees(Object pair, int orderType, double quantity, double price) throws TradeApiError, IOException;
+    public abstract List<StandartObjects.MarketInfo> getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException;
+    public abstract StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException;
+    public StandartObjects.AccountInfo getAccountInfo() throws IOException, TradeApiError {
+        return getAccountInfo(null, false, false);
+    }
+    public abstract double getFeePercent(Object pair) throws TradeApiError, IOException;
 
     public abstract long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError;
     public abstract boolean cancelOrder(long orderId) throws TradeApiError, IOException;
