@@ -277,6 +277,9 @@ public class CryptsyTradeApi extends BaseTradeApi {
                         for(List<Double> depthEntry : ordersInfo.result.sell) {
                             marketInfo.depth.sellOrders.add(new StandartObjects.Order(depthEntry.get(0), depthEntry.get(1)));
                         }
+                        // Top prices:
+                        marketInfo.price.sell = marketInfo.depth.buyOrders.get(0).price;
+                        marketInfo.price.buy = marketInfo.depth.sellOrders.get(0).price;
                     }
                     if(retrieveHistory && marketId != null && !marketId.equals(0)) {
                         ApiStatus<List<CryptsyObjects.Trade>> history = internalGetMarketHistory((Integer)marketId);
