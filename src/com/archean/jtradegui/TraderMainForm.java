@@ -5,9 +5,22 @@
 package com.archean.jtradegui;
 
 import java.awt.*;
+import java.io.IOException;
 import java.util.*;
+import java.util.List;
 import javax.swing.*;
+import javax.swing.event.*;
 import javax.swing.table.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
+import javax.swing.text.html.StyleSheet;
+
+import com.archean.jtradeapi.AccountManager;
+import com.archean.jtradeapi.ApiWorker;
+import com.archean.jtradeapi.BaseTradeApi;
+import com.archean.jtradeapi.Utils;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
 
@@ -15,8 +28,155 @@ import com.jgoodies.forms.layout.*;
  * @author Yarr harr
  */
 public class TraderMainForm extends JPanel {
+    ApiWorker worker = new ApiWorker();
+    BaseTradeApi.StandartObjects.CurrencyPairMapper pairMapper = new BaseTradeApi.StandartObjects.CurrencyPairMapper();
+    protected void processException(Exception e) {
+        StyledDocument document = textPaneLog.getStyledDocument();
+        SimpleAttributeSet errorStyle = new SimpleAttributeSet();
+        StyleConstants.setForeground(errorStyle, Color.RED);
+        StyleConstants.setBold(errorStyle, true);
+        try {
+            document.insertString(document.getLength(), e.getLocalizedMessage(), errorStyle);
+        } catch (BadLocationException e1) {
+            e1.printStackTrace();
+        }
+    }
+    protected void processNotification(String notification) {
+        StyledDocument document = textPaneLog.getStyledDocument();
+        SimpleAttributeSet notificationStyle = new SimpleAttributeSet();
+        StyleConstants.setForeground(notificationStyle, Color.BLUE);
+        StyleConstants.setItalic(notificationStyle, true);
+        try {
+            document.insertString(document.getLength(), notification, notificationStyle);
+        } catch (BadLocationException e1) {
+            e1.printStackTrace();
+        }
+    }
+    public void initMarket(AccountManager.Account account) {
+        worker.initTradeApiInstance(account);
+        try {
+            pairMapper = worker.tradeApi.getCurrencyPairs();
+        } catch (Exception e) {
+            this.processException(e);
+        }
+    }
+    public void fillGui(BaseTradeApi.StandartObjects.AccountInfo accountInfo, BaseTradeApi.StandartObjects.MarketInfo marketInfo) {
+        // Current market data:
+        textFieldLowPrice.setText(Double.toString(marketInfo.price.low));
+        textFieldHighPrice.setText(Double.toString(marketInfo.price.high));
+        textFieldAvgPrice.setText(Double.toString(marketInfo.price.average));
+        textFieldBuyPrice.setText(Double.toString(marketInfo.price.buy));
+        textFieldSellPrice.setText(Double.toString(marketInfo.price.sell));
+        textFieldVolume.setText(Double.toString(marketInfo.volume));
+
+        // Depth:
+        if(tabbedPaneInfo.getSelectedIndex() == 2 /* Depth tab */) {
+            DefaultTableModel model = (DefaultTableModel)tableBuyOrders.getModel();
+            model.setRowCount(marketInfo.depth.buyOrders.size());
+            int i = 0;
+            for(BaseTradeApi.StandartObjects.Order order : marketInfo.depth.buyOrders) {
+                model.setValueAt(order.price, i, 0);
+                model.setValueAt(order.amount, i, 0);
+                i++;
+            }
+            model = (DefaultTableModel)tableSellOrders.getModel();
+            model.setRowCount(marketInfo.depth.sellOrders.size());
+            i = 0;
+            for(BaseTradeApi.StandartObjects.Order order : marketInfo.depth.sellOrders) {
+                model.setValueAt(order.price, i, 0);
+                model.setValueAt(order.amount, i, 0);
+                i++;
+            }
+        }
+
+        // History:
+        if(tabbedPaneInfo.getSelectedIndex() == 3 /* History tab */) {
+            // Market history:
+            int i = 0;
+            DefaultTableModel model = (DefaultTableModel)tableMarketHistory.getModel();
+            model.setRowCount(marketInfo.history.size());
+            for(BaseTradeApi.StandartObjects.Order order : marketInfo.history) {
+                model.setValueAt(order.type == BaseTradeApi.Constants.ORDER_SELL ? "Sell" : "Buy", i, 0);
+                model.setValueAt(order.price, i, 1);
+                model.setValueAt(order.amount, i, 2);
+                model.setValueAt(order.amount * order.price, i, 3);
+                i++;
+            }
+            // Account history:
+            i = 0;
+            model = (DefaultTableModel)tableAccountHistory.getModel();
+            model.setRowCount(accountInfo.history.size());
+            for(BaseTradeApi.StandartObjects.Order order : accountInfo.history) {
+                model.setValueAt(order.type == BaseTradeApi.Constants.ORDER_SELL ? "Sell" : "Buy", i, 0);
+                model.setValueAt(order.price, i, 1);
+                model.setValueAt(order.amount, i, 2);
+                model.setValueAt(order.amount * order.price, i, 3);
+                i++;
+            }
+        }
+
+        // Open orders:
+        if(tabbedPaneInfo.getSelectedIndex() == 0 /* Orders tab */) {
+            int i = 0;
+            DefaultTableModel model = (DefaultTableModel)tableOpenOrders.getModel();
+            model.setRowCount(accountInfo.orders.size());
+            for(BaseTradeApi.StandartObjects.Order order : accountInfo.orders) {
+                model.setValueAt(order.type == BaseTradeApi.Constants.ORDER_SELL ? "Sell" : "Buy", i, 0); // Type
+                model.setValueAt(order.price, i, 1); // Price
+                model.setValueAt(order.amount, i, 2); // Amount
+                model.setValueAt(order.amount * order.price, i, 3); // Total
+                i++;
+            }
+        }
+
+        // Balance:
+        if(tabbedPaneInfo.getSelectedIndex() == 1 /* Balances tab */) {
+            int i = 0;
+            DefaultTableModel model = (DefaultTableModel)tableBalances.getModel();
+            model.setRowCount(accountInfo.balance.size());
+            for(Map.Entry<String, Double> balance : accountInfo.balance.entrySet()) {
+                if(model.getValueAt(i, 0).equals(balance.getKey()) && !model.getValueAt(i, 1).equals(balance.getValue())) {
+                    double changedBalance = balance.getValue() - (Double)model.getValueAt(i, 1);
+                    processNotification("Available balance changed: " + (changedBalance > 0 ? "+" : "") + Utils.Strings.formatNumber(changedBalance) + " " + balance.getKey());
+                }
+                model.setValueAt(balance.getKey(), i, 0); // Currency name
+                model.setValueAt(balance.getValue(), i, 1); // Amount
+                i++;
+            }
+        }
+    }
     public TraderMainForm() {
+        worker.setCallBack(new ApiWorker.Callback() {
+            @Override
+            public void onUpdate(ApiWorker worker) {
+                fillGui(worker.accountInfo, worker.marketInfo.get(0));
+            }
+            @Override
+            public void onError(Exception e) {
+                processException(e);
+            }
+        });
         initComponents();
+    }
+
+    private void tabbedPaneInfoStateChanged(ChangeEvent e) {
+        JTabbedPane pane = (JTabbedPane)e.getSource();
+        switch(pane.getSelectedIndex()) {
+            case 0: // Orders
+                worker.setAccountInfoUpdate(true, true, false).setMarketInfoUpdate(true, false, false);
+                break;
+            case 1: // Balances
+                worker.setAccountInfoUpdate(true, false, false).setMarketInfoUpdate(true, false, false);
+                break;
+            case 2: // Depth
+                worker.setAccountInfoUpdate(false, false, false).setMarketInfoUpdate(true, true, false);
+                break;
+            case 3: // History
+                worker.setAccountInfoUpdate(false, false, false).setMarketInfoUpdate(true, false, false);
+                break;
+            default: // Other tabs
+                worker.setAccountInfoUpdate(false, false, false).setMarketInfoUpdate(true, false, false);
+        }
     }
 
     private void initComponents() {
@@ -63,7 +223,7 @@ public class TraderMainForm extends JPanel {
         tabbedPaneInfo = new JTabbedPane();
         panelOrders = new JPanel();
         scrollPane4 = new JScrollPane();
-        table3 = new JTable();
+        tableOpenOrders = new JTable();
         panelBalance = new JPanel();
         scrollPane3 = new JScrollPane();
         tableBalances = new JTable();
@@ -276,6 +436,12 @@ public class TraderMainForm extends JPanel {
 
             //======== tabbedPaneInfo ========
             {
+                tabbedPaneInfo.addChangeListener(new ChangeListener() {
+                    @Override
+                    public void stateChanged(ChangeEvent e) {
+                        tabbedPaneInfoStateChanged(e);
+                    }
+                });
 
                 //======== panelOrders ========
                 {
@@ -286,8 +452,8 @@ public class TraderMainForm extends JPanel {
                     //======== scrollPane4 ========
                     {
 
-                        //---- table3 ----
-                        table3.setModel(new DefaultTableModel(
+                        //---- tableOpenOrders ----
+                        tableOpenOrders.setModel(new DefaultTableModel(
                             new Object[][] {
                                 {null, null, null, null},
                                 {null, null, null, null},
@@ -311,7 +477,7 @@ public class TraderMainForm extends JPanel {
                                 return columnEditable[columnIndex];
                             }
                         });
-                        scrollPane4.setViewportView(table3);
+                        scrollPane4.setViewportView(tableOpenOrders);
                     }
                     panelOrders.add(scrollPane4, CC.xy(1, 1));
                 }
@@ -616,7 +782,7 @@ public class TraderMainForm extends JPanel {
     private JTabbedPane tabbedPaneInfo;
     private JPanel panelOrders;
     private JScrollPane scrollPane4;
-    private JTable table3;
+    private JTable tableOpenOrders;
     private JPanel panelBalance;
     private JScrollPane scrollPane3;
     private JTable tableBalances;

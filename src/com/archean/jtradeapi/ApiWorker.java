@@ -20,7 +20,7 @@ public class ApiWorker implements Runnable {
     volatile private boolean retrieveMarketHistory = false;
     volatile private boolean retrieveAccountOrders = false;
     volatile private boolean retrieveAccountHistory = false;
-    volatile BaseTradeApi tradeApi = null;
+    volatile public BaseTradeApi tradeApi = null;
     volatile long timeInterval = 200;
     volatile Object pair = null;
     volatile Callback callback = null;
@@ -73,6 +73,10 @@ public class ApiWorker implements Runnable {
     }
     public ApiWorker initTradeApiInstance(int accountType, BaseTradeApi.ApiKeyPair apiKeyPair) {
         this.tradeApi = AccountManager.tradeApiInstance(accountType, apiKeyPair);
+        return this;
+    }
+    public ApiWorker initTradeApiInstance(AccountManager.Account account) {
+        this.tradeApi = AccountManager.tradeApiInstance(account);
         return this;
     }
     public ApiWorker setTimeInterval(long ms) {

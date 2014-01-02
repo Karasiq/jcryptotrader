@@ -24,11 +24,11 @@ public abstract class BaseTradeApi {
         }
     }
     public static final class Constants {
-        static final int ORDER_BUY = 0;
-        static final int ORDER_SELL = 1;
-        static final int REQUEST_GET = 0;
-        static final int REQUEST_POST = 1;
-        private static final String JsonDateFormat = "yyyy-MM-dd HH:mm:ss";
+        public static final int ORDER_BUY = 0;
+        public static final int ORDER_SELL = 1;
+        public static final int REQUEST_GET = 0;
+        public static final int REQUEST_POST = 1;
+        protected static final String JsonDateFormat = "yyyy-MM-dd HH:mm:ss";
     }
     protected class RequestSender {
         String requestEncoding = "UTF-8";

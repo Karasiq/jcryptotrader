@@ -315,6 +315,7 @@ new FormModel {
 			} )
 			add( new FormContainer( "javax.swing.JTabbedPane", new FormLayoutManager( class javax.swing.JTabbedPane ) ) {
 				name: "tabbedPaneInfo"
+				addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "tabbedPaneInfoStateChanged", true ) )
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
 					"$columnSpecs": "default:grow"
 					"$rowSpecs": "default"
@@ -323,7 +324,7 @@ new FormModel {
 					add( new FormContainer( "javax.swing.JScrollPane", new FormLayoutManager( class javax.swing.JScrollPane ) ) {
 						name: "scrollPane4"
 						add( new FormComponent( "javax.swing.JTable" ) {
-							name: "table3"
+							name: "tableOpenOrders"
 							"model": new com.jformdesigner.model.SwingTableModel( new java.util.Vector {
 								add( new java.util.Vector {
 									add( null )
