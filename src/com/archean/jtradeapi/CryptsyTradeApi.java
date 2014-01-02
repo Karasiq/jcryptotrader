@@ -265,6 +265,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
                     marketInfo.price.low = entry.low_trade;
                     marketInfo.price.buy = marketInfo.price.sell = marketInfo.price.last = entry.last_trade;
                     marketInfo.price.average = (entry.high_trade + entry.low_trade) / 2;
+                    marketInfo.volume = entry.current_volume;
 
                     if(retrieveOrders && marketId != null && !marketId.equals(0)) {
                         ApiStatus<CryptsyObjects.DepthInfo> ordersInfo = internalGetMarketDepth(entry.marketid);

@@ -145,6 +145,7 @@ public abstract class BaseTradeApi {
             public Prices price = new Prices();
             public Depth depth = new Depth();
             public List<Order> history = new ArrayList<Order>();
+            public double volume = 0;
         }
         public static class AccountInfo {
             public static class AccountBalance extends TreeMap<String, Double> {

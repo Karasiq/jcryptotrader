@@ -152,6 +152,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
         marketInfo.price.buy = tickerData.buy;
         marketInfo.price.sell = tickerData.sell;
         marketInfo.price.last = tickerData.last;
+        marketInfo.volume = tickerData.vol_cur;
         if(retrieveOrders) {
             BtceObjects.Depth depth = internalGetDepth((String)pair);
             for(List<Double> entry : depth.asks) {
