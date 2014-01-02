@@ -28,8 +28,9 @@ import com.jgoodies.forms.layout.*;
  * @author Yarr harr
  */
 public class TraderMainForm extends JPanel {
+    Thread workerThread = null;
     ApiWorker worker = new ApiWorker();
-    BaseTradeApi.StandartObjects.CurrencyPairMapper pairMapper = new BaseTradeApi.StandartObjects.CurrencyPairMapper();
+    Map<String, BaseTradeApi.StandartObjects.CurrencyPair> pairList = new TreeMap<>();
     protected void processException(Exception e) {
         StyledDocument document = textPaneLog.getStyledDocument();
         SimpleAttributeSet errorStyle = new SimpleAttributeSet();
@@ -53,9 +54,20 @@ public class TraderMainForm extends JPanel {
         }
     }
     public void initMarket(AccountManager.Account account) {
+        if(!workerThread.isInterrupted()) {
+            workerThread.interrupt(); // Stop thread
+        }
         worker.initTradeApiInstance(account);
         try {
-            pairMapper = worker.tradeApi.getCurrencyPairs();
+            pairList = worker.tradeApi.getCurrencyPairs().makeNameInfoMap();
+            DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+            for(Map.Entry<String, BaseTradeApi.StandartObjects.CurrencyPair> entry : pairList.entrySet()) {
+                model.addElement(entry.getKey());
+            }
+            comboBoxPair.setModel(model);
+            comboBoxPair.setSelectedIndex(0);
+            worker.setPair(((TreeMap<String, BaseTradeApi.StandartObjects.CurrencyPair>)pairList).firstEntry().getValue().pairId);
+            workerThread = new Thread(worker); // Create new thread
         } catch (Exception e) {
             this.processException(e);
         }
@@ -96,7 +108,7 @@ public class TraderMainForm extends JPanel {
             DefaultTableModel model = (DefaultTableModel)tableMarketHistory.getModel();
             model.setRowCount(marketInfo.history.size());
             for(BaseTradeApi.StandartObjects.Order order : marketInfo.history) {
-                model.setValueAt(order.type == BaseTradeApi.Constants.ORDER_SELL ? "Sell" : "Buy", i, 0);
+                model.setValueAt(order.type == BaseTradeApi.Constants.ORDER_SELL ? buttonCommitSellOrder.getText() : buttonCommitBuyOrder.getText(), i, 0);
                 model.setValueAt(order.price, i, 1);
                 model.setValueAt(order.amount, i, 2);
                 model.setValueAt(order.amount * order.price, i, 3);
@@ -145,7 +157,14 @@ public class TraderMainForm extends JPanel {
             }
         }
     }
-    public TraderMainForm() {
+    protected Properties locale = new Properties();
+    public TraderMainForm(AccountManager.Account account) {
+        try {
+            locale.load(this.getClass().getResourceAsStream("locale.properties"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        initMarket(account);
         worker.setCallBack(new ApiWorker.Callback() {
             @Override
             public void onUpdate(ApiWorker worker) {
@@ -157,6 +176,18 @@ public class TraderMainForm extends JPanel {
             }
         });
         initComponents();
+
+        SwingWorker apiPauser = new SwingWorker() {
+            @Override
+            protected Object doInBackground() throws Exception {
+                while(!Thread.currentThread().isInterrupted()) {
+                    worker.paused = !isVisible();
+                    Thread.sleep(400);
+                }
+                return null;
+            }
+        };
+        apiPauser.execute();
     }
 
     private void tabbedPaneInfoStateChanged(ChangeEvent e) {

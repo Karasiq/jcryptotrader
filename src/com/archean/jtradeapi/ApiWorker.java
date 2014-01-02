@@ -22,19 +22,22 @@ public class ApiWorker implements Runnable {
     volatile private boolean retrieveAccountHistory = false;
     volatile public BaseTradeApi tradeApi = null;
     volatile long timeInterval = 200;
+    volatile public boolean paused = false;
     volatile Object pair = null;
     volatile Callback callback = null;
 
     public void run() {
         while(!Thread.currentThread().isInterrupted()) {
             try {
-                if(updateMarketInfo) {
-                    marketInfo = tradeApi.getMarketData(pair, retrieveMarketOrders, retrieveMarketHistory);
+                if(!paused) {
+                    if(updateMarketInfo) {
+                        marketInfo = tradeApi.getMarketData(pair, retrieveMarketOrders, retrieveMarketHistory);
+                    }
+                    if(updateAccountInfo) {
+                        accountInfo = tradeApi.getAccountInfo(pair, retrieveAccountOrders, retrieveAccountHistory);
+                    }
+                    if(callback != null) callback.onUpdate(this);
                 }
-                if(updateAccountInfo) {
-                    accountInfo = tradeApi.getAccountInfo(pair, retrieveAccountOrders, retrieveAccountHistory);
-                }
-                if(callback != null) callback.onUpdate(this);
                 Thread.sleep(timeInterval);
             } catch (Exception e) {
                 if(callback != null) callback.onError(e);
