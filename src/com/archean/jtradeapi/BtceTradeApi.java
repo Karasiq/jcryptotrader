@@ -137,11 +137,11 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
     @Override
     protected String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
         String result = super.executeRequest(needAuth, url, urlParameters, httpRequestType);
-        if (result.contains("invalid nonce parameter;")) {
+        while (result.contains("invalid nonce parameter;")) {
             String startStr = "invalid nonce parameter; on key:", endStr = ", you sent:";
             String validNonce = result.substring(result.indexOf(startStr) + startStr.length(), result.indexOf(endStr));
             startNonce = Integer.parseInt(validNonce) + 1;
-            return super.executeRequest(needAuth, url, urlParameters, httpRequestType);
+            result = super.executeRequest(needAuth, url, urlParameters, httpRequestType);
         }
         return result;
     }
