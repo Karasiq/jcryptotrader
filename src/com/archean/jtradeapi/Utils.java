@@ -1,8 +1,5 @@
 package com.archean.jtradeapi;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
@@ -20,6 +17,7 @@ public class Utils {
             public static final String SHA256 = "SHA256";
             public static final String SHA384 = "SHA384";
             public static final String SHA512 = "SHA512";
+
             public static String hmacDigest(String msg, String keyString, String algo) throws InvalidKeyException, NoSuchAlgorithmException, UnsupportedEncodingException {
                 algo = "Hmac" + algo;
                 SecretKeySpec key = new SecretKeySpec((keyString).getBytes("UTF-8"), algo);
@@ -40,6 +38,7 @@ public class Utils {
             }
         }
     }
+
     public static class Strings {
         public static <T> String formatNumber(T value) { // json format
             DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.ENGLISH);
@@ -49,11 +48,13 @@ public class Utils {
             return df.format(value);
         }
     }
+
     public static class Serialization {
         public static void serializeObject(Object data, OutputStream outputStream) throws IOException {
             ObjectOutput output = new ObjectOutputStream(new BufferedOutputStream(outputStream));
             output.writeObject(data);
         }
+
         public static Object deSerializeObject(InputStream inputStream) throws IOException, ClassNotFoundException {
             ObjectInput input = new ObjectInputStream(new BufferedInputStream(inputStream));
             return input.readObject();

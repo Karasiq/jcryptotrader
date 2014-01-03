@@ -15,8 +15,8 @@ new FormModel {
 				name: "dialogPane"
 				"border": sfield com.jgoodies.forms.factories.Borders DIALOG
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
-					"$columnSpecs": "75dlu, labelcompgap, 41dlu, labelcompgap, 110dlu, labelcompgap, max(default;55dlu):grow"
-					"$rowSpecs": "15dlu, linegap, default, linegap, default, linegap, 25dlu, linegap, fill:default:grow"
+					"$columnSpecs": "75dlu, labelcompgap, 65dlu, labelcompgap, 110dlu, labelcompgap, max(default;55dlu):grow"
+					"$rowSpecs": "17dlu, linegap, 15dlu, linegap, default, linegap, default, linegap, 15dlu, linegap, fill:default:grow"
 				} ) {
 					name: "contentPanel"
 					add( new FormContainer( "javax.swing.JScrollPane", new FormLayoutManager( class javax.swing.JScrollPane ) ) {
@@ -25,7 +25,25 @@ new FormModel {
 							name: "listAccounts"
 						} )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
-						"gridHeight": 9
+						"gridHeight": 11
+					} )
+					add( new FormContainer( "javax.swing.JToolBar", new FormLayoutManager( class javax.swing.JToolBar ) ) {
+						name: "toolBar1"
+						"floatable": false
+						add( new FormComponent( "javax.swing.JButton" ) {
+							name: "buttonAdd"
+							"icon": new com.jformdesigner.model.SwingIcon( 0, "/icons/plus.png" )
+							addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "buttonAddActionPerformed", true ) )
+						} )
+						add( new FormComponent( "javax.swing.JButton" ) {
+							name: "buttonDelete"
+							"icon": new com.jformdesigner.model.SwingIcon( 0, "/icons/delete.png" )
+							addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "buttonDeleteActionPerformed", true ) )
+						} )
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 3
+						"gridWidth": 5
+						"hAlign": sfield com.jgoodies.forms.layout.CellConstraints LEFT
 					} )
 					add( new FormComponent( "javax.swing.JLabel" ) {
 						name: "labelLabel"
@@ -33,13 +51,14 @@ new FormModel {
 						"labelFor": new FormReference( "textFieldLabel" )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 3
-						"gridY": 1
+						"gridY": 3
 					} )
 					add( new FormComponent( "javax.swing.JTextField" ) {
 						name: "textFieldLabel"
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 5
 						"gridWidth": 3
+						"gridY": 3
 					} )
 					add( new FormComponent( "javax.swing.JLabel" ) {
 						name: "labelPublicKey"
@@ -47,13 +66,13 @@ new FormModel {
 						"labelFor": new FormReference( "textFieldPublic" )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 3
-						"gridY": 3
+						"gridY": 5
 					} )
 					add( new FormComponent( "javax.swing.JTextField" ) {
 						name: "textFieldPublic"
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 5
-						"gridY": 3
+						"gridY": 5
 						"gridWidth": 3
 					} )
 					add( new FormComponent( "javax.swing.JLabel" ) {
@@ -62,22 +81,29 @@ new FormModel {
 						"labelFor": new FormReference( "textFieldPrivate" )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 3
-						"gridY": 5
+						"gridY": 7
 					} )
 					add( new FormComponent( "javax.swing.JTextField" ) {
 						name: "textFieldPrivate"
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 5
-						"gridY": 5
+						"gridY": 7
 						"gridWidth": 3
 					} )
-					add( new FormComponent( "javax.swing.JButton" ) {
-						name: "buttonAddAccount"
-						"text": new FormMessage( null, "AccountManager.buttonAddAccount.text" )
+					add( new FormComponent( "javax.swing.JLabel" ) {
+						name: "labelType"
+						"text": new FormMessage( null, "AccountManager.labelType.text" )
+						"labelFor": new FormReference( "comboBoxType" )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 3
-						"gridY": 7
-						"gridWidth": 5
+						"gridY": 9
+					} )
+					add( new FormComponent( "javax.swing.JComboBox" ) {
+						name: "comboBoxType"
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 5
+						"gridY": 9
+						"gridWidth": 3
 					} )
 					add( new FormComponent( "javax.swing.JLabel" ) {
 						name: "label1"
@@ -85,7 +111,7 @@ new FormModel {
 						"font": new com.jformdesigner.model.SwingDerivedFont( null, 2, 0, false )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 3
-						"gridY": 9
+						"gridY": 11
 						"gridWidth": 5
 						"hAlign": sfield com.jgoodies.forms.layout.CellConstraints CENTER
 					} )
@@ -101,6 +127,7 @@ new FormModel {
 					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "okButton"
 						"text": new FormMessage( null, "AccountManager.okButton.text" )
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "okButtonActionPerformed", true ) )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 2
 						"gridY": 1
@@ -108,6 +135,7 @@ new FormModel {
 					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "cancelButton"
 						"text": new FormMessage( null, "AccountManager.cancelButton.text" )
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "cancelButtonActionPerformed", true ) )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 4
 						"gridY": 1
@@ -120,7 +148,7 @@ new FormModel {
 			} )
 		}, new FormLayoutConstraints( null ) {
 			"location": new java.awt.Point( 0, 0 )
-			"size": new java.awt.Dimension( 580, 235 )
+			"size": new java.awt.Dimension( 475, 240 )
 		} )
 	}
 }
