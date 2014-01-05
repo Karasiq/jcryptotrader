@@ -273,7 +273,7 @@ public abstract class BaseTradeApi {
         }
     }
 
-    public abstract StandartObjects.CurrencyPairMapper getCurrencyPairs() throws IOException, TradeApiError;
+    public abstract StandartObjects.CurrencyPairMapper getCurrencyPairs() throws Exception;
 
     // Basic info:
     public abstract StandartObjects.Prices getMarketPrices(Object pair) throws Exception;
