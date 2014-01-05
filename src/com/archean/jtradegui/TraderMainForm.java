@@ -283,18 +283,16 @@ public class TraderMainForm extends JPanel {
                     needStepUpdate = false;
                 }
 
-                if (priceChangeLastPrice == 0) {
-                    priceChangeLastPrice = price.last;
+                if(priceChangeLastPrice == price.last || priceChangeLastPrice == 0) {
                     labelPriceChangePercent.setText("0%");
+                    labelPriceChangePercent.setForeground(Color.BLACK);
                 } else {
-                    double percent = (price.last - priceChangeLastPrice) / priceChangeLastPrice * 100.0;
+                    double percent = ((price.last - priceChangeLastPrice) / priceChangeLastPrice) * 100.0;
                     labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, "####.##") + "%");
                     if (percent > 0)
                         labelPriceChangePercent.setForeground(Color.GREEN);
-                    else if (percent < 0)
-                        labelPriceChangePercent.setForeground(Color.RED);
                     else
-                        labelPriceChangePercent.setForeground(Color.BLACK);
+                        labelPriceChangePercent.setForeground(Color.RED);
                 }
             }
         });
@@ -477,8 +475,11 @@ public class TraderMainForm extends JPanel {
             public void run() {
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
-                        priceChangeLastPrice = 0;
-                        Thread.sleep(1000 * 15 * 60);
+                        while(worker.marketInfo.price.last == 0) {
+                            Thread.sleep(400);
+                        }
+                        priceChangeLastPrice = worker.marketInfo.price.last;
+                        Thread.sleep(1000 * 60 * 60);
                     } catch (InterruptedException e) {
                         break;
                     }
