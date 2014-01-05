@@ -477,18 +477,16 @@ new FormModel {
 					"$rowSpecs": "default, linegap, fill:137dlu:grow"
 				} ) {
 					name: "panelDepth"
-					add( new FormComponent( "com.jformdesigner.designer.wrapper.JGoodiesFormsLabel" ) {
+					add( new FormComponent( "javax.swing.JLabel" ) {
 						name: "labelBuyOrders"
-						"textWithMnemonic": new FormMessage( null, "TraderMainForm.labelBuyOrders.textWithMnemonic" )
-						"text": "Buy orders"
+						"text": new FormMessage( null, "TraderMainForm.labelBuyOrders.text" )
 						"horizontalAlignment": 0
 						"font": new com.jformdesigner.model.SwingDerivedFont( null, 1, 0, false )
 						"labelFor": new FormReference( "tableBuyOrders" )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) )
-					add( new FormComponent( "com.jformdesigner.designer.wrapper.JGoodiesFormsLabel" ) {
+					add( new FormComponent( "javax.swing.JLabel" ) {
 						name: "labelSellOrders"
-						"textWithMnemonic": new FormMessage( null, "TraderMainForm.labelSellOrders.textWithMnemonic" )
-						"text": "Sell orders"
+						"text": new FormMessage( null, "TraderMainForm.labelSellOrders.text" )
 						"labelFor": new FormReference( "tableSellOrders" )
 						"horizontalAlignment": 0
 						"font": new com.jformdesigner.model.SwingDerivedFont( null, 1, 0, false )
