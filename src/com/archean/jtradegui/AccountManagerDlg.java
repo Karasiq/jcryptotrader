@@ -124,8 +124,8 @@ public class AccountManagerDlg extends JDialog {
             //======== contentPanel ========
             {
                 contentPanel.setLayout(new FormLayout(
-                    "75dlu, $lcgap, 65dlu, $lcgap, 110dlu, $lcgap, [55dlu,default]:grow",
-                    "17dlu, $lgap, 15dlu, 2*($lgap, default), $lgap, 15dlu, $lgap, fill:default:grow"));
+                        "75dlu, $lcgap, 65dlu, $lcgap, 110dlu, $lcgap, [55dlu,default]:grow",
+                        "17dlu, $lgap, 15dlu, 2*($lgap, default), $lgap, 15dlu, $lgap, fill:default:grow"));
 
                 //======== scrollPane1 ========
                 {
@@ -194,8 +194,8 @@ public class AccountManagerDlg extends JDialog {
             {
                 buttonBar.setBorder(Borders.createEmptyBorder("5dlu, 0dlu, 0dlu, 0dlu"));
                 buttonBar.setLayout(new FormLayout(
-                    "$glue, $button, $rgap, $button",
-                    "pref"));
+                        "$glue, $button, $rgap, $button",
+                        "pref"));
 
                 //---- okButton ----
                 okButton.setText(bundle.getString("AccountManager.okButton.text"));

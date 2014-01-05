@@ -86,6 +86,7 @@ public class Controller extends JFrame {
                 tabbedPaneTraders.add(tab.accountLabel, traderMainForm);
                 traderMainForm.setSettings(tab.feePercent, tab.timeInterval);
                 traderMainForm.setPair(tab.pair);
+                traderMainForm.startWorker();
             }
         } catch (IOException e) {
             // nothing
@@ -117,7 +118,8 @@ public class Controller extends JFrame {
     public void addTab(String label, AccountManager.Account account) {
         TraderMainForm panel = new TraderMainForm(account);
         tabbedPaneTraders.addTab(label, panel);
-        panel.repaint();
+        panel.startWorker();
+        // panel.repaint();
     }
 
     private void buttonAddActionPerformed(ActionEvent e) {
@@ -143,7 +145,7 @@ public class Controller extends JFrame {
 
     private void buttonDeleteActionPerformed(ActionEvent e) {
         if (tabbedPaneTraders.getTabCount() > 0 && tabbedPaneTraders.getSelectedIndex() >= 0) {
-            ((TraderMainForm) tabbedPaneTraders.getSelectedComponent()).traderRemoved = true;
+            ((TraderMainForm) tabbedPaneTraders.getSelectedComponent()).killThreads();
             tabbedPaneTraders.remove(tabbedPaneTraders.getSelectedIndex());
             saveTabs();
         }

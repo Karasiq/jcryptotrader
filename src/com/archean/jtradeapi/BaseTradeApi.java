@@ -277,15 +277,20 @@ public abstract class BaseTradeApi {
 
     // Basic info:
     public abstract StandartObjects.Prices getMarketPrices(Object pair) throws Exception;
+
     public abstract StandartObjects.Depth getMarketDepth(Object pair) throws Exception;
+
     public abstract List<StandartObjects.Order> getMarketHistory(Object pair) throws Exception;
 
     public abstract StandartObjects.AccountInfo.AccountBalance getAccountBalances() throws Exception;
+
     public abstract List<StandartObjects.Order> getAccountOpenOrders(Object pair) throws Exception;
+
     public abstract List<StandartObjects.Order> getAccountHistory(Object pair) throws Exception;
 
     // Consolidated info:
     public abstract StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception;
+
     public abstract StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception;
 
     // Misc
@@ -293,5 +298,6 @@ public abstract class BaseTradeApi {
 
     // Trading api:
     public abstract long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError;
+
     public abstract boolean cancelOrder(long orderId) throws Exception;
 }

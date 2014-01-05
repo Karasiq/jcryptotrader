@@ -5,7 +5,10 @@ import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.TreeMap;
 
 public class CryptsyTradeApi extends BaseTradeApi {
     private static final String PublicApiUrl = "http://pubapi.cryptsy.com/api.php";
@@ -253,7 +256,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
             if (markets.success != 1) {
                 throw new TradeApiError("Error retrieving market info (" + markets.error + ")");
             }
-            for (CryptsyObjects.MarketDataPrivate marketInfo : markets.result) {
+            if(markets.result != null) for (CryptsyObjects.MarketDataPrivate marketInfo : markets.result) {
                 StandartObjects.CurrencyPair pair = new StandartObjects.CurrencyPair();
                 pair.firstCurrency = marketInfo.primary_currency_code;
                 pair.secondCurrency = marketInfo.secondary_currency_code;
@@ -273,7 +276,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         if (generalInfo.success != 1) {
             throw new TradeApiError("Error retrieving market info (" + generalInfo.error + ")");
         } else {
-            for (CryptsyObjects.MarketDataPrivate entry : generalInfo.result) {  // Conversion
+            if(generalInfo.result != null) for (CryptsyObjects.MarketDataPrivate entry : generalInfo.result) {  // Conversion
                 if (marketId == null || marketId.equals(0) || marketId.equals(entry.marketid)) {
                     StandartObjects.MarketInfo marketInfo = new StandartObjects.MarketInfo();
                     marketInfo.pairName = entry.label;
@@ -301,8 +304,8 @@ public class CryptsyTradeApi extends BaseTradeApi {
     }
 
     public StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
-        List<StandartObjects.MarketInfo> marketInfoList = internalGetMarketsListPrivateUnified((Integer)pair, retrieveOrders, retrieveHistory);
-        if(marketInfoList != null && marketInfoList.size() > 0)
+        List<StandartObjects.MarketInfo> marketInfoList = internalGetMarketsListPrivateUnified((Integer) pair, retrieveOrders, retrieveHistory);
+        if (marketInfoList != null && marketInfoList.size() > 0)
             return marketInfoList.get(0);
         else
             throw new UnknownError();
@@ -314,25 +317,26 @@ public class CryptsyTradeApi extends BaseTradeApi {
 
     public StandartObjects.Depth getMarketDepth(Object pair) throws Exception {
         StandartObjects.Depth depth = new StandartObjects.Depth();
-        ApiStatus<CryptsyObjects.DepthInfo> ordersInfo = internalGetMarketDepth((Integer)pair);
+        ApiStatus<CryptsyObjects.DepthInfo> ordersInfo = internalGetMarketDepth((Integer) pair);
         if (ordersInfo.success != 1) {
             throw new TradeApiError("Error retrieving orders info (" + ordersInfo.error + ")");
         }
-        for (List<Double> depthEntry : ordersInfo.result.buy) {
+        if(ordersInfo.result.buy != null) for (List<Double> depthEntry : ordersInfo.result.buy) {
             depth.buyOrders.add(new StandartObjects.Order(depthEntry.get(0), depthEntry.get(1)));
         }
-        for (List<Double> depthEntry : ordersInfo.result.sell) {
+        if(ordersInfo.result.sell != null) for (List<Double> depthEntry : ordersInfo.result.sell) {
             depth.sellOrders.add(new StandartObjects.Order(depthEntry.get(0), depthEntry.get(1)));
         }
         return depth;
     }
+
     public List<StandartObjects.Order> getMarketHistory(Object pair) throws Exception {
         List<StandartObjects.Order> result = new ArrayList<>();
         ApiStatus<List<CryptsyObjects.Trade>> history = internalGetMarketHistory((Integer) pair);
         if (history.success != 1) {
             throw new TradeApiError("Error retrieving history info (" + history.error + ")");
         }
-        for (CryptsyObjects.Trade trade : history.result) {
+        if(history.result != null) for (CryptsyObjects.Trade trade : history.result) {
             StandartObjects.Order order = new StandartObjects.Order();
             order.amount = trade.quantity;
             order.id = trade.tradeid;
@@ -353,8 +357,9 @@ public class CryptsyTradeApi extends BaseTradeApi {
             return new StandartObjects.AccountInfo.AccountBalance(generalInfo.result.balances_available);
         }
     }
+
     public List<StandartObjects.Order> getAccountOpenOrders(Object pair) throws Exception {
-        if(pair == null || pair.equals(0)) {
+        if (pair == null || pair.equals(0)) {
             throw new IllegalArgumentException();
         }
         List<StandartObjects.Order> orders = new ArrayList<>();
@@ -362,7 +367,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         if (ordersInfo.success != 1) {
             throw new TradeApiError("Error retrieving orders info (" + ordersInfo.error + ")");
         }
-        for (CryptsyObjects.Order order : ordersInfo.result) {
+        if(ordersInfo.result != null) for (CryptsyObjects.Order order : ordersInfo.result) {
             StandartObjects.Order uOrder = new StandartObjects.Order();
             uOrder.amount = order.quantity;
             uOrder.price = order.price;
@@ -374,8 +379,9 @@ public class CryptsyTradeApi extends BaseTradeApi {
         }
         return orders;
     }
+
     public List<StandartObjects.Order> getAccountHistory(Object pair) throws Exception {
-        if(pair == null || pair.equals(0)) {
+        if (pair == null || pair.equals(0)) {
             throw new IllegalArgumentException();
         }
         List<StandartObjects.Order> history = new ArrayList<>();
@@ -383,7 +389,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         if (historyApiStatus.success != 1) {
             throw new TradeApiError("Error retrieving account history (" + historyApiStatus.error + ")");
         }
-        for (CryptsyObjects.Trade trade : historyApiStatus.result) {
+        if(historyApiStatus.result != null) for (CryptsyObjects.Trade trade : historyApiStatus.result) {
             StandartObjects.Order order = new StandartObjects.Order();
             order.amount = trade.quantity;
             order.id = trade.tradeid;

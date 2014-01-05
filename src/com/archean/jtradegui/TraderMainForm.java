@@ -26,10 +26,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.ResourceBundle;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.List;
 
 /**
@@ -37,6 +34,7 @@ import java.util.List;
  */
 public class TraderMainForm extends JPanel {
     private double feePercent = 0.2;
+
     static private class ApiLag {
         long priceUpdated;
         long depthUpdated;
@@ -45,12 +43,29 @@ public class TraderMainForm extends JPanel {
         long accountHistoryUpdated;
         long balancesUpdated;
     }
+
     private ApiLag lastUpdated = new ApiLag();
-    private Thread workerThread = null;
     public ApiWorker worker = new ApiWorker();
     public Map<String, BaseTradeApi.StandartObjects.CurrencyPair> pairList = new TreeMap<>();
-    public volatile boolean traderRemoved = false;
     static ResourceBundle locale = ResourceBundle.getBundle("com.archean.jtradegui.locale", new UTF8Control());
+    private volatile boolean initialized = false;
+    private Thread apiLagThread = null;
+
+    public void stopWorker() {
+        initialized = false;
+        worker.stopAllThreads();
+    }
+
+    public void startWorker() {
+        initialized = true;
+        setUpdateOptions();
+    }
+
+    public void killThreads() {
+        initialized = false;
+        apiLagThread.interrupt();
+        stopWorker();
+    }
 
     public void setSettings(double feePercent, int timeInterval) {
         this.feePercent = feePercent;
@@ -62,7 +77,7 @@ public class TraderMainForm extends JPanel {
     public void setPair(final String pairName) {
         comboBoxPair.setSelectedItem(pairName);
         worker.setPair(pairList.get(pairName).pairId);
-        refreshMarketData();
+        clearMarketData();
     }
 
     public Map<String, Object> getSettings() {
@@ -175,14 +190,7 @@ public class TraderMainForm extends JPanel {
         spinnerSellOrderAmount.setValue(amount);
     }
 
-    protected void restartWorker() {
-        if (workerThread != null && !workerThread.isInterrupted())
-            workerThread.interrupt();
-        workerThread = new Thread(worker);
-        workerThread.start();
-    }
-
-    protected void refreshMarketData() {
+    protected void clearMarketData() {
         ((DefaultTableModel) tableAccountHistory.getModel()).setRowCount(0);
         ((DefaultTableModel) tableMarketHistory.getModel()).setRowCount(0);
         ((DefaultTableModel) tableBuyOrders.getModel()).setRowCount(0);
@@ -190,15 +198,11 @@ public class TraderMainForm extends JPanel {
         ((DefaultTableModel) tableOpenOrders.getModel()).setRowCount(0);
         spinnerBuyOrderPrice.setValue(0.0);
         spinnerSellOrderPrice.setValue(0.0);
-        worker.setAccountInfoUpdate(true, true, false).setMarketInfoUpdate(true, false, false);
-        lockPanel(true);
-        restartWorker();
     }
 
     public void initMarket(AccountManager.Account account) {
-        if (workerThread != null && !workerThread.isInterrupted()) {
-            workerThread.interrupt(); // Stop thread
-        }
+        initialized = false;
+        worker.stopAllThreads();
         worker.initTradeApiInstance(account);
         try {
             pairList = worker.tradeApi.getCurrencyPairs().makeNameInfoMap();
@@ -209,7 +213,9 @@ public class TraderMainForm extends JPanel {
             comboBoxPair.setModel(model);
             comboBoxPair.setSelectedIndex(0);
             worker.setPair(((TreeMap<String, BaseTradeApi.StandartObjects.CurrencyPair>) pairList).firstEntry().getValue().pairId);
-            refreshMarketData();
+            clearMarketData();
+            worker.setTimeInterval((Integer)spinnerUpdateInterval.getValue());
+            feePercent = worker.tradeApi.getFeePercent(worker.getPair());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -234,12 +240,12 @@ public class TraderMainForm extends JPanel {
                 if (spinnerSellOrderPrice.getValue().equals(0.0)) {
                     spinnerSellOrderPrice.setValue(price.sell);
                 }
-                double stepSize = price.buy / 100;
+                double stepSize = price.buy / 100.0;
                 if (stepSize < 0.00000001) stepSize = 0.00000001;
                 ((SpinnerNumberModel) spinnerBuyOrderPrice.getModel()).setStepSize(stepSize);
                 ((SpinnerNumberModel) spinnerBuyOrderAmount.getModel()).setStepSize(getCurrentSecondaryBalance() * 0.01 / price.buy);
 
-                stepSize = price.sell / 100;
+                stepSize = price.sell / 100.0;
                 if (stepSize < 0.00000001) stepSize = 0.00000001;
                 ((SpinnerNumberModel) spinnerSellOrderPrice.getModel()).setStepSize(stepSize);
                 ((SpinnerNumberModel) spinnerSellOrderAmount.getModel()).setStepSize(getCurrentPrimaryBalance() * 0.01);
@@ -247,6 +253,7 @@ public class TraderMainForm extends JPanel {
             }
         });
     }
+
     private void updateDepth(final BaseTradeApi.StandartObjects.Depth depth) {
         lastUpdated.depthUpdated = System.currentTimeMillis();
         SwingUtilities.invokeLater(new Runnable() {
@@ -291,6 +298,7 @@ public class TraderMainForm extends JPanel {
             }
         });
     }
+
     private void updateAccountHistory(final List<BaseTradeApi.StandartObjects.Order> history) {
         lastUpdated.accountHistoryUpdated = System.currentTimeMillis();
         SwingUtilities.invokeLater(new Runnable() {
@@ -310,6 +318,7 @@ public class TraderMainForm extends JPanel {
             }
         });
     }
+
     private void updateOpenOrders(final List<BaseTradeApi.StandartObjects.Order> orders) {
         lastUpdated.ordersUpdated = System.currentTimeMillis();
         SwingUtilities.invokeLater(new Runnable() {
@@ -329,6 +338,7 @@ public class TraderMainForm extends JPanel {
             }
         });
     }
+
     private void updateAccountBalances(final Map<String, Double> balances) {
         lastUpdated.balancesUpdated = System.currentTimeMillis();
         SwingUtilities.invokeLater(new Runnable() {
@@ -348,24 +358,24 @@ public class TraderMainForm extends JPanel {
 
 
     public void fillGui(ApiWorker.ApiDataType dataType, Object data) {
-        switch(dataType) {
+        switch (dataType) {
             case MARKET_PRICES:
-                updatePrices((BaseTradeApi.StandartObjects.Prices)data);
+                updatePrices((BaseTradeApi.StandartObjects.Prices) data);
                 break;
             case MARKET_DEPTH:
-                updateDepth((BaseTradeApi.StandartObjects.Depth)data);
+                updateDepth((BaseTradeApi.StandartObjects.Depth) data);
                 break;
             case MARKET_HISTORY:
-                updateMarketHistory((List<BaseTradeApi.StandartObjects.Order>)data);
+                updateMarketHistory((List<BaseTradeApi.StandartObjects.Order>) data);
                 break;
             case ACCOUNT_BALANCES:
-                updateAccountBalances((Map<String, Double>)data);
+                updateAccountBalances((Map<String, Double>) data);
                 break;
             case ACCOUNT_ORDERS:
-                updateOpenOrders((List<BaseTradeApi.StandartObjects.Order>)data);
+                updateOpenOrders((List<BaseTradeApi.StandartObjects.Order>) data);
                 break;
             case ACCOUNT_HISTORY:
-                updateAccountHistory((List<BaseTradeApi.StandartObjects.Order>)data);
+                updateAccountHistory((List<BaseTradeApi.StandartObjects.Order>) data);
                 break;
             default:
                 throw new IllegalArgumentException();
@@ -384,12 +394,7 @@ public class TraderMainForm extends JPanel {
         worker.setCallBack(new ApiWorker.Callback() {
             @Override
             public void onUpdate(final ApiWorker.ApiDataType dataType, final Object data) {
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        fillGui(dataType, data);
-                    }
-                });
+                fillGui(dataType, data);
             }
 
             @Override
@@ -399,48 +404,49 @@ public class TraderMainForm extends JPanel {
         });
         initMarket(account);
 
-        new SwingWorker() {
-            @Override
-            protected Object doInBackground() throws Exception {
+        apiLagThread = new Thread(new Runnable() {
+            @Override public void run() {
                 while (!Thread.currentThread().isInterrupted()) {
-                    if (traderRemoved) {
-                        workerThread.interrupt();
-                        break;
-                    }
-                    final double apiLag = (System.currentTimeMillis() - lastUpdated) / 1000.0;
                     SwingUtilities.invokeLater(new Runnable() {
                         @Override
                         public void run() {
+                            double apiLag = (System.currentTimeMillis() - lastUpdated.priceUpdated) / 1000.0;
                             textFieldApiLag.setText(Utils.Strings.formatNumber(apiLag) + " sec");
                         }
                     });
-                    Thread.sleep(200);
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        break;
+                    }
                 }
-                return null;
             }
-        }.execute();
+        });
+        apiLagThread.start();
     }
 
     protected void setUpdateOptions() {
-        switch (tabbedPaneInfo.getSelectedIndex()) {
+        if(!initialized) return;
+        worker.setActiveThreads(new ApiWorker.ApiDataType[] { ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.MARKET_DEPTH, ApiWorker.ApiDataType.MARKET_HISTORY, ApiWorker.ApiDataType.ACCOUNT_BALANCES, ApiWorker.ApiDataType.ACCOUNT_ORDERS, ApiWorker.ApiDataType.ACCOUNT_HISTORY }); // Update all
+        /* switch (tabbedPaneInfo.getSelectedIndex()) {
             case 0: // Orders
-                worker.setAccountInfoUpdate(true, true, false).setMarketInfoUpdate(true, false, false);
+                worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.ACCOUNT_ORDERS});
                 break;
             case 1: // Balances
-                worker.setAccountInfoUpdate(true, false, false).setMarketInfoUpdate(true, false, false);
+                worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.ACCOUNT_BALANCES});
                 break;
             case 2: // Depth
-                worker.setAccountInfoUpdate(true, false, false).setMarketInfoUpdate(true, true, false);
+                worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.MARKET_DEPTH});
                 break;
             case 3: // History
                 if (panelHistory.getSelectedIndex() == 0)
-                    worker.setAccountInfoUpdate(true, false, true).setMarketInfoUpdate(true, false, false);
+                    worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.ACCOUNT_HISTORY});
                 else
-                    worker.setAccountInfoUpdate(true, false, false).setMarketInfoUpdate(true, false, true);
+                    worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.MARKET_HISTORY});
                 break;
             default: // Other tabs
-                worker.setAccountInfoUpdate(true, false, false).setMarketInfoUpdate(true, false, false);
-        }
+                worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES});
+        } */
     }
 
     private void tabbedPaneInfoStateChanged(ChangeEvent e) {
@@ -543,11 +549,11 @@ public class TraderMainForm extends JPanel {
     }
 
     private void buttonBuyOrderPriceSetCurrentActionPerformed(ActionEvent e) {
-        spinnerBuyOrderPrice.setValue(worker.marketInfo.get(0).price.buy);
+        spinnerBuyOrderPrice.setValue(worker.marketInfo.price.buy);
     }
 
     private void buttonSellOrderPriceSetCurrentActionPerformed(ActionEvent e) {
-        spinnerSellOrderPrice.setValue(worker.marketInfo.get(0).price.sell);
+        spinnerSellOrderPrice.setValue(worker.marketInfo.price.sell);
     }
 
 

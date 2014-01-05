@@ -1,9 +1,6 @@
 package com.archean.jtradeapi;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.TreeMap;
+import java.util.*;
 
 public class ApiWorker {
     public abstract static class Callback {
@@ -13,6 +10,7 @@ public class ApiWorker {
             exc.printStackTrace();
         }
     }
+
     public static enum ApiDataType {
         MARKET_PRICES, MARKET_DEPTH, MARKET_HISTORY,
         ACCOUNT_BALANCES, ACCOUNT_ORDERS, ACCOUNT_HISTORY
@@ -20,11 +18,13 @@ public class ApiWorker {
 
     private class ApiWorkerTask implements Runnable {
         ApiDataType apiDataType;
+
         public ApiWorkerTask(ApiDataType dataType) {
             this.apiDataType = dataType;
         }
+
         private Object retrieveData() throws Exception {
-            switch(apiDataType) {
+            switch (apiDataType) {
                 case MARKET_PRICES:
                     return tradeApi.getMarketPrices(pair);
                 case MARKET_DEPTH:
@@ -41,44 +41,47 @@ public class ApiWorker {
                     throw new IllegalArgumentException();
             }
         }
+
         private void updateWorkerData(Object data) {
             switch (apiDataType) {
                 case MARKET_PRICES:
-                    marketInfo.price = (BaseTradeApi.StandartObjects.Prices)data;
+                    marketInfo.price = (BaseTradeApi.StandartObjects.Prices) data;
                     break;
                 case MARKET_DEPTH:
-                    marketInfo.depth = (BaseTradeApi.StandartObjects.Depth)data;
+                    marketInfo.depth = (BaseTradeApi.StandartObjects.Depth) data;
                     break;
                 case MARKET_HISTORY:
-                    marketInfo.history = (List<BaseTradeApi.StandartObjects.Order>)data;
+                    marketInfo.history = (List<BaseTradeApi.StandartObjects.Order>) data;
                     break;
                 case ACCOUNT_BALANCES:
-                    accountInfo.balance = (BaseTradeApi.StandartObjects.AccountInfo.AccountBalance)data;
+                    accountInfo.balance = (BaseTradeApi.StandartObjects.AccountInfo.AccountBalance) data;
                     break;
                 case ACCOUNT_ORDERS:
-                    accountInfo.orders = (List<BaseTradeApi.StandartObjects.Order>)data;
+                    accountInfo.orders = (List<BaseTradeApi.StandartObjects.Order>) data;
                     break;
                 case ACCOUNT_HISTORY:
-                    accountInfo.history = (List<BaseTradeApi.StandartObjects.Order>)data;
+                    accountInfo.history = (List<BaseTradeApi.StandartObjects.Order>) data;
                     break;
                 default:
                     throw new IllegalArgumentException();
             }
         }
-        @Override public void run() {
+
+        @Override
+        public void run() {
             Object data;
-            while(!Thread.currentThread().isInterrupted()) {
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
                     data = retrieveData();
                     updateWorkerData(data);
-                    if(callback != null) {
+                    if (callback != null) {
                         callback.onUpdate(apiDataType, data);
                     }
                     Thread.sleep(timeInterval);
-                } catch(InterruptedException e) {
+                } catch (InterruptedException e) {
                     break;
-                } catch(Exception e) {
-                    if(callback != null)
+                } catch (Exception e) {
+                    if (callback != null)
                         callback.onError(e);
                     else
                         e.printStackTrace();
@@ -87,18 +90,22 @@ public class ApiWorker {
         }
     }
 
-    volatile public BaseTradeApi.StandartObjects.AccountInfo accountInfo;
-    volatile public BaseTradeApi.StandartObjects.MarketInfo marketInfo;
+    volatile public BaseTradeApi.StandartObjects.AccountInfo accountInfo = new BaseTradeApi.StandartObjects.AccountInfo();
+    volatile public BaseTradeApi.StandartObjects.MarketInfo marketInfo = new BaseTradeApi.StandartObjects.MarketInfo();
     volatile public BaseTradeApi tradeApi = null;
     volatile long timeInterval = 200;
     volatile Object pair = null;
     volatile Callback callback = null;
     volatile private Map<ApiDataType, Thread> threadMap = new TreeMap<>();
 
+    public boolean isThreadRunning(final ApiDataType dataType) {
+        return threadMap.containsKey(dataType) && threadMap.get(dataType).isAlive();
+    }
+
     public void stopThread(final ApiDataType dataType) {
         Thread workerThread = threadMap.get(dataType);
-        if(workerThread != null) {
-            if(workerThread.isAlive()) {
+        if (workerThread != null) {
+            if (workerThread.isAlive()) {
                 workerThread.interrupt();
             }
             threadMap.remove(dataType);
@@ -112,8 +119,25 @@ public class ApiWorker {
         workerThread.start();
     }
 
+    public void setActiveThreads(final List<ApiDataType> activeThreads) {
+        for (ApiDataType dataType : threadMap.keySet()) {
+            if (!activeThreads.contains(dataType)) {
+                stopThread(dataType);
+            }
+        }
+        for (ApiDataType dataType : activeThreads) {
+            if (!isThreadRunning(dataType)) {
+                startThread(dataType);
+            }
+        }
+    }
+
+    public void setActiveThreads(final ApiDataType[] activeThreads) {
+        setActiveThreads(new ArrayList<>(Arrays.asList(activeThreads)));
+    }
+
     public void stopAllThreads() {
-        for(ApiDataType dataType : threadMap.keySet()) {
+        for (ApiDataType dataType : threadMap.keySet()) {
             stopThread(dataType);
         }
     }
@@ -131,6 +155,9 @@ public class ApiWorker {
     public ApiWorker setPair(Object pair) {
         this.pair = pair;
         return this;
+    }
+    public final Object getPair() {
+        return this.pair;
     }
 
     public ApiWorker setTradeApi(BaseTradeApi tradeApi) {
