@@ -172,8 +172,9 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
         }.getType());
     }
 
-    private StandartObjects.MarketInfo internalUnifiedGetMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws IOException {
-        BtceObjects.TickerData tickerData = internalGetTicker((String) pair);
+    private StandartObjects.MarketInfo internalUnifiedGetMarketData(Object pair, boolean retrieveTicker, boolean retrieveOrders, boolean retrieveHistory) throws IOException {
+
+
         StandartObjects.MarketInfo marketInfo = new StandartObjects.MarketInfo();
         marketInfo.pairId = pair;
 
@@ -182,13 +183,16 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
         marketInfo.firstCurrency = pairInfo.firstCurrency;
         marketInfo.secondCurrency = pairInfo.secondCurrency;
 
-        marketInfo.price.average = tickerData.avg;
-        marketInfo.price.low = tickerData.low;
-        marketInfo.price.high = tickerData.high;
-        marketInfo.price.buy = tickerData.buy;
-        marketInfo.price.sell = tickerData.sell;
-        marketInfo.price.last = tickerData.last;
-        marketInfo.volume = tickerData.vol_cur;
+        if(retrieveTicker) {
+            BtceObjects.TickerData tickerData = internalGetTicker((String) pair);
+            marketInfo.price.average = tickerData.avg;
+            marketInfo.price.low = tickerData.low;
+            marketInfo.price.high = tickerData.high;
+            marketInfo.price.buy = tickerData.buy;
+            marketInfo.price.sell = tickerData.sell;
+            marketInfo.price.last = tickerData.last;
+            marketInfo.price.volume = tickerData.vol_cur;
+        }
         if (retrieveOrders) {
             BtceObjects.Depth depth = internalGetDepth((String) pair);
             for (List<Double> entry : depth.asks) {
@@ -212,6 +216,57 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
             }
         }
         return marketInfo;
+    }
+
+    private StandartObjects.AccountInfo internalUnifiedGetAccountInfo(Object pair, boolean retrieveBalance, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
+        StandartObjects.AccountInfo accountInfo = new StandartObjects.AccountInfo();
+        if(retrieveBalance) {
+            ApiStatus<BtceObjects.AccountInfo> accountInfoApiStatus = internalGetAccountInfo();
+            if (accountInfoApiStatus.success != 1) {
+                throw new TradeApiError("Error retrieving account info (" + accountInfoApiStatus.error + ")");
+            }
+            accountInfo.balance = new StandartObjects.AccountInfo.AccountBalance();
+            for (Map.Entry<String, Double> entry : accountInfoApiStatus.result.funds.entrySet()) { // Fix
+                accountInfo.balance.put(entry.getKey().toUpperCase(), entry.getValue());
+            }
+        }
+        if (retrieveOrders) {
+            ApiStatus<TreeMap<Long, BtceObjects.Order>> ordersStatus = internalGetOpenOrders((String)pair);
+            if (ordersStatus.success != 1 && !ordersStatus.error.contains("no orders")) {
+                throw new TradeApiError("Error retrieving orders info (" + ordersStatus.error + ")");
+            }
+            if (ordersStatus.result != null) {
+                for (Map.Entry<Long, BtceObjects.Order> entry : ordersStatus.result.entrySet()) {
+                    StandartObjects.Order order = new StandartObjects.Order();
+                    order.id = entry.getKey();
+                    order.amount = entry.getValue().amount;
+                    order.pair = entry.getValue().pair;
+                    order.price = entry.getValue().rate;
+                    order.type = entry.getValue().type.equals("sell") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
+                    order.time = new Date(entry.getValue().timestamp_created * 1000);
+                    accountInfo.orders.add(order);
+                }
+            }
+        }
+        if (retrieveHistory) {
+            ApiStatus<TreeMap<Long, BtceObjects.AccountTrade>> accountHistoryStatus = internalGetAccountHistory((String) pair);
+            if (accountHistoryStatus.success != 1 && !accountHistoryStatus.error.contains("no trades")) {
+                throw new TradeApiError("Error retrieving account history info (" + accountHistoryStatus.error + ")");
+            }
+            if (accountHistoryStatus.result != null) {
+                for (Map.Entry<Long, BtceObjects.AccountTrade> tradeEntry : accountHistoryStatus.result.entrySet()) {
+                    StandartObjects.Order order = new StandartObjects.Order();
+                    order.id = tradeEntry.getKey();
+                    order.amount = tradeEntry.getValue().amount;
+                    order.pair = tradeEntry.getValue().pair;
+                    order.price = tradeEntry.getValue().rate;
+                    order.time = new Date(tradeEntry.getValue().timestamp * 1000);
+                    order.type = tradeEntry.getValue().type.equals("sell") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
+                    accountInfo.history.add(order);
+                }
+            }
+        }
+        return accountInfo;
     }
 
     Map<String, Double> feePercentCache = new HashMap<String, Double>();
@@ -288,66 +343,35 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
         return pairMapper;
     }
 
-    public List<StandartObjects.MarketInfo> getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException {
-        List<StandartObjects.MarketInfo> marketInfoList = new ArrayList<StandartObjects.MarketInfo>();
-        if (pair != null && !pair.equals("")) {
-            marketInfoList.add(internalUnifiedGetMarketData(pair, retrieveOrders, retrieveHistory));
-        } else for (Map.Entry<Object, StandartObjects.CurrencyPair> entry : pairMapper.entrySet()) {
-            marketInfoList.add(internalUnifiedGetMarketData(entry.getKey(), retrieveOrders, retrieveHistory));
-        }
-        return marketInfoList;
+    public StandartObjects.Prices getMarketPrices(Object pair) throws Exception {
+        return internalUnifiedGetMarketData(pair, true, false, false).price;
+    }
+    public StandartObjects.Depth getMarketDepth(Object pair) throws Exception {
+        return internalUnifiedGetMarketData(pair, false, true, false).depth;
+    }
+    public List<StandartObjects.Order> getMarketHistory(Object pair) throws Exception {
+        return internalUnifiedGetMarketData(pair, false, false, true).history;
     }
 
-    public StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException {
-        ApiStatus<BtceObjects.AccountInfo> accountInfoApiStatus = internalGetAccountInfo();
-        if (accountInfoApiStatus.success != 1) {
-            throw new TradeApiError("Error retrieving account info (" + accountInfoApiStatus.error + ")");
-        }
-        StandartObjects.AccountInfo accountInfo = new StandartObjects.AccountInfo();
-        accountInfo.balance = new StandartObjects.AccountInfo.AccountBalance();
-        for (Map.Entry<String, Double> entry : accountInfoApiStatus.result.funds.entrySet()) { // Fix
-            accountInfo.balance.put(entry.getKey().toUpperCase(), entry.getValue());
-        }
-        if (retrieveOrders) {
-            ApiStatus<TreeMap<Long, BtceObjects.Order>> ordersStatus = internalGetOpenOrders(null);
-            if (ordersStatus.success != 1 && !ordersStatus.error.contains("no orders")) {
-                throw new TradeApiError("Error retrieving orders info (" + ordersStatus.error + ")");
-            }
-            if (ordersStatus.result != null) {
-                for (Map.Entry<Long, BtceObjects.Order> entry : ordersStatus.result.entrySet()) {
-                    StandartObjects.Order order = new StandartObjects.Order();
-                    order.id = entry.getKey();
-                    order.amount = entry.getValue().amount;
-                    order.pair = entry.getValue().pair;
-                    order.price = entry.getValue().rate;
-                    order.type = entry.getValue().type.equals("sell") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
-                    order.time = new Date(entry.getValue().timestamp_created * 1000);
-                    accountInfo.orders.add(order);
-                }
-            }
-        }
-        if (retrieveHistory) {
-            ApiStatus<TreeMap<Long, BtceObjects.AccountTrade>> accountHistoryStatus = internalGetAccountHistory((String) pair);
-            if (accountHistoryStatus.success != 1 && !accountHistoryStatus.error.contains("no trades")) {
-                throw new TradeApiError("Error retrieving account history info (" + accountHistoryStatus.error + ")");
-            }
-            if (accountHistoryStatus.result != null) {
-                for (Map.Entry<Long, BtceObjects.AccountTrade> tradeEntry : accountHistoryStatus.result.entrySet()) {
-                    StandartObjects.Order order = new StandartObjects.Order();
-                    order.id = tradeEntry.getKey();
-                    order.amount = tradeEntry.getValue().amount;
-                    order.pair = tradeEntry.getValue().pair;
-                    order.price = tradeEntry.getValue().rate;
-                    order.time = new Date(tradeEntry.getValue().timestamp * 1000);
-                    order.type = tradeEntry.getValue().type.equals("sell") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
-                    accountInfo.history.add(order);
-                }
-            }
-        }
-        return accountInfo;
+    public StandartObjects.AccountInfo.AccountBalance getAccountBalances() throws Exception {
+        return internalUnifiedGetAccountInfo(null, true, false, false).balance;
+    }
+    public List<StandartObjects.Order> getAccountOpenOrders(Object pair) throws Exception {
+        return internalUnifiedGetAccountInfo(pair, false, true, false).orders;
+    }
+    public List<StandartObjects.Order> getAccountHistory(Object pair) throws Exception {
+        return internalUnifiedGetAccountInfo(pair, false, false, true).history;
     }
 
-    public double getFeePercent(Object pair) throws TradeApiError, IOException {
+    public StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
+        return internalUnifiedGetMarketData(pair, true, retrieveOrders, retrieveHistory);
+    }
+
+    public StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
+        return internalUnifiedGetAccountInfo(pair, true, retrieveOrders, retrieveHistory);
+    }
+
+    public double getFeePercent(Object pair) throws Exception {
         return internalGetFeePercent((String) pair);
     }
 
@@ -359,7 +383,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
         return orderStatus.result.order_id;
     }
 
-    public boolean cancelOrder(long orderId) throws TradeApiError, IOException {
+    public boolean cancelOrder(long orderId) throws Exception {
         ApiStatus<BtceObjects.CancelOrderStatus> orderStatus = internalCancelOrder(orderId);
         if (orderStatus.success != 1) {
             throw new TradeApiError("Failed to cancel order (" + orderStatus.error + ")");
