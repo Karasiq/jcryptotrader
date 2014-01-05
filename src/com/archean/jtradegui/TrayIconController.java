@@ -8,7 +8,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class TrayIconController {
-    static TrayIcon trayIcon;
+    static public TrayIcon trayIcon;
 
     public static void showMessage(final String title, final String message, final TrayIcon.MessageType messageType) {
         trayIcon.displayMessage(title,

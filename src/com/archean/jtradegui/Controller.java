@@ -4,6 +4,7 @@
 
 package com.archean.jtradegui;
 
+import java.awt.event.*;
 import com.archean.jtradeapi.AccountManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -103,13 +104,31 @@ public class Controller extends JFrame {
         }
         boolean success = new File(settingsDir).mkdirs();
 
-        Controller controller = new Controller();
+        final Controller controller = new Controller();
         controller.loadAccountDb();
         controller.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         controller.pack();
         controller.setIconImage(new ImageIcon(controller.getClass().getResource("/icons/logo.png")).getImage());
         controller.setVisible(true);
         TrayIconController.createTrayIcon(controller.popupMenuTray, "jTrader", new ImageIcon(controller.getClass().getResource("/icons/logo.png")).getImage());
+        TrayIconController.trayIcon.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                if(!e.isPopupTrigger()) {
+                    if(!controller.isVisible()){
+                        controller.setVisible(true);
+                        int state = controller.getExtendedState();
+                        state &= ~JFrame.ICONIFIED;
+                        controller.setExtendedState(state);
+                        controller.setAlwaysOnTop(true);
+                        controller.toFront();
+                        controller.requestFocus();
+                        controller.setAlwaysOnTop(false);
+                    } else {
+                        controller.setVisible(false);
+                    }
+                }
+            }
+        });
         controller.loadTabs();
     }
 
@@ -174,6 +193,24 @@ public class Controller extends JFrame {
         });
     }
 
+    private void thisWindowStateChanged(WindowEvent e) {
+        if(e.getNewState() == ICONIFIED) {
+            try {
+                setVisible(false);
+            } catch(Exception exc) {
+                exc.printStackTrace();
+            }
+        }
+
+        if(!isVisible()) {
+            for (int i = 0; i < tabbedPaneTraders.getTabCount(); i++) {
+                ((TraderMainForm) tabbedPaneTraders.getComponentAt(i)).stopWorker();
+            }
+        } else {
+            ((TraderMainForm) tabbedPaneTraders.getSelectedComponent()).startWorker();
+        }
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         ResourceBundle bundle = ResourceBundle.getBundle("com.archean.jtradegui.locale", new UTF8Control());
@@ -192,10 +229,16 @@ public class Controller extends JFrame {
                 thisWindowClosing(e);
             }
         });
+        addWindowStateListener(new WindowStateListener() {
+            @Override
+            public void windowStateChanged(WindowEvent e) {
+                thisWindowStateChanged(e);
+            }
+        });
         Container contentPane = getContentPane();
         contentPane.setLayout(new FormLayout(
-                "[350dlu,default]:grow",
-                "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
+            "[350dlu,default]:grow",
+            "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
 
         //======== toolBar1 ========
         {
