@@ -275,17 +275,26 @@ public abstract class BaseTradeApi {
 
     public abstract StandartObjects.CurrencyPairMapper getCurrencyPairs() throws IOException, TradeApiError;
 
-    public abstract List<StandartObjects.MarketInfo> getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException;
+    // Basic info:
+    public abstract StandartObjects.Prices getMarketPrices(Object pair);
+    public abstract StandartObjects.Depth getMarketDepth(Object pair);
+    public abstract List<StandartObjects.Order> getMarketHistory(Object pair);
+
+    public abstract Map<String, Double> getAccountBalances();
+    public abstract List<StandartObjects.Order> getAccountOpenOrders(Object pair);
+    public abstract List<StandartObjects.Order> getAccountHistory(Object pair);
+
+    // Consolidated info:
+    public abstract List<StandartObjects.MarketInfo> getAllMarketsData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException;
+
+    public abstract StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException;
 
     public abstract StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws TradeApiError, IOException;
 
-    public StandartObjects.AccountInfo getAccountInfo() throws IOException, TradeApiError {
-        return getAccountInfo(null, false, false);
-    }
-
+    // Misc
     public abstract double getFeePercent(Object pair) throws TradeApiError, IOException;
 
+    // Trading api:
     public abstract long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError;
-
     public abstract boolean cancelOrder(long orderId) throws TradeApiError, IOException;
 }
