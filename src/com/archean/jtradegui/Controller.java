@@ -4,6 +4,7 @@
 
 package com.archean.jtradegui;
 
+import javax.swing.event.*;
 import com.archean.jtradeapi.AccountManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -119,7 +120,6 @@ public class Controller extends JFrame {
         TraderMainForm panel = new TraderMainForm(account);
         tabbedPaneTraders.addTab(label, panel);
         panel.startWorker();
-        // panel.repaint();
     }
 
     private void buttonAddActionPerformed(ActionEvent e) {
@@ -160,6 +160,18 @@ public class Controller extends JFrame {
         saveTabs();
     }
 
+    private void tabbedPaneTradersStateChanged(ChangeEvent e) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                for(int i = 0; i < tabbedPaneTraders.getTabCount(); i++) if(i != tabbedPaneTraders.getSelectedIndex()) {
+                    ((TraderMainForm) tabbedPaneTraders.getComponentAt(i)).stopWorker();
+                }
+                ((TraderMainForm) tabbedPaneTraders.getSelectedComponent()).startWorker();
+            }
+        });
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         ResourceBundle bundle = ResourceBundle.getBundle("com.archean.jtradegui.locale", new UTF8Control());
@@ -180,8 +192,8 @@ public class Controller extends JFrame {
         });
         Container contentPane = getContentPane();
         contentPane.setLayout(new FormLayout(
-                "[350dlu,default]:grow",
-                "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
+            "[350dlu,default]:grow",
+            "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
 
         //======== toolBar1 ========
         {
@@ -208,6 +220,16 @@ public class Controller extends JFrame {
             toolBar1.add(buttonDelete);
         }
         contentPane.add(toolBar1, CC.xy(1, 1, CC.FILL, CC.TOP));
+
+        //======== tabbedPaneTraders ========
+        {
+            tabbedPaneTraders.addChangeListener(new ChangeListener() {
+                @Override
+                public void stateChanged(ChangeEvent e) {
+                    tabbedPaneTradersStateChanged(e);
+                }
+            });
+        }
         contentPane.add(tabbedPaneTraders, CC.xy(1, 3));
         pack();
         setLocationRelativeTo(getOwner());

@@ -564,6 +564,7 @@ new FormModel {
 									add( null )
 									add( null )
 								} )
+								"autoCreateRowSorter": true
 							} )
 						}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) )
 					}, new FormLayoutConstraints( null ) {
@@ -603,6 +604,7 @@ new FormModel {
 									add( null )
 									add( null )
 								} )
+								"autoCreateRowSorter": true
 							} )
 						}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) )
 					}, new FormLayoutConstraints( null ) {

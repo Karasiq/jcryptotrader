@@ -38,6 +38,7 @@ new FormModel {
 			} )
 			add( new FormContainer( "javax.swing.JTabbedPane", new FormLayoutManager( class javax.swing.JTabbedPane ) ) {
 				name: "tabbedPaneTraders"
+				addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "tabbedPaneTradersStateChanged", true ) )
 			}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 				"gridY": 3
 			} )

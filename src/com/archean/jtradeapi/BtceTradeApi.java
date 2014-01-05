@@ -333,47 +333,47 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
     }
 
     // Public:
-    public StandartObjects.CurrencyPairMapper getCurrencyPairs() throws IOException, TradeApiError {
+    @Override public StandartObjects.CurrencyPairMapper getCurrencyPairs() throws IOException, TradeApiError {
         return pairMapper;
     }
 
-    public StandartObjects.Prices getMarketPrices(Object pair) throws Exception {
+    @Override public StandartObjects.Prices getMarketPrices(Object pair) throws Exception {
         return internalUnifiedGetMarketData(pair, true, false, false).price;
     }
 
-    public StandartObjects.Depth getMarketDepth(Object pair) throws Exception {
+    @Override public StandartObjects.Depth getMarketDepth(Object pair) throws Exception {
         return internalUnifiedGetMarketData(pair, false, true, false).depth;
     }
 
-    public List<StandartObjects.Order> getMarketHistory(Object pair) throws Exception {
+    @Override public List<StandartObjects.Order> getMarketHistory(Object pair) throws Exception {
         return internalUnifiedGetMarketData(pair, false, false, true).history;
     }
 
-    public StandartObjects.AccountInfo.AccountBalance getAccountBalances() throws Exception {
+    @Override public StandartObjects.AccountInfo.AccountBalance getAccountBalances() throws Exception {
         return internalUnifiedGetAccountInfo(null, true, false, false).balance;
     }
 
-    public List<StandartObjects.Order> getAccountOpenOrders(Object pair) throws Exception {
+    @Override public List<StandartObjects.Order> getAccountOpenOrders(Object pair) throws Exception {
         return internalUnifiedGetAccountInfo(pair, false, true, false).orders;
     }
 
-    public List<StandartObjects.Order> getAccountHistory(Object pair) throws Exception {
+    @Override public List<StandartObjects.Order> getAccountHistory(Object pair) throws Exception {
         return internalUnifiedGetAccountInfo(pair, false, false, true).history;
     }
 
-    public StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
+    @Override public StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
         return internalUnifiedGetMarketData(pair, true, retrieveOrders, retrieveHistory);
     }
 
-    public StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
+    @Override public StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
         return internalUnifiedGetAccountInfo(pair, true, retrieveOrders, retrieveHistory);
     }
 
-    public double getFeePercent(Object pair) throws Exception {
+    @Override public double getFeePercent(Object pair) throws Exception {
         return internalGetFeePercent((String) pair);
     }
 
-    public long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
+    @Override public long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
         ApiStatus<BtceObjects.OpenOrderStatus> orderStatus = internalOpenOrder((String) pair, orderType, quantity, price);
         if (orderStatus.success != 1) {
             throw new TradeApiError("Failed to create order (" + orderStatus.error + ")");
@@ -381,7 +381,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
         return orderStatus.result.order_id;
     }
 
-    public boolean cancelOrder(long orderId) throws Exception {
+    @Override public boolean cancelOrder(long orderId) throws Exception {
         ApiStatus<BtceObjects.CancelOrderStatus> orderStatus = internalCancelOrder(orderId);
         if (orderStatus.success != 1) {
             throw new TradeApiError("Failed to cancel order (" + orderStatus.error + ")");

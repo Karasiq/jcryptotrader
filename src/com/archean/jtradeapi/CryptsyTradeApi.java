@@ -249,7 +249,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
     // Public
     private StandartObjects.CurrencyPairMapper cachedMapper = null;
 
-    public StandartObjects.CurrencyPairMapper getCurrencyPairs() throws IOException, TradeApiError {
+    @Override public StandartObjects.CurrencyPairMapper getCurrencyPairs() throws IOException, TradeApiError {
         if (cachedMapper == null) {
             cachedMapper = new StandartObjects.CurrencyPairMapper();
             ApiStatus<List<CryptsyObjects.MarketDataPrivate>> markets = internalGetMarketDataPrivate();
@@ -303,7 +303,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         return marketInfoList;
     }
 
-    public StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
+    @Override public StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
         List<StandartObjects.MarketInfo> marketInfoList = internalGetMarketsListPrivateUnified((Integer) pair, retrieveOrders, retrieveHistory);
         if (marketInfoList != null && marketInfoList.size() > 0)
             return marketInfoList.get(0);
@@ -311,11 +311,11 @@ public class CryptsyTradeApi extends BaseTradeApi {
             throw new UnknownError();
     }
 
-    public StandartObjects.Prices getMarketPrices(Object pair) throws Exception {
+    @Override public StandartObjects.Prices getMarketPrices(Object pair) throws Exception {
         return getMarketData(pair, false, false).price;
     }
 
-    public StandartObjects.Depth getMarketDepth(Object pair) throws Exception {
+    @Override public StandartObjects.Depth getMarketDepth(Object pair) throws Exception {
         StandartObjects.Depth depth = new StandartObjects.Depth();
         ApiStatus<CryptsyObjects.DepthInfo> ordersInfo = internalGetMarketDepth((Integer) pair);
         if (ordersInfo.success != 1) {
@@ -330,7 +330,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         return depth;
     }
 
-    public List<StandartObjects.Order> getMarketHistory(Object pair) throws Exception {
+    @Override public List<StandartObjects.Order> getMarketHistory(Object pair) throws Exception {
         List<StandartObjects.Order> result = new ArrayList<>();
         ApiStatus<List<CryptsyObjects.Trade>> history = internalGetMarketHistory((Integer) pair);
         if (history.success != 1) {
@@ -349,7 +349,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         return result;
     }
 
-    public StandartObjects.AccountInfo.AccountBalance getAccountBalances() throws Exception {
+    @Override public StandartObjects.AccountInfo.AccountBalance getAccountBalances() throws Exception {
         ApiStatus<CryptsyObjects.AccountInfo> generalInfo = internalGetAccountInfo();
         if (generalInfo.success != 1) {
             throw new TradeApiError("Error retrieving account info (" + generalInfo.error + ")");
@@ -358,7 +358,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         }
     }
 
-    public List<StandartObjects.Order> getAccountOpenOrders(Object pair) throws Exception {
+    @Override public List<StandartObjects.Order> getAccountOpenOrders(Object pair) throws Exception {
         if (pair == null || pair.equals(0)) {
             throw new IllegalArgumentException();
         }
@@ -380,7 +380,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         return orders;
     }
 
-    public List<StandartObjects.Order> getAccountHistory(Object pair) throws Exception {
+    @Override public List<StandartObjects.Order> getAccountHistory(Object pair) throws Exception {
         if (pair == null || pair.equals(0)) {
             throw new IllegalArgumentException();
         }
@@ -402,7 +402,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
         return history;
     }
 
-    public StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
+    @Override public StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
         StandartObjects.AccountInfo accountInfo = new StandartObjects.AccountInfo();
         accountInfo.balance = getAccountBalances();
         if (retrieveOrders) {
@@ -414,18 +414,18 @@ public class CryptsyTradeApi extends BaseTradeApi {
         return accountInfo;
     }
 
-    public double getFeePercent(Object pair) throws Exception {
+    @Override public double getFeePercent(Object pair) throws Exception {
         return 0.2;
     }
 
-    public long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
+    @Override public long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
         CryptsyObjects.OrderCreateStatus orderApiStatus = internalCreateOrder((Integer) pair, orderType, quantity, price);
         if (orderApiStatus.success != 1) {
             throw new TradeApiError("Failed to create order (" + orderApiStatus.error + ")");
         } else return orderApiStatus.orderid;
     }
 
-    public boolean cancelOrder(long orderId) throws Exception {
+    @Override public boolean cancelOrder(long orderId) throws Exception {
         ApiStatus<String> cancelApiStatus = internalCancelOrder(orderId);
         if (cancelApiStatus.success != 1) {
             throw new TradeApiError("Failed to cancel order (" + cancelApiStatus.error + ")");

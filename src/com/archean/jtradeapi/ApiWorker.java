@@ -96,13 +96,13 @@ public class ApiWorker {
     volatile long timeInterval = 200;
     volatile Object pair = null;
     volatile Callback callback = null;
-    volatile private Map<ApiDataType, Thread> threadMap = new TreeMap<>();
+    private Map<ApiDataType, Thread> threadMap = new TreeMap<>();
 
-    public boolean isThreadRunning(final ApiDataType dataType) {
+    synchronized public boolean isThreadRunning(final ApiDataType dataType) {
         return threadMap.containsKey(dataType) && threadMap.get(dataType).isAlive();
     }
 
-    public void stopThread(final ApiDataType dataType) {
+    synchronized public void stopThread(final ApiDataType dataType) {
         Thread workerThread = threadMap.get(dataType);
         if (workerThread != null) {
             if (workerThread.isAlive()) {
@@ -112,14 +112,14 @@ public class ApiWorker {
         }
     }
 
-    public void startThread(final ApiDataType dataType) {
+    synchronized public void startThread(final ApiDataType dataType) {
         stopThread(dataType);
         Thread workerThread = new Thread(new ApiWorkerTask(dataType));
         threadMap.put(dataType, workerThread);
         workerThread.start();
     }
 
-    public void setActiveThreads(final List<ApiDataType> activeThreads) {
+    synchronized public void setActiveThreads(final List<ApiDataType> activeThreads) {
         for (ApiDataType dataType : threadMap.keySet()) {
             if (!activeThreads.contains(dataType)) {
                 stopThread(dataType);
@@ -132,14 +132,18 @@ public class ApiWorker {
         }
     }
 
-    public void setActiveThreads(final ApiDataType[] activeThreads) {
+    synchronized public void setActiveThreads(final ApiDataType[] activeThreads) {
         setActiveThreads(new ArrayList<>(Arrays.asList(activeThreads)));
     }
 
-    public void stopAllThreads() {
+    synchronized public void stopAllThreads() {
         for (ApiDataType dataType : threadMap.keySet()) {
-            stopThread(dataType);
+            Thread thread = threadMap.get(dataType);
+            if(thread.isAlive()) {
+                thread.interrupt();
+            }
         }
+        threadMap.clear();
     }
 
     // Construction:
