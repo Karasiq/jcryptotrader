@@ -73,9 +73,11 @@ public class ApiWorker {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     data = retrieveData();
-                    updateWorkerData(data);
-                    if (callback != null) {
-                        callback.onUpdate(apiDataType, data);
+                    if(data != null) {
+                        updateWorkerData(data);
+                        if (callback != null) {
+                            callback.onUpdate(apiDataType, data);
+                        }
                     }
                     Thread.sleep(timeInterval);
                 } catch (InterruptedException e) {

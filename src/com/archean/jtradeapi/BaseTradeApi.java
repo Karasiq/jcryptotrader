@@ -210,7 +210,7 @@ public abstract class BaseTradeApi {
 
     protected void addNonce(List<NameValuePair> urlParameters) {
         nonce++;
-        urlParameters.add(new BasicNameValuePair("nonce", Long.toString(System.currentTimeMillis() / 1000 + nonce)));
+        urlParameters.add(new BasicNameValuePair("nonce", Long.toString(System.currentTimeMillis() / 100 + nonce)));
     }
 
     public BaseTradeApi() {
