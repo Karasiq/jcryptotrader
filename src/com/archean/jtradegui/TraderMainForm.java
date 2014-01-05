@@ -90,8 +90,8 @@ public class TraderMainForm extends JPanel {
     }
 
     protected void processException(final Exception e) {
-        TrayIconController.showMessage(locale.getString("notification.error.title"), e.getLocalizedMessage(), TrayIcon.MessageType.ERROR);
         e.printStackTrace();
+        TrayIconController.showMessage(locale.getString("notification.error.title"), e.getLocalizedMessage(), TrayIcon.MessageType.ERROR);
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
