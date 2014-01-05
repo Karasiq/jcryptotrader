@@ -209,6 +209,7 @@ public class TraderMainForm extends JPanel {
         textFieldSellPrice.setText("");
         textFieldHighPrice.setText("");
         textFieldLowPrice.setText("");
+        textFieldLastPrice.setText("");
         textFieldVolume.setText("");
         priceChangeLastPrice = 0;
         needStepUpdate = true;
@@ -454,13 +455,15 @@ public class TraderMainForm extends JPanel {
             @Override
             public void run() {
                 while (!Thread.currentThread().isInterrupted()) {
-                    SwingUtilities.invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            double apiLag = (System.currentTimeMillis() - lastUpdated.priceUpdated) / 1000.0;
-                            textFieldApiLag.setText(Utils.Strings.formatNumber(apiLag) + " sec");
-                        }
-                    });
+                    if(lastUpdated.priceUpdated != 0) {
+                        SwingUtilities.invokeLater(new Runnable() {
+                            @Override
+                            public void run() {
+                                double apiLag = (System.currentTimeMillis() - lastUpdated.priceUpdated) / 1000.0;
+                                textFieldApiLag.setText(Utils.Strings.formatNumber(apiLag) + " sec");
+                            }
+                        });
+                    }
                     try {
                         Thread.sleep(200);
                     } catch (InterruptedException e) {
