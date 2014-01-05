@@ -4,7 +4,6 @@
 
 package com.archean.jtradegui;
 
-import javax.swing.event.*;
 import com.archean.jtradeapi.AccountManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -13,6 +12,8 @@ import com.jgoodies.forms.layout.FormLayout;
 import org.apache.commons.io.FileUtils;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -164,9 +165,10 @@ public class Controller extends JFrame {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                for(int i = 0; i < tabbedPaneTraders.getTabCount(); i++) if(i != tabbedPaneTraders.getSelectedIndex()) {
-                    ((TraderMainForm) tabbedPaneTraders.getComponentAt(i)).stopWorker();
-                }
+                for (int i = 0; i < tabbedPaneTraders.getTabCount(); i++)
+                    if (i != tabbedPaneTraders.getSelectedIndex()) {
+                        ((TraderMainForm) tabbedPaneTraders.getComponentAt(i)).stopWorker();
+                    }
                 ((TraderMainForm) tabbedPaneTraders.getSelectedComponent()).startWorker();
             }
         });
@@ -192,8 +194,8 @@ public class Controller extends JFrame {
         });
         Container contentPane = getContentPane();
         contentPane.setLayout(new FormLayout(
-            "[350dlu,default]:grow",
-            "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
+                "[350dlu,default]:grow",
+                "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
 
         //======== toolBar1 ========
         {

@@ -73,11 +73,13 @@ public class ApiWorker {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     data = retrieveData();
-                    if(data != null) {
+                    if (data != null && !Thread.currentThread().isInterrupted()) {
                         updateWorkerData(data);
                         if (callback != null) {
                             callback.onUpdate(apiDataType, data);
                         }
+                    } else {
+                        break;
                     }
                     Thread.sleep(timeInterval);
                 } catch (InterruptedException e) {
@@ -98,7 +100,7 @@ public class ApiWorker {
     volatile long timeInterval = 200;
     volatile Object pair = null;
     volatile Callback callback = null;
-    private Map<ApiDataType, Thread> threadMap = new TreeMap<>();
+    private Map<ApiDataType, Thread> threadMap = new HashMap<>();
 
     synchronized public boolean isThreadRunning(final ApiDataType dataType) {
         return threadMap.containsKey(dataType) && threadMap.get(dataType).isAlive();
@@ -122,16 +124,22 @@ public class ApiWorker {
     }
 
     synchronized public void setActiveThreads(final List<ApiDataType> activeThreads) {
-        for (ApiDataType dataType : threadMap.keySet()) {
-            if (!activeThreads.contains(dataType)) {
-                stopThread(dataType);
+        Map<ApiDataType, Thread> newMap = new HashMap<>();
+        for (Map.Entry<ApiDataType, Thread> entry : threadMap.entrySet()) {
+            if (!activeThreads.contains(entry.getKey())) {
+                entry.getValue().interrupt();
+            } else {
+                newMap.put(entry.getKey(), entry.getValue());
             }
         }
         for (ApiDataType dataType : activeThreads) {
-            if (!isThreadRunning(dataType)) {
-                startThread(dataType);
+            if (!newMap.containsKey(dataType)) {
+                Thread thread = new Thread(new ApiWorkerTask(dataType));
+                newMap.put(dataType, thread);
+                thread.start();
             }
         }
+        threadMap = newMap;
     }
 
     synchronized public void setActiveThreads(final ApiDataType[] activeThreads) {
@@ -140,10 +148,7 @@ public class ApiWorker {
 
     synchronized public void stopAllThreads() {
         for (ApiDataType dataType : threadMap.keySet()) {
-            Thread thread = threadMap.get(dataType);
-            if(thread.isAlive()) {
-                thread.interrupt();
-            }
+            threadMap.get(dataType).interrupt();
         }
         threadMap.clear();
     }
@@ -162,6 +167,7 @@ public class ApiWorker {
         this.pair = pair;
         return this;
     }
+
     public final Object getPair() {
         return this.pair;
     }

@@ -47,6 +47,7 @@ public class Utils {
             DecimalFormat df = new DecimalFormat(format, symbols);
             return df.format(value);
         }
+
         public static <T> String formatNumber(T value) { // json format
             return formatNumber(value, "#################.########");
         }

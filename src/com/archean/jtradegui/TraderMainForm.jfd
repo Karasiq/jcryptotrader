@@ -632,7 +632,7 @@ new FormModel {
 				} )
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
 					"$columnSpecs": "5dlu, labelcompgap, 67dlu, labelcompgap, 57dlu, labelcompgap, default, labelcompgap, default"
-					"$rowSpecs": "default, linegap, default, linegap, default"
+					"$rowSpecs": "default, linegap, default, linegap, default, linegap, default"
 				} ) {
 					name: "panelSettings"
 					add( new FormComponent( "javax.swing.JLabel" ) {
@@ -650,6 +650,13 @@ new FormModel {
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 5
 						"gridY": 1
+					} )
+					add( new FormComponent( "javax.swing.JToggleButton" ) {
+						name: "toggleButtonUpdateAll"
+						"text": new FormMessage( null, "TraderMainForm.toggleButtonUpdateAll.text" )
+						addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "toggleButtonUpdateAllStateChanged", true ) )
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 9
 					} )
 					add( new FormComponent( "javax.swing.JLabel" ) {
 						name: "label1"

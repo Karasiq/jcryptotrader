@@ -1,7 +1,6 @@
 package com.archean.jtradeapi;
 
 import com.google.gson.reflect.TypeToken;
-import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -16,13 +15,16 @@ public class MtGoxTradeApi extends BaseTradeApi {
     public MtGoxTradeApi(ApiKeyPair pair) {
         super(pair);
     }
+
     // MtGox compatibility:
     class ApiStatus<ReturnType> {
         String result; // "success" / ???
         String error; // Error message
         ReturnType data; // Response
     }
-    @Override protected void cleanAuth(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
+
+    @Override
+    protected void cleanAuth(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
         Iterator<NameValuePair> headerIterator = httpHeaders.iterator();
         while (headerIterator.hasNext()) { // Cleaning
             NameValuePair header = headerIterator.next();
@@ -38,7 +40,9 @@ public class MtGoxTradeApi extends BaseTradeApi {
             }
         }
     }
-    @Override protected void writeAuthParams(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
+
+    @Override
+    protected void writeAuthParams(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
         if (apiKeyPair == null || apiKeyPair.publicKey.isEmpty() || apiKeyPair.privateKey.isEmpty()) {
             throw new IllegalArgumentException("Invalid API key pair");
         }
@@ -58,6 +62,7 @@ public class MtGoxTradeApi extends BaseTradeApi {
                 double value;
                 String currency; // USD, EUR, JPY
             }
+
             TickerData last_local; // ???
             TickerData last_orig; // ???
             TickerData last_all; // ???
@@ -66,6 +71,7 @@ public class MtGoxTradeApi extends BaseTradeApi {
             TickerData sell;
             long now; // Timestamp
         }
+
         class Ticker extends TickerFast {
             TickerData high;
             TickerData low;
@@ -74,12 +80,14 @@ public class MtGoxTradeApi extends BaseTradeApi {
             TickerData vol; // Volume
             String item; // "BTC"
         }
+
         class Depth {
             class DepthEntry {
                 double price;
                 double amount;
                 long stamp;
             }
+
             long now; // Timestamp
             long cached; // Timestamp
             List<DepthEntry> asks = new ArrayList<>();
@@ -87,6 +95,7 @@ public class MtGoxTradeApi extends BaseTradeApi {
             Ticker.TickerData filter_min_price;
             Ticker.TickerData filter_max_price;
         }
+
         class Trade {
             long date; // Timestamp
             double price;
@@ -97,31 +106,40 @@ public class MtGoxTradeApi extends BaseTradeApi {
             String trade_type; // "bid"/"ask"
         }
     }
+
     private String formatPublicMtGoxApiUrl(String pair, String method) {
-        if(pair != null && !pair.equals(""))
+        if (pair != null && !pair.equals(""))
             return "http://data.mtgox.com/api/2/" + pair + "/money/" + method;
         else
             return "http://data.mtgox.com/api/2/money/" + method;
     }
 
     // Ticker (prices):
-    @Deprecated private ApiStatus<MtGoxObjects.TickerFast> internalGetFastTicker(String pair) throws Exception {
+    @Deprecated
+    private ApiStatus<MtGoxObjects.TickerFast> internalGetFastTicker(String pair) throws Exception {
         String url = formatPublicMtGoxApiUrl(pair, "ticker_fast");
-        return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<MtGoxObjects.TickerFast>>(){}.getType());
+        return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<MtGoxObjects.TickerFast>>() {
+        }.getType());
     }
+
     private ApiStatus<MtGoxObjects.Ticker> internalGetTicker(String pair) throws Exception {
         String url = formatPublicMtGoxApiUrl(pair, "ticker");
-        return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<MtGoxObjects.Ticker>>(){}.getType());
+        return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<MtGoxObjects.Ticker>>() {
+        }.getType());
     }
+
     // Depth:
     private ApiStatus<MtGoxObjects.Depth> internalGetDepth(String pair) throws Exception {
         String url = formatPublicMtGoxApiUrl(pair, "depth");
-        return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<MtGoxObjects.Depth>>(){}.getType());
+        return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<MtGoxObjects.Depth>>() {
+        }.getType());
     }
+
     // History:
     private ApiStatus<List<MtGoxObjects.Trade>> internalGetTrades(String pair) throws Exception {
         String url = formatPublicMtGoxApiUrl(pair, "trades");
-        return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<List<MtGoxObjects.Trade>>>(){}.getType());
+        return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<List<MtGoxObjects.Trade>>>() {
+        }.getType());
     }
 
 
@@ -142,11 +160,11 @@ public class MtGoxTradeApi extends BaseTradeApi {
 
     // Basic info:
     public BaseTradeApi.StandartObjects.Prices getMarketPrices(Object pair) throws Exception {
-        ApiStatus<MtGoxObjects.Ticker> tickerApiStatus = internalGetTicker((String)pair);
+        ApiStatus<MtGoxObjects.Ticker> tickerApiStatus = internalGetTicker((String) pair);
         StandartObjects.Prices prices = new StandartObjects.Prices();
-        if(!tickerApiStatus.result.equals("success")) {
+        if (!tickerApiStatus.result.equals("success")) {
             throw new TradeApiError("Error retrieving prices data (" + tickerApiStatus.error + ")");
-        } else if(tickerApiStatus.data != null) {
+        } else if (tickerApiStatus.data != null) {
             prices.average = tickerApiStatus.data.avg.value;
             prices.last = tickerApiStatus.data.last.value;
             prices.high = tickerApiStatus.data.high.value;
@@ -159,12 +177,12 @@ public class MtGoxTradeApi extends BaseTradeApi {
     }
 
     public BaseTradeApi.StandartObjects.Depth getMarketDepth(Object pair) throws Exception {
-        ApiStatus<MtGoxObjects.Depth> depthApiStatus = internalGetDepth((String)pair);
+        ApiStatus<MtGoxObjects.Depth> depthApiStatus = internalGetDepth((String) pair);
         StandartObjects.Depth depth = new StandartObjects.Depth();
-        if(!depthApiStatus.result.equals("success")) {
+        if (!depthApiStatus.result.equals("success")) {
             throw new TradeApiError("Error retrieving depth data (" + depthApiStatus.error + ")");
         } else {
-            if(depthApiStatus.data.asks != null) for(MtGoxObjects.Depth.DepthEntry entry : depthApiStatus.data.asks) {
+            if (depthApiStatus.data.asks != null) for (MtGoxObjects.Depth.DepthEntry entry : depthApiStatus.data.asks) {
                 StandartObjects.Order order = new StandartObjects.Order();
                 order.amount = entry.amount;
                 order.price = entry.price;
@@ -173,7 +191,7 @@ public class MtGoxTradeApi extends BaseTradeApi {
                 order.type = Constants.ORDER_SELL;
                 depth.sellOrders.add(order);
             }
-            if(depthApiStatus.data.bids != null) for(MtGoxObjects.Depth.DepthEntry entry : depthApiStatus.data.bids) {
+            if (depthApiStatus.data.bids != null) for (MtGoxObjects.Depth.DepthEntry entry : depthApiStatus.data.bids) {
                 StandartObjects.Order order = new StandartObjects.Order();
                 order.amount = entry.amount;
                 order.price = entry.price;
@@ -187,11 +205,11 @@ public class MtGoxTradeApi extends BaseTradeApi {
     }
 
     public List<BaseTradeApi.StandartObjects.Order> getMarketHistory(Object pair) throws Exception {
-        ApiStatus<List<MtGoxObjects.Trade>> historyApiStatus = internalGetTrades((String)pair);
+        ApiStatus<List<MtGoxObjects.Trade>> historyApiStatus = internalGetTrades((String) pair);
         List<StandartObjects.Order> history = new ArrayList<>();
-        if(!historyApiStatus.result.equals("success")) {
+        if (!historyApiStatus.result.equals("success")) {
             throw new TradeApiError("Error retrieving history data (" + historyApiStatus.error + ")");
-        } else if(historyApiStatus.data != null) for(MtGoxObjects.Trade entry : historyApiStatus.data) {
+        } else if (historyApiStatus.data != null) for (MtGoxObjects.Trade entry : historyApiStatus.data) {
             StandartObjects.Order trade = new StandartObjects.Order();
             trade.amount = entry.amount;
             trade.price = entry.price;
