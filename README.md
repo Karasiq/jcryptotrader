@@ -3,4 +3,7 @@ jCryptoTrader
 Java crypto-exchange trading client
 
 # Supported exchanges
-jCryptoTrader currently supports Cryptsy and BTC-E. More exchanges come soon.
+jCryptoTrader currently supports Cryptsy, BTC-E and partially MtGox (only public api).
+
+# Todo:
+* Add more exchanges
