@@ -145,7 +145,6 @@ new FormModel {
 				add( new FormComponent( "javax.swing.JLabel" ) {
 					name: "labelApiLag"
 					"text": new FormMessage( null, "TraderMainForm.labelApiLag.text" )
-					"labelFor": new FormReference( "textFieldApiLag" )
 					"font": new com.jformdesigner.model.SwingDerivedFont( null, 65538, 0, false )
 				}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 					"gridX": 3
@@ -169,14 +168,13 @@ new FormModel {
 					"gridY": 11
 					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints CENTER
 				} )
-				add( new FormComponent( "javax.swing.JTextField" ) {
-					name: "textFieldApiLag"
-					"editable": false
-					"horizontalAlignment": 11
+				add( new FormComponent( "javax.swing.JLabel" ) {
+					name: "labelApiLagValue"
+					"text": "0.0 sec"
 				}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 					"gridX": 3
 					"gridY": 11
-					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints FILL
+					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints CENTER
 				} )
 				add( new FormComponent( "javax.swing.JTextField" ) {
 					name: "textFieldVolume"
@@ -657,8 +655,8 @@ new FormModel {
 						"gridX": 9
 					} )
 					add( new FormComponent( "javax.swing.JLabel" ) {
-						name: "label1"
-						"text": new FormMessage( null, "TraderMainForm.label1.text" )
+						name: "labelUpdateInterval"
+						"text": new FormMessage( null, "TraderMainForm.labelUpdateInterval.text" )
 						"labelFor": new FormReference( "spinnerUpdateInterval" )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 3

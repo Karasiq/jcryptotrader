@@ -455,12 +455,12 @@ public class TraderMainForm extends JPanel {
             @Override
             public void run() {
                 while (!Thread.currentThread().isInterrupted()) {
-                    if(lastUpdated.priceUpdated != 0) {
+                    if(lastUpdated.priceUpdated != 0 && isVisible()) {
                         SwingUtilities.invokeLater(new Runnable() {
                             @Override
                             public void run() {
                                 double apiLag = (System.currentTimeMillis() - lastUpdated.priceUpdated) / 1000.0;
-                                textFieldApiLag.setText(Utils.Strings.formatNumber(apiLag) + " sec");
+                                labelApiLagValue.setText(Utils.Strings.formatNumber(apiLag) + " sec");
                             }
                         });
                     }
@@ -649,7 +649,7 @@ public class TraderMainForm extends JPanel {
         labelApiLag = new JLabel();
         labelVolume = new JLabel();
         textFieldAvgPrice = new JTextField();
-        textFieldApiLag = new JTextField();
+        labelApiLagValue = new JLabel();
         textFieldVolume = new JTextField();
         separator1 = new JSeparator();
         tabbedPaneTrade = new JTabbedPane();
@@ -699,7 +699,7 @@ public class TraderMainForm extends JPanel {
         labelFeePercent = new JLabel();
         spinnerFeePercent = new JSpinner();
         toggleButtonUpdateAll = new JToggleButton();
-        label1 = new JLabel();
+        labelUpdateInterval = new JLabel();
         spinnerUpdateInterval = new JSpinner();
         buttonApplySettings = new JButton();
         panelLog = new JPanel();
@@ -797,7 +797,6 @@ public class TraderMainForm extends JPanel {
 
             //---- labelApiLag ----
             labelApiLag.setText(bundle.getString("TraderMainForm.labelApiLag.text"));
-            labelApiLag.setLabelFor(textFieldApiLag);
             labelApiLag.setFont(labelApiLag.getFont().deriveFont(Font.ITALIC));
             panelPrice.add(labelApiLag, CC.xy(3, 9, CC.CENTER, CC.DEFAULT));
 
@@ -811,10 +810,9 @@ public class TraderMainForm extends JPanel {
             textFieldAvgPrice.setEditable(false);
             panelPrice.add(textFieldAvgPrice, CC.xy(1, 11, CC.CENTER, CC.DEFAULT));
 
-            //---- textFieldApiLag ----
-            textFieldApiLag.setEditable(false);
-            textFieldApiLag.setHorizontalAlignment(SwingConstants.TRAILING);
-            panelPrice.add(textFieldApiLag, CC.xy(3, 11, CC.FILL, CC.DEFAULT));
+            //---- labelApiLagValue ----
+            labelApiLagValue.setText("0.0 sec");
+            panelPrice.add(labelApiLagValue, CC.xy(3, 11, CC.CENTER, CC.DEFAULT));
 
             //---- textFieldVolume ----
             textFieldVolume.setEditable(false);
@@ -1273,10 +1271,10 @@ public class TraderMainForm extends JPanel {
                 });
                 panelSettings.add(toggleButtonUpdateAll, CC.xy(9, 1));
 
-                //---- label1 ----
-                label1.setText(bundle.getString("TraderMainForm.label1.text"));
-                label1.setLabelFor(spinnerUpdateInterval);
-                panelSettings.add(label1, CC.xy(3, 3));
+                //---- labelUpdateInterval ----
+                labelUpdateInterval.setText(bundle.getString("TraderMainForm.labelUpdateInterval.text"));
+                labelUpdateInterval.setLabelFor(spinnerUpdateInterval);
+                panelSettings.add(labelUpdateInterval, CC.xy(3, 3));
 
                 //---- spinnerUpdateInterval ----
                 spinnerUpdateInterval.setModel(new SpinnerNumberModel(100, 0, 30000, 50));
@@ -1354,7 +1352,7 @@ public class TraderMainForm extends JPanel {
     private JLabel labelApiLag;
     private JLabel labelVolume;
     private JTextField textFieldAvgPrice;
-    private JTextField textFieldApiLag;
+    private JLabel labelApiLagValue;
     private JTextField textFieldVolume;
     private JSeparator separator1;
     private JTabbedPane tabbedPaneTrade;
@@ -1404,7 +1402,7 @@ public class TraderMainForm extends JPanel {
     private JLabel labelFeePercent;
     private JSpinner spinnerFeePercent;
     private JToggleButton toggleButtonUpdateAll;
-    private JLabel label1;
+    private JLabel labelUpdateInterval;
     private JSpinner spinnerUpdateInterval;
     private JButton buttonApplySettings;
     private JPanel panelLog;
