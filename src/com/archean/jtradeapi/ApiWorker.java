@@ -4,11 +4,15 @@ import java.util.List;
 
 public class ApiWorker implements Runnable {
     public abstract static class Callback {
-        public abstract void onUpdate(ApiWorker worker);
+        public abstract void onUpdate(final ApiWorker.ApiDataType dataType, final Object data);
 
         public void onError(Exception exc) {
             exc.printStackTrace();
         }
+    }
+    public static enum ApiDataType {
+        MARKET_PRICES, MARKET_DEPTH, MARKET_HISTORY,
+        ACCOUNT_BALANCES, ACCOUNT_ORDERS, ACCOUNT_HISTORY
     }
 
     volatile public BaseTradeApi.StandartObjects.AccountInfo accountInfo;

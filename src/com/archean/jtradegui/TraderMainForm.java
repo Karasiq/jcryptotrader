@@ -30,13 +30,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.TreeMap;
+import java.util.List;
 
 /**
  * @author Yarr harr
  */
 public class TraderMainForm extends JPanel {
     private double feePercent = 0.2;
-    private long lastUpdated = System.currentTimeMillis();
+    static private class ApiLag {
+        long priceUpdated;
+        long depthUpdated;
+        long ordersUpdated;
+        long marketHistoryUpdated;
+        long accountHistoryUpdated;
+        long balancesUpdated;
+    }
+    private ApiLag lastUpdated = new ApiLag();
     private Thread workerThread = null;
     public ApiWorker worker = new ApiWorker();
     public Map<String, BaseTradeApi.StandartObjects.CurrencyPair> pairList = new TreeMap<>();
@@ -206,117 +215,162 @@ public class TraderMainForm extends JPanel {
         }
     }
 
-    public void fillGui(BaseTradeApi.StandartObjects.AccountInfo accountInfo, BaseTradeApi.StandartObjects.MarketInfo marketInfo) {
-        // Current market data:
-        textFieldLastPrice.setText(Utils.Strings.formatNumber(marketInfo.price.last));
-        textFieldLowPrice.setText(Utils.Strings.formatNumber(marketInfo.price.low));
-        textFieldHighPrice.setText(Utils.Strings.formatNumber(marketInfo.price.high));
-        textFieldAvgPrice.setText(Utils.Strings.formatNumber(marketInfo.price.average));
-        textFieldBuyPrice.setText(Utils.Strings.formatNumber(marketInfo.price.buy));
-        textFieldSellPrice.setText(Utils.Strings.formatNumber(marketInfo.price.sell));
-        textFieldVolume.setText(Utils.Strings.formatNumber(marketInfo.volume));
-        if (spinnerBuyOrderPrice.getValue().equals(0.0)) {
-            spinnerBuyOrderPrice.setValue(marketInfo.price.buy);
-        }
-        if (spinnerSellOrderPrice.getValue().equals(0.0)) {
-            spinnerSellOrderPrice.setValue(marketInfo.price.sell);
-        }
-        double stepSize = marketInfo.price.buy / 100;
-        if (stepSize < 0.00000001) stepSize = 0.00000001;
-        ((SpinnerNumberModel) spinnerBuyOrderPrice.getModel()).setStepSize(stepSize);
-        ((SpinnerNumberModel) spinnerBuyOrderAmount.getModel()).setStepSize(getCurrentSecondaryBalance() * 0.01 / marketInfo.price.buy);
+    // GUI MVC functions
+    private void updatePrices(final BaseTradeApi.StandartObjects.Prices price) {
+        lastUpdated.priceUpdated = System.currentTimeMillis();
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                textFieldLastPrice.setText(Utils.Strings.formatNumber(price.last));
+                textFieldLowPrice.setText(Utils.Strings.formatNumber(price.low));
+                textFieldHighPrice.setText(Utils.Strings.formatNumber(price.high));
+                textFieldAvgPrice.setText(Utils.Strings.formatNumber(price.average));
+                textFieldBuyPrice.setText(Utils.Strings.formatNumber(price.buy));
+                textFieldSellPrice.setText(Utils.Strings.formatNumber(price.sell));
+                textFieldVolume.setText(Utils.Strings.formatNumber(price.volume));
+                if (spinnerBuyOrderPrice.getValue().equals(0.0)) {
+                    spinnerBuyOrderPrice.setValue(price.buy);
+                }
+                if (spinnerSellOrderPrice.getValue().equals(0.0)) {
+                    spinnerSellOrderPrice.setValue(price.sell);
+                }
+                double stepSize = price.buy / 100;
+                if (stepSize < 0.00000001) stepSize = 0.00000001;
+                ((SpinnerNumberModel) spinnerBuyOrderPrice.getModel()).setStepSize(stepSize);
+                ((SpinnerNumberModel) spinnerBuyOrderAmount.getModel()).setStepSize(getCurrentSecondaryBalance() * 0.01 / price.buy);
 
-        stepSize = marketInfo.price.sell / 100;
-        if (stepSize < 0.00000001) stepSize = 0.00000001;
-        ((SpinnerNumberModel) spinnerSellOrderPrice.getModel()).setStepSize(stepSize);
-        ((SpinnerNumberModel) spinnerSellOrderAmount.getModel()).setStepSize(getCurrentPrimaryBalance() * 0.01);
-        updateLabelTotal();
+                stepSize = price.sell / 100;
+                if (stepSize < 0.00000001) stepSize = 0.00000001;
+                ((SpinnerNumberModel) spinnerSellOrderPrice.getModel()).setStepSize(stepSize);
+                ((SpinnerNumberModel) spinnerSellOrderAmount.getModel()).setStepSize(getCurrentPrimaryBalance() * 0.01);
+                updateLabelTotal();
+            }
+        });
+    }
+    private void updateDepth(final BaseTradeApi.StandartObjects.Depth depth) {
+        lastUpdated.depthUpdated = System.currentTimeMillis();
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                DefaultTableModel model = (DefaultTableModel) tableBuyOrders.getModel();
+                model.setRowCount(depth.buyOrders.size());
+                int i = 0;
+                for (BaseTradeApi.StandartObjects.Order order : depth.buyOrders) {
+                    model.setValueAt(Utils.Strings.formatNumber(order.price), i, 0);
+                    model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 1);
+                    i++;
+                }
+                model = (DefaultTableModel) tableSellOrders.getModel();
+                model.setRowCount(depth.sellOrders.size());
+                i = 0;
+                for (BaseTradeApi.StandartObjects.Order order : depth.sellOrders) {
+                    model.setValueAt(Utils.Strings.formatNumber(order.price), i, 0);
+                    model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 1);
+                    i++;
+                }
+            }
+        });
+    }
 
-        // Depth:
-        if (marketInfo.depth.buyOrders.size() > 0 || marketInfo.depth.sellOrders.size() > 0) {
-            DefaultTableModel model = (DefaultTableModel) tableBuyOrders.getModel();
-            model.setRowCount(marketInfo.depth.buyOrders.size());
-            int i = 0;
-            for (BaseTradeApi.StandartObjects.Order order : marketInfo.depth.buyOrders) {
-                model.setValueAt(Utils.Strings.formatNumber(order.price), i, 0);
-                model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 1);
-                i++;
+    private void updateMarketHistory(final List<BaseTradeApi.StandartObjects.Order> history) {
+        lastUpdated.marketHistoryUpdated = System.currentTimeMillis();
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                int i = 0;
+                DefaultTableModel model = (DefaultTableModel) tableMarketHistory.getModel();
+                model.setRowCount(history.size());
+                for (BaseTradeApi.StandartObjects.Order order : history) {
+                    model.setValueAt(new SimpleDateFormat("HH:mm:ss").format(order.time), i, 0);
+                    model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1);
+                    model.setValueAt(Utils.Strings.formatNumber(order.price), i, 2);
+                    model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 3);
+                    model.setValueAt(Utils.Strings.formatNumber(order.amount * order.price / ((100.0 + feePercent) / 100.0)) + " " + getCurrentSecondaryCurrency(), i, 4);
+                    i++;
+                }
             }
-            model = (DefaultTableModel) tableSellOrders.getModel();
-            model.setRowCount(marketInfo.depth.sellOrders.size());
-            i = 0;
-            for (BaseTradeApi.StandartObjects.Order order : marketInfo.depth.sellOrders) {
-                model.setValueAt(Utils.Strings.formatNumber(order.price), i, 0);
-                model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 1);
-                i++;
+        });
+    }
+    private void updateAccountHistory(final List<BaseTradeApi.StandartObjects.Order> history) {
+        lastUpdated.accountHistoryUpdated = System.currentTimeMillis();
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                int i = 0;
+                DefaultTableModel model = (DefaultTableModel) tableAccountHistory.getModel();
+                model.setRowCount(history.size());
+                for (BaseTradeApi.StandartObjects.Order order : history) {
+                    model.setValueAt(new SimpleDateFormat("HH:mm:ss").format(order.time), i, 0);
+                    model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1);
+                    model.setValueAt(Utils.Strings.formatNumber(order.price), i, 2);
+                    model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 3);
+                    model.setValueAt(Utils.Strings.formatNumber(order.amount * order.price / ((100.0 + feePercent) / 100.0)) + " " + getCurrentSecondaryCurrency(), i, 4);
+                    i++;
+                }
             }
-        }
+        });
+    }
+    private void updateOpenOrders(final List<BaseTradeApi.StandartObjects.Order> orders) {
+        lastUpdated.ordersUpdated = System.currentTimeMillis();
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                int i = 0;
+                DefaultTableModel model = (DefaultTableModel) tableOpenOrders.getModel();
+                model.setRowCount(orders.size());
+                for (BaseTradeApi.StandartObjects.Order order : orders) {
+                    model.setValueAt(order.id, i, 0); // ID
+                    model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1); // Type
+                    model.setValueAt(Utils.Strings.formatNumber(order.price), i, 2); // Price
+                    model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 3); // Amount
+                    model.setValueAt(Utils.Strings.formatNumber(order.amount * order.price / ((100.0 + feePercent) / 100.0)) + " " + getCurrentSecondaryCurrency(), i, 4); // Total
+                    i++;
+                }
+            }
+        });
+    }
+    private void updateAccountBalances(final Map<String, Double> balances) {
+        lastUpdated.balancesUpdated = System.currentTimeMillis();
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                int i = 0;
+                DefaultTableModel model = (DefaultTableModel) tableBalances.getModel();
+                model.setRowCount(balances.size());
+                for (Map.Entry<String, Double> balance : balances.entrySet()) {
+                    model.setValueAt(balance.getKey(), i, 0); // Currency name
+                    model.setValueAt(Utils.Strings.formatNumber(balance.getValue()), i, 1); // Amount
+                    i++;
+                }
+            }
+        });
+    }
 
-        // History:
-        if ((marketInfo.history.size() > 0 && panelHistory.getSelectedIndex() == 1) || (accountInfo.history.size() > 0 && panelHistory.getSelectedIndex() == 0)) {
-            // Market history:
-            int i = 0;
-            DefaultTableModel model = (DefaultTableModel) tableMarketHistory.getModel();
-            model.setRowCount(marketInfo.history.size());
-            for (BaseTradeApi.StandartObjects.Order order : marketInfo.history) {
-                model.setValueAt(new SimpleDateFormat("HH:mm:ss").format(order.time), i, 0);
-                model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1);
-                model.setValueAt(Utils.Strings.formatNumber(order.price), i, 2);
-                model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 3);
-                model.setValueAt(Utils.Strings.formatNumber(order.amount * order.price / ((100.0 + feePercent) / 100.0)) + " " + getCurrentSecondaryCurrency(), i, 4);
-                i++;
-            }
-            // Account history:
-            i = 0;
-            model = (DefaultTableModel) tableAccountHistory.getModel();
-            model.setRowCount(accountInfo.history.size());
-            for (BaseTradeApi.StandartObjects.Order order : accountInfo.history) {
-                model.setValueAt(new SimpleDateFormat("HH:mm:ss").format(order.time), i, 0);
-                model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1);
-                model.setValueAt(Utils.Strings.formatNumber(order.price), i, 2);
-                model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 3);
-                model.setValueAt(Utils.Strings.formatNumber(order.amount * order.price / ((100.0 + feePercent) / 100.0)) + " " + getCurrentSecondaryCurrency(), i, 4);
-                i++;
-            }
-        }
 
-        // Open orders:
-        /* if(accountInfo.orders.size() > 0) */
-        {
-            int i = 0;
-            DefaultTableModel model = (DefaultTableModel) tableOpenOrders.getModel();
-            model.setRowCount(accountInfo.orders.size());
-            for (BaseTradeApi.StandartObjects.Order order : accountInfo.orders) {
-                model.setValueAt(order.id, i, 0); // ID
-                model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1); // Type
-                model.setValueAt(Utils.Strings.formatNumber(order.price), i, 2); // Price
-                model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 3); // Amount
-                model.setValueAt(Utils.Strings.formatNumber(order.amount * order.price / ((100.0 + feePercent) / 100.0)) + " " + getCurrentSecondaryCurrency(), i, 4); // Total
-                i++;
-            }
-        }
-
-        // Balance:
-        if (accountInfo.balance.size() > 0) {
-            int i = 0;
-            DefaultTableModel model = (DefaultTableModel) tableBalances.getModel();
-            model.setRowCount(accountInfo.balance.size());
-            for (Map.Entry<String, Double> balance : accountInfo.balance.entrySet()) {
-                /* if(model.getValueAt(i, 0).equals(balance.getKey()) && !model.getValueAt(i, 1).equals(balance.getValue())) {
-                    double changedBalance = balance.getValue() - (Double)model.getValueAt(i, 1);
-                    processNotification("Available balance changed: " + (changedBalance > 0 ? "+" : "") + Utils.Strings.formatNumber(changedBalance) + " " + balance.getKey());
-                } */
-                model.setValueAt(balance.getKey(), i, 0); // Currency name
-                model.setValueAt(Utils.Strings.formatNumber(balance.getValue()), i, 1); // Amount
-                i++;
-            }
-        }
-        if (!this.isEnabled()) {
-            lockPanel(false);
-            setUpdateOptions();
+    public void fillGui(ApiWorker.ApiDataType dataType, Object data) {
+        switch(dataType) {
+            case MARKET_PRICES:
+                updatePrices((BaseTradeApi.StandartObjects.Prices)data);
+                break;
+            case MARKET_DEPTH:
+                updateDepth((BaseTradeApi.StandartObjects.Depth)data);
+                break;
+            case MARKET_HISTORY:
+                updateMarketHistory((List<BaseTradeApi.StandartObjects.Order>)data);
+                break;
+            case ACCOUNT_BALANCES:
+                updateAccountBalances((Map<String, Double>)data);
+                break;
+            case ACCOUNT_ORDERS:
+                updateOpenOrders((List<BaseTradeApi.StandartObjects.Order>)data);
+                break;
+            case ACCOUNT_HISTORY:
+                updateAccountHistory((List<BaseTradeApi.StandartObjects.Order>)data);
+                break;
+            default:
+                throw new IllegalArgumentException();
         }
         revalidate();
-        lastUpdated = System.currentTimeMillis();
     }
 
     public TraderMainForm(AccountManager.Account account) {
@@ -329,11 +383,11 @@ public class TraderMainForm extends JPanel {
 
         worker.setCallBack(new ApiWorker.Callback() {
             @Override
-            public void onUpdate(final ApiWorker worker) {
+            public void onUpdate(final ApiWorker.ApiDataType dataType, final Object data) {
                 SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                        fillGui(worker.accountInfo, worker.marketInfo.get(0));
+                        fillGui(dataType, data);
                     }
                 });
             }
