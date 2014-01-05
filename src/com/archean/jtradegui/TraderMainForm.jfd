@@ -627,6 +627,56 @@ new FormModel {
 					"title": new FormMessage( null, "TraderMainForm.panelHistory.tab.title" )
 				} )
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
+					"$columnSpecs": "default:grow"
+					"$rowSpecs": "fill:default:grow"
+				} ) {
+					name: "panelMarketCap"
+					add( new FormContainer( "javax.swing.JScrollPane", new FormLayoutManager( class javax.swing.JScrollPane ) ) {
+						name: "scrollPane1"
+						add( new FormComponent( "javax.swing.JTable" ) {
+							name: "tableMarketCap"
+							"model": new com.jformdesigner.model.SwingTableModel( new java.util.Vector, new java.util.Vector {
+								add( "#" )
+								add( "Currency" )
+								add( "USD cap" )
+								add( "BTC cap" )
+								add( "USD volume" )
+								add( "BTC volume" )
+								add( "Change (24h)" )
+							}, new java.util.Vector {
+								add( null )
+								add( class java.lang.String )
+								add( class java.lang.Object )
+								add( class java.lang.Object )
+								add( null )
+								add( null )
+								add( null )
+							}, new java.util.Vector {
+								add( null )
+								add( false )
+								add( false )
+								add( false )
+								add( false )
+								add( false )
+								add( false )
+							}, new java.util.Vector {
+								add( null )
+								add( null )
+								add( null )
+								add( null )
+								add( null )
+								add( null )
+								add( null )
+							} )
+						} )
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 1
+						"gridY": 1
+					} )
+				}, new FormLayoutConstraints( null ) {
+					"title": new FormMessage( null, "TraderMainForm.panelMarketCap.tab.title" )
+				} )
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
 					"$columnSpecs": "5dlu, labelcompgap, 67dlu, labelcompgap, 57dlu, labelcompgap, default, labelcompgap, default"
 					"$rowSpecs": "default, linegap, default, linegap, default, linegap, default"
 				} ) {

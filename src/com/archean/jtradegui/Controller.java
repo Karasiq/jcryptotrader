@@ -5,6 +5,8 @@
 package com.archean.jtradegui;
 
 import java.awt.event.*;
+
+import com.archean.coinmarketcap.CoinMarketCapParser;
 import com.archean.jtradeapi.AccountManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;

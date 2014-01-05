@@ -4,6 +4,7 @@
 
 package com.archean.jtradegui;
 
+import com.archean.coinmarketcap.CoinMarketCapParser;
 import com.archean.jtradeapi.AccountManager;
 import com.archean.jtradeapi.ApiWorker;
 import com.archean.jtradeapi.BaseTradeApi;
@@ -15,7 +16,9 @@ import com.jgoodies.forms.layout.FormLayout;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -25,6 +28,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
@@ -52,25 +56,54 @@ public class TraderMainForm extends JPanel {
     private volatile boolean initialized = false;
     private volatile boolean needStepUpdate = true;
     private volatile double priceChangeLastPrice = 0;
-    private Thread apiLagThread = null;
-    private Thread priceChangeTimerThread = null;
+    private volatile Map<String, Thread> threadMap = new HashMap<>();
+    private Runnable marketCapUpdateTask = new Runnable() {
+        @Override
+        public void run() {
+            CoinMarketCapParser parser = new CoinMarketCapParser();
+            while(!Thread.currentThread().isInterrupted()) {
+                try {
+                    updateMarketCap(parser.getData());
+                    Thread.sleep(30000);
+                } catch(InterruptedException e) {
+                    break;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    };
+
+    private void stopThreads(String[] threadNames) {
+        for(String t : threadNames) {
+            Thread thread = threadMap.get(t);
+            if(thread != null && thread.isAlive()) {
+                thread.interrupt();
+                threadMap.remove(t);
+            }
+        }
+    }
 
     public void stopWorker() {
         initialized = false;
         worker.stopAllThreads();
+        stopThreads(new String[] {"marketCap"});
     }
 
     public void startWorker() {
         initialized = true;
         setUpdateOptions();
+        stopThreads(new String[] {"marketCap"});
+        Thread marketCapThread = new Thread(marketCapUpdateTask);
+        threadMap.put("marketCap", marketCapThread);
+        marketCapThread.start();
     }
 
     public void killThreads() {
         stopWorker();
-        if (apiLagThread != null)
-            apiLagThread.interrupt();
-        if (priceChangeTimerThread != null)
-            priceChangeTimerThread.interrupt();
+        for(Thread thread : threadMap.values()) {
+            thread.interrupt();
+        }
     }
 
     public void setSettings(double feePercent, int timeInterval) {
@@ -132,14 +165,6 @@ public class TraderMainForm extends JPanel {
                 }
             }
         });
-    }
-
-    protected void lockPanel(boolean lock) {
-        this.setEnabled(!lock);
-        Component[] com = this.getComponents();
-        for (Component c : com) {
-            c.setEnabled(!lock);
-        }
     }
 
     protected String getCurrentPrimaryCurrency() {
@@ -400,6 +425,27 @@ public class TraderMainForm extends JPanel {
         });
     }
 
+    private void updateMarketCap(final List<CoinMarketCapParser.CoinCapitalization> capitalizationList) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                int i = 0;
+                DefaultTableModel model = (DefaultTableModel) tableMarketCap.getModel();
+                model.setRowCount(capitalizationList.size());
+                for (CoinMarketCapParser.CoinCapitalization capitalization : capitalizationList) {
+                    model.setValueAt(i + 1, i, 0);
+                    model.setValueAt(String.format("%s (%s)", capitalization.coinName, capitalization.coinCode), i, 1); // Currency name
+                    model.setValueAt(capitalization.usdCap, i, 2); // USD cap
+                    model.setValueAt(capitalization.btcCap, i, 3); // BTC cap
+                    model.setValueAt(capitalization.usdVolume, i, 4); // USD volume
+                    model.setValueAt(capitalization.btcVolume, i, 5); // BTC volume
+                    model.setValueAt(capitalization.change, i, 6); // Change (24h)
+                    i++;
+                }
+            }
+        });
+    }
+
 
     public void fillGui(ApiWorker.ApiDataType dataType, Object data) {
         if (!initialized) return; // reject data
@@ -436,6 +482,24 @@ public class TraderMainForm extends JPanel {
         spinnerSellOrderPrice.setEditor(new JSpinner.NumberEditor(spinnerSellOrderPrice, "##############.########"));
         spinnerSellOrderAmount.setEditor(new JSpinner.NumberEditor(spinnerSellOrderAmount, "##############.########"));
 
+        TableCellRenderer capCellRenderer = new DefaultTableCellRenderer() {
+            public Component getTableCellRendererComponent(JTable table,
+                                                           Object value, boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                if(value instanceof Long || value instanceof Integer) {
+                    value = Utils.Strings.formatNumber(value, "###,###,###,###");
+                } else if(value instanceof Double) {
+                    value = ((Double)value > 0 ? "+" : "") + Utils.Strings.formatNumber(value, "###########.##") + "%";
+                }
+                return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            }
+        };
+        tableMarketCap.getColumnModel().getColumn(2).setCellRenderer(capCellRenderer);
+        tableMarketCap.getColumnModel().getColumn(3).setCellRenderer(capCellRenderer);
+        tableMarketCap.getColumnModel().getColumn(4).setCellRenderer(capCellRenderer);
+        tableMarketCap.getColumnModel().getColumn(5).setCellRenderer(capCellRenderer);
+        tableMarketCap.getColumnModel().getColumn(6).setCellRenderer(capCellRenderer);
+
         worker.setCallBack(new ApiWorker.Callback() {
             @Override
             public void onUpdate(final ApiWorker.ApiDataType dataType, final Object data) {
@@ -449,7 +513,7 @@ public class TraderMainForm extends JPanel {
         });
         initMarket(account);
 
-        apiLagThread = new Thread(new Runnable() {
+        Thread apiLagThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 while (!Thread.currentThread().isInterrupted()) {
@@ -470,7 +534,7 @@ public class TraderMainForm extends JPanel {
                 }
             }
         });
-        priceChangeTimerThread = new Thread(new Runnable() {
+        Thread priceChangeTimerThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 while (!Thread.currentThread().isInterrupted()) {
@@ -486,9 +550,11 @@ public class TraderMainForm extends JPanel {
                 }
             }
         });
-
         apiLagThread.start();
         priceChangeTimerThread.start();
+
+        threadMap.put("apiLag", apiLagThread);
+        threadMap.put("priceChangeTimer", priceChangeTimerThread);
     }
 
     protected void setUpdateOptions() {
@@ -696,6 +762,9 @@ public class TraderMainForm extends JPanel {
         panelMarketTrades = new JPanel();
         scrollPane7 = new JScrollPane();
         tableMarketHistory = new JTable();
+        panelMarketCap = new JPanel();
+        scrollPane1 = new JScrollPane();
+        tableMarketCap = new JTable();
         panelSettings = new JPanel();
         labelFeePercent = new JLabel();
         spinnerFeePercent = new JSpinner();
@@ -1241,6 +1310,44 @@ public class TraderMainForm extends JPanel {
             }
             tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelHistory.tab.title"), panelHistory);
 
+            //======== panelMarketCap ========
+            {
+                panelMarketCap.setLayout(new FormLayout(
+                    "default:grow",
+                    "fill:default:grow"));
+
+                //======== scrollPane1 ========
+                {
+
+                    //---- tableMarketCap ----
+                    tableMarketCap.setModel(new DefaultTableModel(
+                        new Object[][] {
+                        },
+                        new String[] {
+                            "#", "Currency", "USD cap", "BTC cap", "USD volume", "BTC volume", "Change (24h)"
+                        }
+                    ) {
+                        Class<?>[] columnTypes = new Class<?>[] {
+                            Object.class, String.class, Object.class, Object.class, Object.class, Object.class, Object.class
+                        };
+                        boolean[] columnEditable = new boolean[] {
+                            true, false, false, false, false, false, false
+                        };
+                        @Override
+                        public Class<?> getColumnClass(int columnIndex) {
+                            return columnTypes[columnIndex];
+                        }
+                        @Override
+                        public boolean isCellEditable(int rowIndex, int columnIndex) {
+                            return columnEditable[columnIndex];
+                        }
+                    });
+                    scrollPane1.setViewportView(tableMarketCap);
+                }
+                panelMarketCap.add(scrollPane1, CC.xy(1, 1));
+            }
+            tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelMarketCap.tab.title"), panelMarketCap);
+
             //======== panelSettings ========
             {
                 panelSettings.setLayout(new FormLayout(
@@ -1399,6 +1506,9 @@ public class TraderMainForm extends JPanel {
     private JPanel panelMarketTrades;
     private JScrollPane scrollPane7;
     private JTable tableMarketHistory;
+    private JPanel panelMarketCap;
+    private JScrollPane scrollPane1;
+    private JTable tableMarketCap;
     private JPanel panelSettings;
     private JLabel labelFeePercent;
     private JSpinner spinnerFeePercent;

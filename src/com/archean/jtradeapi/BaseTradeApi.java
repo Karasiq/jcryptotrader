@@ -33,7 +33,7 @@ public abstract class BaseTradeApi {
         protected static final String JsonDateFormat = "yyyy-MM-dd HH:mm:ss";
     }
 
-    protected class RequestSender {
+    public static class RequestSender {
         String requestEncoding = "UTF-8";
 
         String formatGetParamString(List<NameValuePair> urlParameters) {
