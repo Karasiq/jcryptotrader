@@ -29,7 +29,7 @@ new FormModel {
 				"gridWidth": 3
 			} )
 			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
-				"$columnSpecs": "default:grow, labelcompgap, 55dlu, labelcompgap, default:grow, labelcompgap, default"
+				"$columnSpecs": "default:grow, labelcompgap, 70dlu, labelcompgap, default:grow"
 				"$rowSpecs": "default, linegap, default, linegap, default, linegap, max(default;18dlu), linegap, default, linegap, default"
 			} ) {
 				name: "panelPrice"
@@ -39,6 +39,15 @@ new FormModel {
 					"font": new com.jformdesigner.model.SwingDerivedFont( null, 1, 0, false )
 					"labelFor": new FormReference( "textFieldBuyPrice" )
 				}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints CENTER
+				} )
+				add( new FormComponent( "javax.swing.JLabel" ) {
+					name: "labelLastPrice"
+					"text": new FormMessage( null, "TraderMainForm.labelLastPrice.text" )
+					"labelFor": new FormReference( "textFieldLastPrice" )
+					"font": new com.jformdesigner.model.SwingDerivedFont( null, 1, 0, false )
+				}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+					"gridX": 3
 					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints CENTER
 				} )
 				add( new FormComponent( "javax.swing.JLabel" ) {
@@ -57,14 +66,12 @@ new FormModel {
 					"gridY": 3
 					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints CENTER
 				} )
-				add( new FormComponent( "javax.swing.JLabel" ) {
-					name: "labelLastPrice"
-					"text": new FormMessage( null, "TraderMainForm.labelLastPrice.text" )
-					"labelFor": new FormReference( "textFieldLastPrice" )
-					"font": new com.jformdesigner.model.SwingDerivedFont( null, 1, 0, false )
+				add( new FormComponent( "javax.swing.JTextField" ) {
+					name: "textFieldLastPrice"
+					"editable": false
 				}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
-					"gridX": 3
 					"gridY": 3
+					"gridX": 3
 					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints CENTER
 				} )
 				add( new FormComponent( "javax.swing.JTextField" ) {
@@ -84,12 +91,13 @@ new FormModel {
 					"gridY": 5
 					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints CENTER
 				} )
-				add( new FormComponent( "javax.swing.JTextField" ) {
-					name: "textFieldLastPrice"
-					"editable": false
+				add( new FormComponent( "javax.swing.JLabel" ) {
+					name: "labelPriceChange"
+					"text": new FormMessage( null, "TraderMainForm.labelPriceChange.text" )
+					"font": new com.jformdesigner.model.SwingDerivedFont( null, 3, 0, false )
 				}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
-					"gridY": 5
 					"gridX": 3
+					"gridY": 5
 					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints CENTER
 				} )
 				add( new FormComponent( "javax.swing.JLabel" ) {
@@ -106,6 +114,14 @@ new FormModel {
 					name: "textFieldLowPrice"
 					"editable": false
 				}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+					"gridY": 7
+					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints CENTER
+				} )
+				add( new FormComponent( "javax.swing.JLabel" ) {
+					name: "labelPriceChangePercent"
+					"text": "0%"
+				}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+					"gridX": 3
 					"gridY": 7
 					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints CENTER
 				} )
@@ -160,6 +176,7 @@ new FormModel {
 				}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 					"gridX": 3
 					"gridY": 11
+					"hAlign": sfield com.jgoodies.forms.layout.CellConstraints FILL
 				} )
 				add( new FormComponent( "javax.swing.JTextField" ) {
 					name: "textFieldVolume"

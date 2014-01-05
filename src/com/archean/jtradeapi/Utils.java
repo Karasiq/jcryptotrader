@@ -40,12 +40,15 @@ public class Utils {
     }
 
     public static class Strings {
-        public static <T> String formatNumber(T value) { // json format
+        public static <T> String formatNumber(T value, String format) { // custom format
             DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.ENGLISH);
             symbols.setDecimalSeparator('.');
             symbols.setGroupingSeparator(',');
-            DecimalFormat df = new DecimalFormat("#################.########", symbols);
+            DecimalFormat df = new DecimalFormat(format, symbols);
             return df.format(value);
+        }
+        public static <T> String formatNumber(T value) { // json format
+            return formatNumber(value, "#################.########");
         }
     }
 

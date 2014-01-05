@@ -4,6 +4,7 @@
 
 package com.archean.jtradegui;
 
+import javax.swing.border.*;
 import com.archean.jtradeapi.AccountManager;
 import com.archean.jtradeapi.ApiWorker;
 import com.archean.jtradeapi.BaseTradeApi;
@@ -45,11 +46,16 @@ public class TraderMainForm extends JPanel {
     }
 
     private ApiLag lastUpdated = new ApiLag();
+
     public ApiWorker worker = new ApiWorker();
     public Map<String, BaseTradeApi.StandartObjects.CurrencyPair> pairList = new TreeMap<>();
     static ResourceBundle locale = ResourceBundle.getBundle("com.archean.jtradegui.locale", new UTF8Control());
     private volatile boolean initialized = false;
+    private volatile boolean needStepUpdate = true;
+    private volatile boolean needPriceChangeUpdate = true;
+    private double priceChangeLastPrice = 0;
     private Thread apiLagThread = null;
+    private Thread priceChangeTimerThread = null;
 
     public void stopWorker() {
         initialized = false;
@@ -63,7 +69,10 @@ public class TraderMainForm extends JPanel {
 
     public void killThreads() {
         initialized = false;
-        apiLagThread.interrupt();
+        if(apiLagThread != null)
+            apiLagThread.interrupt();
+        if(priceChangeTimerThread != null)
+            priceChangeTimerThread.interrupt();
         stopWorker();
     }
 
@@ -151,7 +160,7 @@ public class TraderMainForm extends JPanel {
     }
 
     protected void updateLabelTotal() {
-        /* if(tabbedPaneTrade.getSelectedIndex() == 0) */
+        if(tabbedPaneTrade.getSelectedIndex() == 0)
         { // Buy
             double balance = getCurrentSecondaryBalance();
             double enteredTotal = (Double) spinnerBuyOrderAmount.getValue() * (Double) spinnerBuyOrderPrice.getValue() * ((100.0 + feePercent) / 100.0);
@@ -161,7 +170,7 @@ public class TraderMainForm extends JPanel {
             } else {
                 labelBuyOrderTotalValue.setForeground(Color.BLACK);
             }
-        } /* else */
+        } else
         { // Sell
             double balance = getCurrentPrimaryBalance(),
                     amount = (Double) spinnerSellOrderAmount.getValue(),
@@ -191,6 +200,8 @@ public class TraderMainForm extends JPanel {
     }
 
     protected void clearMarketData() {
+        needPriceChangeUpdate = true;
+        needStepUpdate = true;
         ((DefaultTableModel) tableAccountHistory.getModel()).setRowCount(0);
         ((DefaultTableModel) tableMarketHistory.getModel()).setRowCount(0);
         ((DefaultTableModel) tableBuyOrders.getModel()).setRowCount(0);
@@ -198,6 +209,12 @@ public class TraderMainForm extends JPanel {
         ((DefaultTableModel) tableOpenOrders.getModel()).setRowCount(0);
         spinnerBuyOrderPrice.setValue(0.0);
         spinnerSellOrderPrice.setValue(0.0);
+        textFieldAvgPrice.setText("");
+        textFieldBuyPrice.setText("");
+        textFieldSellPrice.setText("");
+        textFieldHighPrice.setText("");
+        textFieldLowPrice.setText("");
+        textFieldVolume.setText("");
     }
 
     public void initMarket(AccountManager.Account account) {
@@ -216,40 +233,73 @@ public class TraderMainForm extends JPanel {
             clearMarketData();
             worker.setTimeInterval((Integer)spinnerUpdateInterval.getValue());
             feePercent = worker.tradeApi.getFeePercent(worker.getPair());
+            needStepUpdate = true;
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     // GUI MVC functions
+    private void setPrice(final JTextField field, double newValue) {
+        String oldValue = field.getText();
+        if(oldValue.equals("")) {
+            field.setText(Utils.Strings.formatNumber(newValue));
+            field.setBackground(new Color(240, 240, 240)); // Default color
+        } else {
+            double oldPrice = Double.parseDouble(oldValue);
+            if(oldPrice != newValue) {
+                field.setText(Utils.Strings.formatNumber(newValue));
+                field.setBackground(newValue > oldPrice ? Color.GREEN : Color.RED);
+            }
+        }
+    }
     private void updatePrices(final BaseTradeApi.StandartObjects.Prices price) {
         lastUpdated.priceUpdated = System.currentTimeMillis();
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                textFieldLastPrice.setText(Utils.Strings.formatNumber(price.last));
-                textFieldLowPrice.setText(Utils.Strings.formatNumber(price.low));
-                textFieldHighPrice.setText(Utils.Strings.formatNumber(price.high));
-                textFieldAvgPrice.setText(Utils.Strings.formatNumber(price.average));
-                textFieldBuyPrice.setText(Utils.Strings.formatNumber(price.buy));
-                textFieldSellPrice.setText(Utils.Strings.formatNumber(price.sell));
-                textFieldVolume.setText(Utils.Strings.formatNumber(price.volume));
-                if (spinnerBuyOrderPrice.getValue().equals(0.0)) {
-                    spinnerBuyOrderPrice.setValue(price.buy);
-                }
-                if (spinnerSellOrderPrice.getValue().equals(0.0)) {
-                    spinnerSellOrderPrice.setValue(price.sell);
-                }
-                double stepSize = price.buy / 100.0;
-                if (stepSize < 0.00000001) stepSize = 0.00000001;
-                ((SpinnerNumberModel) spinnerBuyOrderPrice.getModel()).setStepSize(stepSize);
-                ((SpinnerNumberModel) spinnerBuyOrderAmount.getModel()).setStepSize(getCurrentSecondaryBalance() * 0.01 / price.buy);
+                setPrice(textFieldLastPrice, price.last);
+                setPrice(textFieldLowPrice, price.low);
+                setPrice(textFieldHighPrice, price.high);
+                setPrice(textFieldAvgPrice, price.average);
+                setPrice(textFieldBuyPrice, price.buy);
+                setPrice(textFieldSellPrice, price.sell);
+                setPrice(textFieldVolume, price.volume);
 
-                stepSize = price.sell / 100.0;
-                if (stepSize < 0.00000001) stepSize = 0.00000001;
-                ((SpinnerNumberModel) spinnerSellOrderPrice.getModel()).setStepSize(stepSize);
-                ((SpinnerNumberModel) spinnerSellOrderAmount.getModel()).setStepSize(getCurrentPrimaryBalance() * 0.01);
-                updateLabelTotal();
+                if(needStepUpdate) {
+                    if (spinnerBuyOrderPrice.getValue().equals(0.0)) {
+                        spinnerBuyOrderPrice.setValue(price.buy);
+                    }
+                    if (spinnerSellOrderPrice.getValue().equals(0.0)) {
+                        spinnerSellOrderPrice.setValue(price.sell);
+                    }
+                    double stepSize = price.buy / 100.0;
+                    if (stepSize < 0.00000001) stepSize = 0.00000001;
+                    ((SpinnerNumberModel) spinnerBuyOrderPrice.getModel()).setStepSize(stepSize);
+                    ((SpinnerNumberModel) spinnerBuyOrderAmount.getModel()).setStepSize(getCurrentSecondaryBalance() * 0.01 / price.buy);
+
+                    stepSize = price.sell / 100.0;
+                    if (stepSize < 0.00000001) stepSize = 0.00000001;
+                    ((SpinnerNumberModel) spinnerSellOrderPrice.getModel()).setStepSize(stepSize);
+                    ((SpinnerNumberModel) spinnerSellOrderAmount.getModel()).setStepSize(getCurrentPrimaryBalance() * 0.01);
+                    updateLabelTotal();
+                    needStepUpdate = false;
+                }
+
+                if(needPriceChangeUpdate) {
+                    priceChangeLastPrice = price.last;
+                    labelPriceChangePercent.setText("0%");
+                    needPriceChangeUpdate = false;
+                } else {
+                    double percent = (price.last - priceChangeLastPrice) / priceChangeLastPrice * 100.0;
+                    labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, "####.##") + "%");
+                    if(percent > 0)
+                        labelPriceChangePercent.setForeground(Color.GREEN);
+                    else if(percent < 0)
+                        labelPriceChangePercent.setForeground(Color.RED);
+                    else
+                        labelPriceChangePercent.setForeground(Color.BLACK);
+                }
             }
         });
     }
@@ -422,7 +472,22 @@ public class TraderMainForm extends JPanel {
                 }
             }
         });
+        priceChangeTimerThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(!Thread.currentThread().isInterrupted()) {
+                    needPriceChangeUpdate = true;
+                    try {
+                        Thread.sleep(1000 * 15 * 60);
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                }
+            }
+        });
+
         apiLagThread.start();
+        priceChangeTimerThread.start();
     }
 
     protected void setUpdateOptions() {
@@ -565,14 +630,16 @@ public class TraderMainForm extends JPanel {
         separator3 = new JSeparator();
         panelPrice = new JPanel();
         labelBuyPrice = new JLabel();
+        labelLastPrice = new JLabel();
         labelSellPrice = new JLabel();
         textFieldBuyPrice = new JTextField();
-        labelLastPrice = new JLabel();
+        textFieldLastPrice = new JTextField();
         textFieldSellPrice = new JTextField();
         labelLowPrice = new JLabel();
-        textFieldLastPrice = new JTextField();
+        labelPriceChange = new JLabel();
         labelHighPrice = new JLabel();
         textFieldLowPrice = new JTextField();
+        labelPriceChangePercent = new JLabel();
         textFieldHighPrice = new JTextField();
         labelAvgPrice = new JLabel();
         labelApiLag = new JLabel();
@@ -655,7 +722,7 @@ public class TraderMainForm extends JPanel {
         //======== panelPrice ========
         {
             panelPrice.setLayout(new FormLayout(
-                "default:grow, $lcgap, 55dlu, $lcgap, default:grow, $lcgap, default",
+                "default:grow, $lcgap, 70dlu, $lcgap, default:grow",
                 "3*(default, $lgap), [18dlu,default], 2*($lgap, default)"));
 
             //---- labelBuyPrice ----
@@ -663,6 +730,12 @@ public class TraderMainForm extends JPanel {
             labelBuyPrice.setFont(labelBuyPrice.getFont().deriveFont(labelBuyPrice.getFont().getStyle() | Font.BOLD));
             labelBuyPrice.setLabelFor(textFieldBuyPrice);
             panelPrice.add(labelBuyPrice, CC.xy(1, 1, CC.CENTER, CC.DEFAULT));
+
+            //---- labelLastPrice ----
+            labelLastPrice.setText(bundle.getString("TraderMainForm.labelLastPrice.text"));
+            labelLastPrice.setLabelFor(textFieldLastPrice);
+            labelLastPrice.setFont(labelLastPrice.getFont().deriveFont(labelLastPrice.getFont().getStyle() | Font.BOLD));
+            panelPrice.add(labelLastPrice, CC.xy(3, 1, CC.CENTER, CC.DEFAULT));
 
             //---- labelSellPrice ----
             labelSellPrice.setText(bundle.getString("TraderMainForm.labelSellPrice.text"));
@@ -674,11 +747,9 @@ public class TraderMainForm extends JPanel {
             textFieldBuyPrice.setEditable(false);
             panelPrice.add(textFieldBuyPrice, CC.xy(1, 3, CC.CENTER, CC.DEFAULT));
 
-            //---- labelLastPrice ----
-            labelLastPrice.setText(bundle.getString("TraderMainForm.labelLastPrice.text"));
-            labelLastPrice.setLabelFor(textFieldLastPrice);
-            labelLastPrice.setFont(labelLastPrice.getFont().deriveFont(labelLastPrice.getFont().getStyle() | Font.BOLD));
-            panelPrice.add(labelLastPrice, CC.xy(3, 3, CC.CENTER, CC.DEFAULT));
+            //---- textFieldLastPrice ----
+            textFieldLastPrice.setEditable(false);
+            panelPrice.add(textFieldLastPrice, CC.xy(3, 3, CC.CENTER, CC.DEFAULT));
 
             //---- textFieldSellPrice ----
             textFieldSellPrice.setEditable(false);
@@ -690,9 +761,10 @@ public class TraderMainForm extends JPanel {
             labelLowPrice.setLabelFor(textFieldLowPrice);
             panelPrice.add(labelLowPrice, CC.xy(1, 5, CC.CENTER, CC.DEFAULT));
 
-            //---- textFieldLastPrice ----
-            textFieldLastPrice.setEditable(false);
-            panelPrice.add(textFieldLastPrice, CC.xy(3, 5, CC.CENTER, CC.DEFAULT));
+            //---- labelPriceChange ----
+            labelPriceChange.setText(bundle.getString("TraderMainForm.labelPriceChange.text"));
+            labelPriceChange.setFont(labelPriceChange.getFont().deriveFont(Font.BOLD|Font.ITALIC));
+            panelPrice.add(labelPriceChange, CC.xy(3, 5, CC.CENTER, CC.DEFAULT));
 
             //---- labelHighPrice ----
             labelHighPrice.setText(bundle.getString("TraderMainForm.labelHighPrice.text"));
@@ -703,6 +775,10 @@ public class TraderMainForm extends JPanel {
             //---- textFieldLowPrice ----
             textFieldLowPrice.setEditable(false);
             panelPrice.add(textFieldLowPrice, CC.xy(1, 7, CC.CENTER, CC.DEFAULT));
+
+            //---- labelPriceChangePercent ----
+            labelPriceChangePercent.setText("0%");
+            panelPrice.add(labelPriceChangePercent, CC.xy(3, 7, CC.CENTER, CC.DEFAULT));
 
             //---- textFieldHighPrice ----
             textFieldHighPrice.setEditable(false);
@@ -733,7 +809,7 @@ public class TraderMainForm extends JPanel {
             //---- textFieldApiLag ----
             textFieldApiLag.setEditable(false);
             textFieldApiLag.setHorizontalAlignment(SwingConstants.TRAILING);
-            panelPrice.add(textFieldApiLag, CC.xy(3, 11));
+            panelPrice.add(textFieldApiLag, CC.xy(3, 11, CC.FILL, CC.DEFAULT));
 
             //---- textFieldVolume ----
             textFieldVolume.setEditable(false);
@@ -1248,14 +1324,16 @@ public class TraderMainForm extends JPanel {
     private JSeparator separator3;
     private JPanel panelPrice;
     private JLabel labelBuyPrice;
+    private JLabel labelLastPrice;
     private JLabel labelSellPrice;
     private JTextField textFieldBuyPrice;
-    private JLabel labelLastPrice;
+    private JTextField textFieldLastPrice;
     private JTextField textFieldSellPrice;
     private JLabel labelLowPrice;
-    private JTextField textFieldLastPrice;
+    private JLabel labelPriceChange;
     private JLabel labelHighPrice;
     private JTextField textFieldLowPrice;
+    private JLabel labelPriceChangePercent;
     private JTextField textFieldHighPrice;
     private JLabel labelAvgPrice;
     private JLabel labelApiLag;
