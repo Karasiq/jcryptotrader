@@ -235,17 +235,15 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
             if (ordersStatus.success != 1 && !ordersStatus.error.contains("no orders")) {
                 throw new TradeApiError("Error retrieving orders info (" + ordersStatus.error + ")");
             }
-            if (ordersStatus.result != null) {
-                if(ordersStatus.result != null) for (Map.Entry<Long, BtceObjects.Order> entry : ordersStatus.result.entrySet()) {
-                    StandartObjects.Order order = new StandartObjects.Order();
-                    order.id = entry.getKey();
-                    order.amount = entry.getValue().amount;
-                    order.pair = entry.getValue().pair;
-                    order.price = entry.getValue().rate;
-                    order.type = entry.getValue().type.equals("sell") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
-                    order.time = new Date(entry.getValue().timestamp_created * 1000);
-                    accountInfo.orders.add(order);
-                }
+            if (ordersStatus.result != null) for (Map.Entry<Long, BtceObjects.Order> entry : ordersStatus.result.entrySet()) {
+                StandartObjects.Order order = new StandartObjects.Order();
+                order.id = entry.getKey();
+                order.amount = entry.getValue().amount;
+                order.pair = entry.getValue().pair;
+                order.price = entry.getValue().rate;
+                order.type = entry.getValue().type.equals("sell") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
+                order.time = new Date(entry.getValue().timestamp_created * 1000);
+                accountInfo.orders.add(order);
             }
         }
         if (retrieveHistory) {
