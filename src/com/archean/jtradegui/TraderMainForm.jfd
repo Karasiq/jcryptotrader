@@ -635,7 +635,17 @@ new FormModel {
 						name: "scrollPane1"
 						add( new FormComponent( "javax.swing.JTable" ) {
 							name: "tableMarketCap"
-							"model": new com.jformdesigner.model.SwingTableModel( new java.util.Vector, new java.util.Vector {
+							"model": new com.jformdesigner.model.SwingTableModel( new java.util.Vector {
+								add( new java.util.Vector {
+									add( null )
+									add( null )
+									add( null )
+									add( null )
+									add( null )
+									add( null )
+									add( null )
+								} )
+							}, new java.util.Vector {
 								add( "#" )
 								add( "Currency" )
 								add( "USD cap" )
@@ -644,13 +654,13 @@ new FormModel {
 								add( "BTC volume" )
 								add( "Change (24h)" )
 							}, new java.util.Vector {
-								add( null )
+								add( class java.lang.Short )
 								add( class java.lang.String )
-								add( class java.lang.Object )
-								add( class java.lang.Object )
-								add( null )
-								add( null )
-								add( null )
+								add( class java.lang.Long )
+								add( class java.lang.Long )
+								add( class java.lang.Long )
+								add( class java.lang.Long )
+								add( class java.lang.Double )
 							}, new java.util.Vector {
 								add( null )
 								add( false )
@@ -660,7 +670,7 @@ new FormModel {
 								add( false )
 								add( false )
 							}, new java.util.Vector {
-								add( null )
+								add( new com.jformdesigner.model.SwingTableColumn( null, 20, 0, 0, true ) )
 								add( null )
 								add( null )
 								add( null )
@@ -668,6 +678,7 @@ new FormModel {
 								add( null )
 								add( null )
 							} )
+							"autoCreateRowSorter": true
 						} )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 1

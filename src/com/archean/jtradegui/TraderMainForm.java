@@ -4,6 +4,7 @@
 
 package com.archean.jtradegui;
 
+import javax.swing.table.*;
 import com.archean.coinmarketcap.CoinMarketCapParser;
 import com.archean.jtradeapi.AccountManager;
 import com.archean.jtradeapi.ApiWorker;
@@ -61,14 +62,17 @@ public class TraderMainForm extends JPanel {
         @Override
         public void run() {
             CoinMarketCapParser parser = new CoinMarketCapParser();
+            int sleepTime = 0;
             while(!Thread.currentThread().isInterrupted()) {
                 try {
+                    if(sleepTime > 0) Thread.sleep(sleepTime);
                     updateMarketCap(parser.getData());
-                    Thread.sleep(30000);
+                    sleepTime = 2 * 60 * 1000; // 2m
+                } catch(IOException e) {
+                    processError("Error retrieving market cap data: " + e.getLocalizedMessage());
+                    sleepTime = 30 * 1000;
                 } catch(InterruptedException e) {
                     break;
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
             }
         }
@@ -129,10 +133,8 @@ public class TraderMainForm extends JPanel {
         // settings.put("keyPair", worker.tradeApi.apiKeyPair);
         return settings;
     }
-
-    protected void processException(final Exception e) {
-        e.printStackTrace();
-        TrayIconController.showMessage(locale.getString("notification.error.title"), e.getLocalizedMessage(), TrayIcon.MessageType.ERROR);
+    protected void processError(final String excString) {
+        TrayIconController.showMessage(locale.getString("notification.error.title"), excString, TrayIcon.MessageType.ERROR);
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -141,12 +143,16 @@ public class TraderMainForm extends JPanel {
                 StyleConstants.setForeground(errorStyle, Color.RED);
                 StyleConstants.setBold(errorStyle, true);
                 try {
-                    document.insertString(document.getLength(), e.getLocalizedMessage() + "\n", errorStyle);
+                    document.insertString(document.getLength(), excString + "\n", errorStyle);
                 } catch (BadLocationException e1) {
                     e1.printStackTrace();
                 }
             }
         });
+    }
+    protected void processException(final Exception e) {
+        e.printStackTrace();
+        this.processError(e.getLocalizedMessage());
     }
 
     protected void processNotification(final String notification) {
@@ -1324,13 +1330,14 @@ public class TraderMainForm extends JPanel {
                     //---- tableMarketCap ----
                     tableMarketCap.setModel(new DefaultTableModel(
                         new Object[][] {
+                            {null, null, null, null, null, null, null},
                         },
                         new String[] {
                             "#", "Currency", "USD cap", "BTC cap", "USD volume", "BTC volume", "Change (24h)"
                         }
                     ) {
                         Class<?>[] columnTypes = new Class<?>[] {
-                            Object.class, String.class, Object.class, Object.class, Object.class, Object.class, Object.class
+                            Short.class, String.class, Long.class, Long.class, Long.class, Long.class, Double.class
                         };
                         boolean[] columnEditable = new boolean[] {
                             true, false, false, false, false, false, false
@@ -1344,6 +1351,11 @@ public class TraderMainForm extends JPanel {
                             return columnEditable[columnIndex];
                         }
                     });
+                    {
+                        TableColumnModel cm = tableMarketCap.getColumnModel();
+                        cm.getColumn(0).setPreferredWidth(20);
+                    }
+                    tableMarketCap.setAutoCreateRowSorter(true);
                     scrollPane1.setViewportView(tableMarketCap);
                 }
                 panelMarketCap.add(scrollPane1, CC.xy(1, 1));

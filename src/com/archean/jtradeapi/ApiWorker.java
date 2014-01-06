@@ -1,5 +1,6 @@
 package com.archean.jtradeapi;
 
+import java.io.IOException;
 import java.util.*;
 
 public class ApiWorker {
@@ -70,8 +71,10 @@ public class ApiWorker {
         @Override
         public void run() {
             Object data;
+            long sleepTime = 0;
             while (!Thread.currentThread().isInterrupted()) {
                 try {
+                    if(sleepTime > 0) Thread.sleep(sleepTime);
                     data = retrieveData();
                     if (data != null && !Thread.currentThread().isInterrupted()) {
                         updateWorkerData(data);
@@ -81,7 +84,14 @@ public class ApiWorker {
                     } else {
                         break;
                     }
-                    Thread.sleep(timeInterval);
+                    sleepTime = timeInterval;
+                }
+                catch(IOException e) {
+                    if (callback != null)
+                        callback.onError(new IOException("ApiWorker IO error " + e.getLocalizedMessage()));
+                    else
+                        e.printStackTrace();
+                    sleepTime = 30 * 1000; // 30s
                 } catch (InterruptedException e) {
                     break;
                 } catch (Exception e) {
