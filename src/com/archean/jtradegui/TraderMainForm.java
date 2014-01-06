@@ -67,11 +67,11 @@ public class TraderMainForm extends JPanel {
                     if (sleepTime > 0) Thread.sleep(sleepTime);
                     updateMarketCap(parser.getData());
                     sleepTime = 2 * 60 * 1000; // 2m
-                } catch (IOException e) {
-                    processError("Error retrieving market cap data: " + e.getLocalizedMessage());
-                    sleepTime = 30 * 1000;
                 } catch (InterruptedException e) {
                     break;
+                } catch(Exception e) {
+                    processException(new Exception("Error retrieving market cap data", e));
+                    sleepTime = 30 * 1000;
                 }
             }
         }

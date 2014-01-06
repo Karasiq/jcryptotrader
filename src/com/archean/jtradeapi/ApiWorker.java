@@ -85,20 +85,14 @@ public class ApiWorker {
                         break;
                     }
                     sleepTime = timeInterval;
-                }
-                catch(IOException e) {
-                    if (callback != null)
-                        callback.onError(new IOException("ApiWorker IO error " + e.getLocalizedMessage()));
-                    else
-                        e.printStackTrace();
-                    sleepTime = 30 * 1000; // 30s
                 } catch (InterruptedException e) {
                     break;
                 } catch (Exception e) {
                     if (callback != null)
-                        callback.onError(e);
+                        callback.onError(new Exception("ApiWorker error: " + e.getLocalizedMessage(), e));
                     else
                         e.printStackTrace();
+                    sleepTime = 30 * 1000; // 30s
                 }
             }
         }
