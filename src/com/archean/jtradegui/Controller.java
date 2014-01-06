@@ -4,9 +4,6 @@
 
 package com.archean.jtradegui;
 
-import java.awt.event.*;
-
-import com.archean.coinmarketcap.CoinMarketCapParser;
 import com.archean.jtradeapi.AccountManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -18,10 +15,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -114,9 +108,10 @@ public class Controller extends JFrame {
         controller.setVisible(true);
         TrayIconController.createTrayIcon(controller.popupMenuTray, "jTrader", new ImageIcon(controller.getClass().getResource("/icons/logo.png")).getImage());
         TrayIconController.trayIcon.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) {
-                if(!e.isPopupTrigger()) {
-                    if(!controller.isVisible()){
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (!e.isPopupTrigger()) {
+                    if (!controller.isVisible()) {
                         controller.setVisible(true);
                         int state = controller.getExtendedState();
                         state &= ~JFrame.ICONIFIED;
@@ -196,15 +191,15 @@ public class Controller extends JFrame {
     }
 
     private void thisWindowStateChanged(WindowEvent e) {
-        if(e.getNewState() == ICONIFIED) {
+        if (e.getNewState() == ICONIFIED) {
             try {
                 setVisible(false);
-            } catch(Exception exc) {
+            } catch (Exception exc) {
                 exc.printStackTrace();
             }
         }
 
-        if(!isVisible()) {
+        if (!isVisible()) {
             for (int i = 0; i < tabbedPaneTraders.getTabCount(); i++) {
                 ((TraderMainForm) tabbedPaneTraders.getComponentAt(i)).stopWorker();
             }
@@ -239,8 +234,8 @@ public class Controller extends JFrame {
         });
         Container contentPane = getContentPane();
         contentPane.setLayout(new FormLayout(
-            "[350dlu,default]:grow",
-            "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
+                "[350dlu,default]:grow",
+                "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
 
         //======== toolBar1 ========
         {

@@ -7,7 +7,9 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public class Utils {
     public static class Crypto {
@@ -40,16 +42,37 @@ public class Utils {
     }
 
     public static class Strings {
-        public static <T> String formatNumber(T value, String format) { // custom format
-            DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.ENGLISH);
-            symbols.setDecimalSeparator('.');
-            symbols.setGroupingSeparator(',');
-            DecimalFormat df = new DecimalFormat(format, symbols);
+        public static class DecimalFormatDescription {
+            public char decimalSeparator;
+            public char groupingSeparator;
+            public String stringFormat;
+            public DecimalFormatDescription(String stringFormat, char decimalSeparator, char groupingSeparator) {
+                this.decimalSeparator = decimalSeparator;
+                this.groupingSeparator = groupingSeparator;
+                this.stringFormat = stringFormat;
+            }
+        }
+        // Constants:
+        public final static DecimalFormatDescription percentDecimalFormat = new DecimalFormatDescription("######.##", '.', ',');
+        public final static DecimalFormatDescription moneyFormat = new DecimalFormatDescription("############.########", '.', ','); // precision = 1 satoshi
+        public final static DecimalFormatDescription moneyRepresentFormat = new DecimalFormatDescription("###,###,###,###.########", '.', ','); // with groupings
+        public final static DecimalFormatDescription moneyRoughRepresentFormat = new DecimalFormatDescription("###,###,###,###.###", '.', ','); // not precise
+
+        private static Map<DecimalFormatDescription, DecimalFormat> decimalFormatMap = new HashMap<>(); // cached
+        public static <T> String formatNumber(T value, DecimalFormatDescription format) { // custom format
+            DecimalFormat df = decimalFormatMap.get(format);
+            if(df == null) {
+                DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+                symbols.setDecimalSeparator(format.decimalSeparator);
+                symbols.setGroupingSeparator(format.groupingSeparator);
+                df = new DecimalFormat(format.stringFormat, symbols);
+                decimalFormatMap.put(format, df);
+            }
             return df.format(value);
         }
 
         public static <T> String formatNumber(T value) { // json format
-            return formatNumber(value, "#################.########");
+            return formatNumber(value, moneyFormat);
         }
     }
 

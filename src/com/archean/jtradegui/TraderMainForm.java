@@ -4,14 +4,12 @@
 
 package com.archean.jtradegui;
 
-import javax.swing.table.*;
 import com.archean.coinmarketcap.CoinMarketCapParser;
 import com.archean.jtradeapi.AccountManager;
 import com.archean.jtradeapi.ApiWorker;
 import com.archean.jtradeapi.BaseTradeApi;
 import com.archean.jtradeapi.Utils;
 import com.jgoodies.forms.factories.CC;
-import com.jgoodies.forms.factories.DefaultComponentFactory;
 import com.jgoodies.forms.layout.FormLayout;
 
 import javax.swing.*;
@@ -20,6 +18,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumnModel;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -63,15 +62,15 @@ public class TraderMainForm extends JPanel {
         public void run() {
             CoinMarketCapParser parser = new CoinMarketCapParser();
             int sleepTime = 0;
-            while(!Thread.currentThread().isInterrupted()) {
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    if(sleepTime > 0) Thread.sleep(sleepTime);
+                    if (sleepTime > 0) Thread.sleep(sleepTime);
                     updateMarketCap(parser.getData());
                     sleepTime = 2 * 60 * 1000; // 2m
-                } catch(IOException e) {
+                } catch (IOException e) {
                     processError("Error retrieving market cap data: " + e.getLocalizedMessage());
                     sleepTime = 30 * 1000;
-                } catch(InterruptedException e) {
+                } catch (InterruptedException e) {
                     break;
                 }
             }
@@ -79,9 +78,9 @@ public class TraderMainForm extends JPanel {
     };
 
     private void stopThreads(String[] threadNames) {
-        for(String t : threadNames) {
+        for (String t : threadNames) {
             Thread thread = threadMap.get(t);
-            if(thread != null && thread.isAlive()) {
+            if (thread != null && thread.isAlive()) {
                 thread.interrupt();
                 threadMap.remove(t);
             }
@@ -91,13 +90,13 @@ public class TraderMainForm extends JPanel {
     public void stopWorker() {
         initialized = false;
         worker.stopAllThreads();
-        stopThreads(new String[] {"marketCap"});
+        stopThreads(new String[]{"marketCap"});
     }
 
     public void startWorker() {
         initialized = true;
         setUpdateOptions();
-        stopThreads(new String[] {"marketCap"});
+        stopThreads(new String[]{"marketCap"});
         Thread marketCapThread = new Thread(marketCapUpdateTask);
         threadMap.put("marketCap", marketCapThread);
         marketCapThread.start();
@@ -105,7 +104,7 @@ public class TraderMainForm extends JPanel {
 
     public void killThreads() {
         stopWorker();
-        for(Thread thread : threadMap.values()) {
+        for (Thread thread : threadMap.values()) {
             thread.interrupt();
         }
     }
@@ -133,6 +132,7 @@ public class TraderMainForm extends JPanel {
         // settings.put("keyPair", worker.tradeApi.apiKeyPair);
         return settings;
     }
+
     protected void processError(final String excString) {
         TrayIconController.showMessage(locale.getString("notification.error.title"), excString, TrayIcon.MessageType.ERROR);
         SwingUtilities.invokeLater(new Runnable() {
@@ -150,6 +150,7 @@ public class TraderMainForm extends JPanel {
             }
         });
     }
+
     protected void processException(final Exception e) {
         e.printStackTrace();
         this.processError(e.getLocalizedMessage());
@@ -314,14 +315,14 @@ public class TraderMainForm extends JPanel {
                     needStepUpdate = false;
                 }
 
-                if(priceChangeLastPrice == 0) {
+                if (priceChangeLastPrice == 0) {
                     labelPriceChangePercent.setText("0%");
                     labelPriceChangePercent.setForeground(Color.BLACK);
                     labelPriceChangePercent.setToolTipText("");
                 } else {
                     labelPriceChangePercent.setToolTipText(String.format("%f -> %f", priceChangeLastPrice, price.last));
                     double percent = ((price.last - priceChangeLastPrice) / priceChangeLastPrice) * 100.0;
-                    labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, "####.##") + "%");
+                    labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, Utils.Strings.percentDecimalFormat) + "%");
                     if (percent > 0)
                         labelPriceChangePercent.setForeground(Color.GREEN);
                     else
@@ -340,18 +341,21 @@ public class TraderMainForm extends JPanel {
                 model.setRowCount(depth.buyOrders.size());
                 int i = 0;
                 for (BaseTradeApi.StandartObjects.Order order : depth.buyOrders) {
-                    model.setValueAt(Utils.Strings.formatNumber(order.price), i, 0);
-                    model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 1);
+                    model.setValueAt(order.price, i, 0);
+                    model.setValueAt(order.amount, i, 1);
                     i++;
                 }
+                model.fireTableDataChanged();
+
                 model = (DefaultTableModel) tableSellOrders.getModel();
                 model.setRowCount(depth.sellOrders.size());
                 i = 0;
                 for (BaseTradeApi.StandartObjects.Order order : depth.sellOrders) {
-                    model.setValueAt(Utils.Strings.formatNumber(order.price), i, 0);
-                    model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 1);
+                    model.setValueAt(order.price, i, 0);
+                    model.setValueAt(order.amount, i, 1);
                     i++;
                 }
+                model.fireTableDataChanged();
             }
         });
     }
@@ -365,13 +369,14 @@ public class TraderMainForm extends JPanel {
                 DefaultTableModel model = (DefaultTableModel) tableMarketHistory.getModel();
                 model.setRowCount(history.size());
                 for (BaseTradeApi.StandartObjects.Order order : history) {
-                    model.setValueAt(new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(order.time), i, 0);
+                    model.setValueAt(order.time, i, 0);
                     model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1);
-                    model.setValueAt(Utils.Strings.formatNumber(order.price), i, 2);
-                    model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 3);
-                    model.setValueAt(Utils.Strings.formatNumber(order.amount * order.price / ((100.0 + feePercent) / 100.0)) + " " + getCurrentSecondaryCurrency(), i, 4);
+                    model.setValueAt(order.price, i, 2);
+                    model.setValueAt(order.amount, i, 3);
+                    model.setValueAt(order.amount * order.price / ((100.0 + feePercent) / 100.0), i, 4);
                     i++;
                 }
+                model.fireTableDataChanged();
             }
         });
     }
@@ -385,13 +390,14 @@ public class TraderMainForm extends JPanel {
                 DefaultTableModel model = (DefaultTableModel) tableAccountHistory.getModel();
                 model.setRowCount(history.size());
                 for (BaseTradeApi.StandartObjects.Order order : history) {
-                    model.setValueAt(new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(order.time), i, 0);
+                    model.setValueAt(order.time, i, 0);
                     model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1);
-                    model.setValueAt(Utils.Strings.formatNumber(order.price), i, 2);
-                    model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 3);
-                    model.setValueAt(Utils.Strings.formatNumber(order.amount * order.price / ((100.0 + feePercent) / 100.0)) + " " + getCurrentSecondaryCurrency(), i, 4);
+                    model.setValueAt(order.price, i, 2);
+                    model.setValueAt(order.amount, i, 3);
+                    model.setValueAt(order.amount * order.price / ((100.0 + feePercent) / 100.0), i, 4);
                     i++;
                 }
+                model.fireTableDataChanged();
             }
         });
     }
@@ -407,11 +413,12 @@ public class TraderMainForm extends JPanel {
                 for (BaseTradeApi.StandartObjects.Order order : orders) {
                     model.setValueAt(order.id, i, 0); // ID
                     model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1); // Type
-                    model.setValueAt(Utils.Strings.formatNumber(order.price), i, 2); // Price
-                    model.setValueAt(Utils.Strings.formatNumber(order.amount), i, 3); // Amount
-                    model.setValueAt(Utils.Strings.formatNumber(order.amount * order.price / ((100.0 + feePercent) / 100.0)) + " " + getCurrentSecondaryCurrency(), i, 4); // Total
+                    model.setValueAt(order.price, i, 2); // Price
+                    model.setValueAt(order.amount, i, 3); // Amount
+                    model.setValueAt(order.amount * order.price / ((100.0 + feePercent) / 100.0), i, 4); // Total
                     i++;
                 }
+                model.fireTableDataChanged();
             }
         });
     }
@@ -426,9 +433,10 @@ public class TraderMainForm extends JPanel {
                 model.setRowCount(balances.size());
                 for (Map.Entry<String, Double> balance : balances.entrySet()) {
                     model.setValueAt(balance.getKey(), i, 0); // Currency name
-                    model.setValueAt(Utils.Strings.formatNumber(balance.getValue()), i, 1); // Amount
+                    model.setValueAt(balance.getValue(), i, 1); // Amount
                     i++;
                 }
+                model.fireTableDataChanged();
             }
         });
     }
@@ -450,6 +458,7 @@ public class TraderMainForm extends JPanel {
                     model.setValueAt(capitalization.change, i, 6); // Change (24h)
                     i++;
                 }
+                model.fireTableDataChanged();
             }
         });
     }
@@ -494,19 +503,102 @@ public class TraderMainForm extends JPanel {
             public Component getTableCellRendererComponent(JTable table,
                                                            Object value, boolean isSelected, boolean hasFocus,
                                                            int row, int column) {
-                if(value instanceof Long || value instanceof Integer) {
-                    value = Utils.Strings.formatNumber(value, "###,###,###,###");
-                } else if(value instanceof Double) {
-                    value = ((Double)value > 0 ? "+" : "") + Utils.Strings.formatNumber(value, "###########.##") + "%";
+                if (value instanceof Long || value instanceof Integer) {
+                    value = Utils.Strings.formatNumber(value, Utils.Strings.moneyRepresentFormat);
+                } else if (value instanceof Double) {
+                    value = ((Double) value > 0 ? "+" : "") + Utils.Strings.formatNumber(value, Utils.Strings.percentDecimalFormat) + "%";
                 }
                 return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             }
         };
-        tableMarketCap.getColumnModel().getColumn(2).setCellRenderer(capCellRenderer);
-        tableMarketCap.getColumnModel().getColumn(3).setCellRenderer(capCellRenderer);
-        tableMarketCap.getColumnModel().getColumn(4).setCellRenderer(capCellRenderer);
-        tableMarketCap.getColumnModel().getColumn(5).setCellRenderer(capCellRenderer);
-        tableMarketCap.getColumnModel().getColumn(6).setCellRenderer(capCellRenderer);
+        TableColumnModel model = tableMarketCap.getColumnModel();
+        {
+            model.getColumn(2).setCellRenderer(capCellRenderer);
+            model.getColumn(3).setCellRenderer(capCellRenderer);
+            model.getColumn(4).setCellRenderer(capCellRenderer);
+            model.getColumn(5).setCellRenderer(capCellRenderer);
+            model.getColumn(6).setCellRenderer(capCellRenderer);
+        }
+
+        TableCellRenderer moneyAmountCellRenderer = new DefaultTableCellRenderer() {
+            public Component getTableCellRendererComponent(JTable table,
+                                                           Object value, boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                if (value instanceof Double) {
+                    value = Utils.Strings.formatNumber(value, Utils.Strings.moneyRepresentFormat);
+                }
+                return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            }
+        };
+        TableCellRenderer moneyPriceCellRenderer = new DefaultTableCellRenderer() {
+            public Component getTableCellRendererComponent(JTable table,
+                                                           Object value, boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                if (value instanceof Double) {
+                    value = Utils.Strings.formatNumber(value, Utils.Strings.moneyFormat);
+                }
+                return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            }
+        };
+        TableCellRenderer moneyTotalCellRenderer = new DefaultTableCellRenderer() {
+            public Component getTableCellRendererComponent(JTable table,
+                                                           Object value, boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                if (value instanceof Double) {
+                    value = Utils.Strings.formatNumber(value, (Double) value < 0.001 ? Utils.Strings.moneyRepresentFormat : Utils.Strings.moneyRoughRepresentFormat) + " " + getCurrentSecondaryCurrency();
+                }
+                return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            }
+        };
+
+        final SimpleDateFormat tableDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+        TableCellRenderer dateCellRenderer = new DefaultTableCellRenderer() {
+            public Component getTableCellRendererComponent(JTable table,
+                                                           Object value, boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                if (value instanceof Date) {
+                    value = tableDateFormat.format(value);
+                }
+                return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            }
+        };
+
+        model = tableOpenOrders.getColumnModel();
+        {
+            model.getColumn(2).setCellRenderer(moneyPriceCellRenderer);
+            model.getColumn(3).setCellRenderer(moneyAmountCellRenderer);
+            model.getColumn(4).setCellRenderer(moneyTotalCellRenderer);
+        }
+        model = tableAccountHistory.getColumnModel();
+        {
+            model.getColumn(0).setCellRenderer(dateCellRenderer);
+            model.getColumn(2).setCellRenderer(moneyPriceCellRenderer);
+            model.getColumn(3).setCellRenderer(moneyAmountCellRenderer);
+            model.getColumn(4).setCellRenderer(moneyTotalCellRenderer);
+        }
+        model = tableMarketHistory.getColumnModel();
+        {
+            model.getColumn(0).setCellRenderer(dateCellRenderer);
+            model.getColumn(2).setCellRenderer(moneyPriceCellRenderer);
+            model.getColumn(3).setCellRenderer(moneyAmountCellRenderer);
+            model.getColumn(4).setCellRenderer(moneyTotalCellRenderer);
+        }
+
+        model = tableBalances.getColumnModel();
+        {
+            model.getColumn(1).setCellRenderer(moneyAmountCellRenderer);
+        }
+
+        model = tableBuyOrders.getColumnModel();
+        {
+            model.getColumn(0).setCellRenderer(moneyPriceCellRenderer);
+            model.getColumn(1).setCellRenderer(moneyAmountCellRenderer);
+        }
+        model = tableSellOrders.getColumnModel();
+        {
+            model.getColumn(0).setCellRenderer(moneyPriceCellRenderer);
+            model.getColumn(1).setCellRenderer(moneyAmountCellRenderer);
+        }
 
         worker.setCallBack(new ApiWorker.Callback() {
             @Override
@@ -525,7 +617,7 @@ public class TraderMainForm extends JPanel {
             @Override
             public void run() {
                 while (!Thread.currentThread().isInterrupted()) {
-                    if(lastUpdated.priceUpdated != 0 && isVisible()) {
+                    if (lastUpdated.priceUpdated != 0 && isVisible()) {
                         SwingUtilities.invokeLater(new Runnable() {
                             @Override
                             public void run() {
@@ -547,7 +639,7 @@ public class TraderMainForm extends JPanel {
             public void run() {
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
-                        while(worker.marketInfo.price.last == 0) {
+                        while (worker.marketInfo.price.last == 0) {
                             Thread.sleep(100);
                         }
                         priceChangeLastPrice = worker.marketInfo.price.last;
@@ -1082,13 +1174,14 @@ public class TraderMainForm extends JPanel {
                     //---- tableOpenOrders ----
                     tableOpenOrders.setModel(new DefaultTableModel(
                         new Object[][] {
+                            {null, null, null, null, null},
                         },
                         new String[] {
                             "#", "Type", "Price", "Amount", "Total"
                         }
                     ) {
                         Class<?>[] columnTypes = new Class<?>[] {
-                            Object.class, String.class, Object.class, Object.class, Object.class
+                            Object.class, String.class, Double.class, Double.class, Double.class
                         };
                         boolean[] columnEditable = new boolean[] {
                             true, false, false, false, false
@@ -1130,13 +1223,14 @@ public class TraderMainForm extends JPanel {
                     //---- tableBalances ----
                     tableBalances.setModel(new DefaultTableModel(
                         new Object[][] {
+                            {null, null},
                         },
                         new String[] {
                             "Currency", "Balance"
                         }
                     ) {
                         Class<?>[] columnTypes = new Class<?>[] {
-                            String.class, Object.class
+                            String.class, Double.class
                         };
                         boolean[] columnEditable = new boolean[] {
                             false, false
@@ -1184,14 +1278,22 @@ public class TraderMainForm extends JPanel {
                     //---- tableBuyOrders ----
                     tableBuyOrders.setModel(new DefaultTableModel(
                         new Object[][] {
+                            {null, null},
                         },
                         new String[] {
                             "Price", "Amount"
                         }
                     ) {
+                        Class<?>[] columnTypes = new Class<?>[] {
+                            Double.class, Double.class
+                        };
                         boolean[] columnEditable = new boolean[] {
                             false, false
                         };
+                        @Override
+                        public Class<?> getColumnClass(int columnIndex) {
+                            return columnTypes[columnIndex];
+                        }
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1209,14 +1311,22 @@ public class TraderMainForm extends JPanel {
                     //---- tableSellOrders ----
                     tableSellOrders.setModel(new DefaultTableModel(
                         new Object[][] {
+                            {null, null},
                         },
                         new String[] {
                             "Price", "Amount"
                         }
                     ) {
+                        Class<?>[] columnTypes = new Class<?>[] {
+                            Double.class, Double.class
+                        };
                         boolean[] columnEditable = new boolean[] {
                             false, false
                         };
+                        @Override
+                        public Class<?> getColumnClass(int columnIndex) {
+                            return columnTypes[columnIndex];
+                        }
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1250,13 +1360,14 @@ public class TraderMainForm extends JPanel {
                         //---- tableAccountHistory ----
                         tableAccountHistory.setModel(new DefaultTableModel(
                             new Object[][] {
+                                {null, null, null, null, null},
                             },
                             new String[] {
                                 "Time", "Type", "Price", "Amount", "Total"
                             }
                         ) {
                             Class<?>[] columnTypes = new Class<?>[] {
-                                Object.class, String.class, Object.class, Object.class, Object.class
+                                Date.class, String.class, Double.class, Double.class, Double.class
                             };
                             boolean[] columnEditable = new boolean[] {
                                 false, false, false, false, false
@@ -1289,13 +1400,14 @@ public class TraderMainForm extends JPanel {
                         //---- tableMarketHistory ----
                         tableMarketHistory.setModel(new DefaultTableModel(
                             new Object[][] {
+                                {null, null, null, null, null},
                             },
                             new String[] {
                                 "Time", "Type", "Price", "Amount", "Total"
                             }
                         ) {
                             Class<?>[] columnTypes = new Class<?>[] {
-                                Object.class, String.class, Object.class, Object.class, Object.class
+                                Date.class, String.class, Double.class, Double.class, Double.class
                             };
                             boolean[] columnEditable = new boolean[] {
                                 false, false, false, false, false
