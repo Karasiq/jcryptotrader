@@ -368,7 +368,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
     @Override
     public List<StandartObjects.Order> getAccountOpenOrders(Object pair) throws Exception {
         if (pair == null || pair.equals(0)) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Invalid pair");
         }
         List<StandartObjects.Order> orders = new ArrayList<>();
         ApiStatus<List<CryptsyObjects.Order>> ordersInfo = internalGetMyOrders((Integer) pair);
@@ -391,7 +391,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
     @Override
     public List<StandartObjects.Order> getAccountHistory(Object pair) throws Exception {
         if (pair == null || pair.equals(0)) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Invalid pair");
         }
         List<StandartObjects.Order> history = new ArrayList<>();
         ApiStatus<List<CryptsyObjects.Trade>> historyApiStatus = internalGetAccountHistory((Integer) pair);

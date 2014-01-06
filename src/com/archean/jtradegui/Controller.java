@@ -34,7 +34,7 @@ public class Controller extends JFrame {
 
     public void loadAccountDb() {
         try {
-            accountDb.loadFromJson(FileUtils.readFileToString(new File(accountDbFile)));
+            accountDb.loadFromJson(FileUtils.readFileToString(new File(accountDbFile), "UTF-8"));
         } catch (IOException e) {
             // nothing
         }
@@ -42,7 +42,7 @@ public class Controller extends JFrame {
 
     public void saveAccountDb() {
         try {
-            FileUtils.writeStringToFile(new File(accountDbFile), accountDb.saveToJson());
+            FileUtils.writeStringToFile(new File(accountDbFile), accountDb.saveToJson(), "UTF-8");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -69,7 +69,7 @@ public class Controller extends JFrame {
             savedTabList.add(new SavedTab(tabbedPaneTraders.getTitleAt(i), (TraderMainForm) tabbedPaneTraders.getComponentAt(i)));
         }
         try {
-            FileUtils.writeStringToFile(new File(tabsDbFile), new Gson().toJson(savedTabList));
+            FileUtils.writeStringToFile(new File(tabsDbFile), new Gson().toJson(savedTabList), "UTF-8");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -77,9 +77,8 @@ public class Controller extends JFrame {
 
     private void loadTabs() {
         try {
-            String json = FileUtils.readFileToString(new File(tabsDbFile));
-            List<SavedTab> savedTabList = new Gson().fromJson(json, new TypeToken<List<SavedTab>>() {
-            }.getType());
+            String json = FileUtils.readFileToString(new File(tabsDbFile), "UTF-8");
+            List<SavedTab> savedTabList = new Gson().fromJson(json, new TypeToken<List<SavedTab>>() {}.getType());
             for (SavedTab tab : savedTabList) {
                 TraderMainForm traderMainForm = new TraderMainForm(accountDb.get(tab.accountLabel));
                 tabbedPaneTraders.add(tab.accountLabel, traderMainForm);
@@ -234,8 +233,8 @@ public class Controller extends JFrame {
         });
         Container contentPane = getContentPane();
         contentPane.setLayout(new FormLayout(
-                "[350dlu,default]:grow",
-                "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
+            "[350dlu,default]:grow",
+            "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
 
         //======== toolBar1 ========
         {
