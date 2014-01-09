@@ -2,6 +2,7 @@ package com.archean.jautotrading;
 
 import com.archean.jtradeapi.ApiWorker;
 import com.archean.jtradeapi.BaseTradeApi;
+import com.archean.jtradeapi.Calculator;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -17,12 +18,6 @@ public class RuleWorker implements AutoCloseable {
     }
     public RuleCallback callback = null;
 
-    enum ArithmeticCompareCondition {
-        EQUAL, GREATER, LESS, GREATER_OR_EQUAL, LESS_OR_EQUAL
-    }
-    enum PriceType {
-        LAST, ASK, BID, HIGH, LOW, AVG
-    }
     public static void makeConditionData(Map<Object, Object> mapData, BaseCondition condition, ApiWorker apiWorker) {
         if(condition instanceof PriceCondition) {
             mapData.put(ApiWorker.ApiDataType.MARKET_PRICES, apiWorker.marketInfo.price);
@@ -40,53 +35,14 @@ public class RuleWorker implements AutoCloseable {
         abstract boolean satisfied(Map<Object, Object> data) throws Exception;
     }
     public class PriceCondition extends BaseCondition {
-        public PriceCondition(PriceType priceType, ArithmeticCompareCondition conditionType, BigDecimal value) {
+        public PriceCondition(BaseTradeApi.PriceType priceType, Calculator.ArithmeticCompareCondition conditionType, BigDecimal value) {
             super(priceType, conditionType, value);
         }
-        private BigDecimal getPrice(BaseTradeApi.StandartObjects.Prices prices, PriceType priceType) {
-            double price;
-            switch((PriceType)compareType) {
-                case LAST:
-                    price = prices.last;
-                    break;
-                case ASK:
-                    price = prices.buy;
-                    break;
-                case BID:
-                    price = prices.sell;
-                    break;
-                case HIGH:
-                    price = prices.high;
-                    break;
-                case LOW:
-                    price = prices.low;
-                    break;
-                case AVG:
-                    price = prices.average;
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown price type");
-            }
-            return new BigDecimal(price, MathContext.DECIMAL64);
-        }
+
         @Override boolean satisfied(Map<Object, Object> data) throws Exception {
             BigDecimal compareValue = (BigDecimal)this.value;
-            BigDecimal comparePrice = getPrice((BaseTradeApi.StandartObjects.Prices)data.get(ApiWorker.ApiDataType.MARKET_PRICES), (PriceType)compareType);
-            int compareResult = compareValue.compareTo(comparePrice);
-            switch ((ArithmeticCompareCondition)conditionType) {
-                case EQUAL:
-                    return compareResult == 0;
-                case GREATER:
-                    return compareResult == 1;
-                case GREATER_OR_EQUAL:
-                    return compareResult == 0 || compareResult == 1;
-                case LESS:
-                    return compareResult == -1;
-                case LESS_OR_EQUAL:
-                    return compareResult == -1 || compareResult == 0;
-                default:
-                    throw new UnknownError();
-            }
+            BigDecimal comparePrice = BaseTradeApi.getPrice((BaseTradeApi.StandartObjects.Prices) data.get(ApiWorker.ApiDataType.MARKET_PRICES), (BaseTradeApi.PriceType) compareType);
+            return Calculator.compare(compareValue, comparePrice, (Calculator.ArithmeticCompareCondition)compareType);
         }
     }
 

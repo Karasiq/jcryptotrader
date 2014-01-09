@@ -5,10 +5,7 @@
 package com.archean.jtradegui;
 
 import com.archean.coinmarketcap.CoinMarketCapParser;
-import com.archean.jtradeapi.AccountManager;
-import com.archean.jtradeapi.ApiWorker;
-import com.archean.jtradeapi.BaseTradeApi;
-import com.archean.jtradeapi.Utils;
+import com.archean.jtradeapi.*;
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
 
@@ -193,7 +190,7 @@ public class TraderMainForm extends JPanel {
     protected void updateLabelTotal() {
         if (tabbedPaneTrade.getSelectedIndex() == 0) { // Buy
             double balance = getCurrentSecondaryBalance();
-            double enteredTotal = (Double) spinnerBuyOrderAmount.getValue() * (Double) spinnerBuyOrderPrice.getValue() * ((100.0 + feePercent) / 100.0);
+            double enteredTotal = Calculator.totalWithFee(BaseTradeApi.Constants.ORDER_BUY, (Double)spinnerBuyOrderPrice.getValue(), (Double)spinnerBuyOrderAmount.getValue(), feePercent);
             labelBuyOrderTotalValue.setText(Utils.Strings.formatNumber(enteredTotal) + " / " + Utils.Strings.formatNumber(balance) + " " + getCurrentSecondaryCurrency());
             if (enteredTotal > balance) {
                 labelBuyOrderTotalValue.setForeground(Color.RED);
@@ -203,7 +200,7 @@ public class TraderMainForm extends JPanel {
         } else { // Sell
             double balance = getCurrentPrimaryBalance(),
                     amount = (Double) spinnerSellOrderAmount.getValue(),
-                    enteredTotal = (Double) spinnerSellOrderAmount.getValue() * (Double) spinnerSellOrderPrice.getValue() / ((100.0 + feePercent) / 100.0);
+                    enteredTotal = Calculator.totalWithFee(BaseTradeApi.Constants.ORDER_SELL, (Double)spinnerSellOrderPrice.getValue(), (Double)spinnerSellOrderAmount.getValue(), feePercent);
 
             labelSellOrderTotalValue.setText(Utils.Strings.formatNumber(amount) + " / " + Utils.Strings.formatNumber(balance) + " " + getCurrentPrimaryCurrency() + " (" + Utils.Strings.formatNumber(enteredTotal) + " " + getCurrentSecondaryCurrency() + ")");
             if (amount > balance) {
@@ -217,14 +214,14 @@ public class TraderMainForm extends JPanel {
     private void sliderBuyOrderAmountStateChanged(ChangeEvent e) {
         double balance = getCurrentSecondaryBalance(), price = (Double) spinnerBuyOrderPrice.getValue(), percent = sliderBuyOrderAmount.getValue();
         if (price > 0 && percent > 0 && balance > 0) {
-            double amount = (balance / price) * (percent * 1.0 / 100.0) / ((100.0 + feePercent) / 100.0);
+            double amount = Calculator.balancePercentAmount(balance, percent, BaseTradeApi.Constants.ORDER_BUY, price, feePercent);
             spinnerBuyOrderAmount.setValue(amount);
         }
     }
 
     private void sliderSellOrderAmountStateChanged(ChangeEvent e) {
         double balance = getCurrentPrimaryBalance(), percent = sliderSellOrderAmount.getValue();
-        double amount = (balance * percent * 1.0 / 100.0);
+        double amount = Calculator.balancePercentAmount(balance, percent, BaseTradeApi.Constants.ORDER_SELL, 0, 0);
         spinnerSellOrderAmount.setValue(amount);
     }
 
@@ -303,12 +300,12 @@ public class TraderMainForm extends JPanel {
                         spinnerSellOrderPrice.setValue(price.sell);
                     }
                     double stepSize = price.buy / 100.0;
-                    if (stepSize < 0.00000001) stepSize = 0.00000001;
+                    if (stepSize < Calculator.MINIMAL_AMOUNT) stepSize = Calculator.MINIMAL_AMOUNT;
                     ((SpinnerNumberModel) spinnerBuyOrderPrice.getModel()).setStepSize(stepSize);
                     ((SpinnerNumberModel) spinnerBuyOrderAmount.getModel()).setStepSize(getCurrentSecondaryBalance() * 0.01 / price.buy);
 
                     stepSize = price.sell / 100.0;
-                    if (stepSize < 0.00000001) stepSize = 0.00000001;
+                    if (stepSize < Calculator.MINIMAL_AMOUNT) stepSize = Calculator.MINIMAL_AMOUNT;
                     ((SpinnerNumberModel) spinnerSellOrderPrice.getModel()).setStepSize(stepSize);
                     ((SpinnerNumberModel) spinnerSellOrderAmount.getModel()).setStepSize(getCurrentPrimaryBalance() * 0.01);
                     updateLabelTotal();
@@ -321,7 +318,7 @@ public class TraderMainForm extends JPanel {
                     labelPriceChangePercent.setToolTipText("");
                 } else {
                     labelPriceChangePercent.setToolTipText(String.format("%f -> %f", priceChangeLastPrice, price.last));
-                    double percent = ((price.last - priceChangeLastPrice) / priceChangeLastPrice) * 100.0;
+                    double percent = Calculator.priceChangePercent(priceChangeLastPrice, price.last);
                     labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, Utils.Strings.percentDecimalFormat) + "%");
                     if (percent > 0)
                         labelPriceChangePercent.setForeground(Color.GREEN);
@@ -373,7 +370,7 @@ public class TraderMainForm extends JPanel {
                     model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1);
                     model.setValueAt(order.price, i, 2);
                     model.setValueAt(order.amount, i, 3);
-                    model.setValueAt(order.amount * order.price / ((100.0 + feePercent) / 100.0), i, 4);
+                    model.setValueAt(Calculator.totalWithFee(order.type, order.price, order.amount, feePercent), i, 4);
                     i++;
                 }
                 model.fireTableDataChanged();
@@ -394,7 +391,7 @@ public class TraderMainForm extends JPanel {
                     model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1);
                     model.setValueAt(order.price, i, 2);
                     model.setValueAt(order.amount, i, 3);
-                    model.setValueAt(order.amount * order.price / ((100.0 + feePercent) / 100.0), i, 4);
+                    model.setValueAt(Calculator.totalWithFee(order.type, order.price, order.amount, feePercent), i, 4);
                     i++;
                 }
                 model.fireTableDataChanged();
@@ -415,7 +412,7 @@ public class TraderMainForm extends JPanel {
                     model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1); // Type
                     model.setValueAt(order.price, i, 2); // Price
                     model.setValueAt(order.amount, i, 3); // Amount
-                    model.setValueAt(order.amount * order.price / ((100.0 + feePercent) / 100.0), i, 4); // Total
+                    model.setValueAt(Calculator.totalWithFee(order.type, order.price, order.amount, feePercent), i, 4); // Total
                     i++;
                 }
                 model.fireTableDataChanged();

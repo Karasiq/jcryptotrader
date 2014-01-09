@@ -13,6 +13,8 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -273,6 +275,38 @@ public abstract class BaseTradeApi {
         }
     }
 
+    public enum PriceType {
+        LAST, ASK, BID, HIGH, LOW, AVG
+    }
+
+    public static BigDecimal getPrice(BaseTradeApi.StandartObjects.Prices prices, PriceType priceType) {
+        double price;
+        switch(priceType) {
+            case LAST:
+                price = prices.last;
+                break;
+            case ASK:
+                price = prices.buy;
+                break;
+            case BID:
+                price = prices.sell;
+                break;
+            case HIGH:
+                price = prices.high;
+                break;
+            case LOW:
+                price = prices.low;
+                break;
+            case AVG:
+                price = prices.average;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown price type");
+        }
+        return new BigDecimal(price, MathContext.DECIMAL64);
+    }
+
+
     public abstract StandartObjects.CurrencyPairMapper getCurrencyPairs() throws Exception;
 
     // Basic info:
@@ -297,7 +331,7 @@ public abstract class BaseTradeApi {
     public abstract double getFeePercent(Object pair) throws Exception;
 
     // Trading api:
-    public abstract long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError;
+    public abstract long createOrder(Object pair, int orderType, double quantity, double price) throws Exception;
 
     public abstract boolean cancelOrder(long orderId) throws Exception;
 }
