@@ -3,7 +3,7 @@ package com.archean.jtradeapi;
 import java.io.IOException;
 import java.util.*;
 
-public class ApiWorker {
+public class ApiWorker implements AutoCloseable {
     public abstract static class Callback {
         public abstract void onUpdate(final ApiWorker.ApiDataType dataType, final Object data);
 
@@ -155,6 +155,10 @@ public class ApiWorker {
             threadMap.get(dataType).interrupt();
         }
         threadMap.clear();
+    }
+
+    public void close() {
+        stopAllThreads();
     }
 
     // Construction:
