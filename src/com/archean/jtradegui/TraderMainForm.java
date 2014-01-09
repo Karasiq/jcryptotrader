@@ -437,6 +437,7 @@ public class TraderMainForm extends JPanel {
                     i++;
                 }
                 model.fireTableDataChanged();
+                updateLabelTotal();
             }
         });
     }
