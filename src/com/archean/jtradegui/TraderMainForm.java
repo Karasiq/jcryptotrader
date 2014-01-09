@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.Exchanger;
 
 /**
  * @author Yarr harr
@@ -54,23 +55,15 @@ public class TraderMainForm extends JPanel {
     private volatile boolean needStepUpdate = true;
     private volatile double priceChangeLastPrice = 0;
     private volatile Map<String, Thread> threadMap = new HashMap<>();
-    private Runnable marketCapUpdateTask = new Runnable() {
-        @Override
-        public void run() {
-            CoinMarketCapParser parser = new CoinMarketCapParser();
-            int sleepTime = 0;
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    if (sleepTime > 0) Thread.sleep(sleepTime);
-                    updateMarketCap(parser.getData());
-                    sleepTime = 2 * 60 * 1000; // 2m
-                } catch (InterruptedException e) {
-                    break;
-                } catch(Exception e) {
-                    processException(new Exception("Error retrieving market cap data", e));
-                    sleepTime = 30 * 1000;
-                }
-            }
+    private Runnable marketCapUpdateTask = new Utils.Threads.CycledRunnable() {
+        private CoinMarketCapParser parser = new CoinMarketCapParser();
+        @Override protected int onError(Exception e) {
+            processException(new Exception("Error retrieving market cap data", e));
+            return 30 * 1000;
+        }
+        @Override protected int cycle() throws Exception {
+            updateMarketCap(parser.getData());
+            return 2 * 60 * 1000; // 2m
         }
     };
 
@@ -611,41 +604,27 @@ public class TraderMainForm extends JPanel {
         });
         initMarket(account);
 
-        Thread apiLagThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (!Thread.currentThread().isInterrupted()) {
-                    if (lastUpdated.priceUpdated != 0 && isVisible()) {
-                        SwingUtilities.invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                double apiLag = (System.currentTimeMillis() - lastUpdated.priceUpdated) / 1000.0;
-                                labelApiLagValue.setText(Utils.Strings.formatNumber(apiLag) + " sec");
-                            }
-                        });
-                    }
-                    try {
-                        Thread.sleep(200);
-                    } catch (InterruptedException e) {
-                        break;
-                    }
+        Thread apiLagThread = new Thread(new Utils.Threads.CycledRunnable() {
+            @Override protected int cycle() throws Exception {
+                if (lastUpdated.priceUpdated != 0 && isVisible()) {
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            double apiLag = (System.currentTimeMillis() - lastUpdated.priceUpdated) / 1000.0;
+                            labelApiLagValue.setText(Utils.Strings.formatNumber(apiLag) + " sec");
+                        }
+                    });
                 }
+                return 200;
             }
         });
-        Thread priceChangeTimerThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (!Thread.currentThread().isInterrupted()) {
-                    try {
-                        while (worker.marketInfo.price.last == 0) {
-                            Thread.sleep(100);
-                        }
-                        priceChangeLastPrice = worker.marketInfo.price.last;
-                        Thread.sleep(1000 * 60 * 60);
-                    } catch (InterruptedException e) {
-                        break;
-                    }
+        Thread priceChangeTimerThread = new Thread(new Utils.Threads.CycledRunnable() {
+            @Override protected int cycle() throws Exception {
+                while (worker.marketInfo.price.last == 0) {
+                    Thread.sleep(100);
                 }
+                priceChangeLastPrice = worker.marketInfo.price.last;
+                return 1000 * 60 * 60; // 1h
             }
         });
         apiLagThread.start();

@@ -12,6 +12,30 @@ import java.util.Locale;
 import java.util.Map;
 
 public class Utils {
+    public static class Threads {
+        public static abstract class CycledRunnable implements Runnable {
+            public static final int STOP_CYCLE = -1;
+            abstract protected int cycle() throws Exception;
+            protected int onError(Exception e) {
+                e.printStackTrace();
+                return 0;
+            }
+            @Override public void run() {
+                int sleepTime = 0;
+                while (!Thread.currentThread().isInterrupted()) {
+                    try {
+                        if(sleepTime == STOP_CYCLE) break;
+                        else if(sleepTime != 0) Thread.sleep(sleepTime);
+                        sleepTime = cycle();
+                    } catch (InterruptedException e) {
+                        break;
+                    } catch (Exception e) {
+                        sleepTime = onError(e);
+                    }
+                }
+            }
+        }
+    }
     public static class Crypto {
         public static class Hashing {
             public static final String MD5 = "MD5";

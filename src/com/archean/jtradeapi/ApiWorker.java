@@ -2,6 +2,7 @@ package com.archean.jtradeapi;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Exchanger;
 
 public class ApiWorker implements AutoCloseable {
     public abstract static class Callback {
@@ -17,7 +18,7 @@ public class ApiWorker implements AutoCloseable {
         ACCOUNT_BALANCES, ACCOUNT_ORDERS, ACCOUNT_HISTORY
     }
 
-    private class ApiWorkerTask implements Runnable {
+    private class ApiWorkerTask extends Utils.Threads.CycledRunnable {
         ApiDataType apiDataType;
 
         public ApiWorkerTask(ApiDataType dataType) {
@@ -68,32 +69,25 @@ public class ApiWorker implements AutoCloseable {
             }
         }
 
-        @Override
-        public void run() {
-            Object data;
-            long sleepTime = 0;
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    if(sleepTime > 0) Thread.sleep(sleepTime);
-                    data = retrieveData();
-                    if (data != null && !Thread.currentThread().isInterrupted()) {
-                        updateWorkerData(data);
-                        if (callback != null) {
-                            callback.onUpdate(apiDataType, data);
-                        }
-                    } else {
-                        break;
-                    }
-                    sleepTime = timeInterval;
-                } catch (InterruptedException e) {
-                    break;
-                } catch (Exception e) {
-                    if (callback != null)
-                        callback.onError(new Exception("ApiWorker error: " + e.getLocalizedMessage(), e));
-                    else
-                        e.printStackTrace();
-                    sleepTime = 30 * 1000; // 30s
+        @Override protected int onError(Exception e) {
+            if (callback != null)
+                callback.onError(new Exception("ApiWorker error: " + e.getLocalizedMessage(), e));
+            else
+                e.printStackTrace();
+            return 10 * 1000; // 10s
+        }
+
+        private Object data = null;
+        @Override protected int cycle() throws Exception {
+            data = retrieveData();
+            if (data != null && !Thread.currentThread().isInterrupted()) {
+                updateWorkerData(data);
+                if (callback != null) {
+                    callback.onUpdate(apiDataType, data);
                 }
+                return timeInterval;
+            } else {
+                return STOP_CYCLE;
             }
         }
     }
@@ -101,7 +95,7 @@ public class ApiWorker implements AutoCloseable {
     volatile public BaseTradeApi.StandartObjects.AccountInfo accountInfo = new BaseTradeApi.StandartObjects.AccountInfo();
     volatile public BaseTradeApi.StandartObjects.MarketInfo marketInfo = new BaseTradeApi.StandartObjects.MarketInfo();
     volatile public BaseTradeApi tradeApi = null;
-    volatile long timeInterval = 200;
+    volatile int timeInterval = 200;
     volatile Object pair = null;
     volatile Callback callback = null;
     private Map<ApiDataType, Thread> threadMap = new HashMap<>();
@@ -195,7 +189,7 @@ public class ApiWorker implements AutoCloseable {
         return this;
     }
 
-    public ApiWorker setTimeInterval(long ms) {
+    public ApiWorker setTimeInterval(int ms) {
         this.timeInterval = ms;
         return this;
     }
