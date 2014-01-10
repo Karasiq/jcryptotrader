@@ -817,6 +817,12 @@ public class TraderMainForm extends JPanel {
         sliderSellOrderAmount = new JSlider();
         labelSellOrderTotal = new JLabel();
         labelSellOrderTotalValue = new JLabel();
+        panelRules = new JPanel();
+        scrollPane2 = new JScrollPane();
+        tableRules = new JTable();
+        toolBar1 = new JToolBar();
+        buttonAddRule = new JButton();
+        buttonDeleteRule = new JButton();
         separator2 = new JSeparator();
         tabbedPaneInfo = new JTabbedPane();
         panelOrders = new JPanel();
@@ -858,7 +864,7 @@ public class TraderMainForm extends JPanel {
         //======== this ========
         setLayout(new FormLayout(
             "[90dlu,pref]:grow, $lcgap, [92dlu,pref]:grow",
-            "default, 10dlu, top:[95dlu,default], 10dlu, default, 0dlu, 10dlu, 15dlu, $lgap, fill:[150dlu,default]:grow"));
+            "default, 10dlu, top:[95dlu,default], 10dlu, default:grow, 0dlu, 10dlu, 15dlu, $lgap, fill:[150dlu,default]:grow"));
 
         //---- comboBoxPair ----
         comboBoxPair.setMaximumRowCount(20);
@@ -1126,6 +1132,35 @@ public class TraderMainForm extends JPanel {
                 panelSell.add(labelSellOrderTotalValue, CC.xywh(5, 7, 5, 1, CC.LEFT, CC.DEFAULT));
             }
             tabbedPaneTrade.addTab(bundle.getString("sell.text"), panelSell);
+
+            //======== panelRules ========
+            {
+                panelRules.setLayout(new FormLayout(
+                    "default:grow, $lcgap, right:16dlu",
+                    "fill:default"));
+
+                //======== scrollPane2 ========
+                {
+                    scrollPane2.setViewportView(tableRules);
+                }
+                panelRules.add(scrollPane2, CC.xy(1, 1));
+
+                //======== toolBar1 ========
+                {
+                    toolBar1.setOrientation(SwingConstants.VERTICAL);
+                    toolBar1.setFloatable(false);
+
+                    //---- buttonAddRule ----
+                    buttonAddRule.setIcon(new ImageIcon(getClass().getResource("/icons/plus.png")));
+                    toolBar1.add(buttonAddRule);
+
+                    //---- buttonDeleteRule ----
+                    buttonDeleteRule.setIcon(new ImageIcon(getClass().getResource("/icons/delete.png")));
+                    toolBar1.add(buttonDeleteRule);
+                }
+                panelRules.add(toolBar1, CC.xy(3, 1));
+            }
+            tabbedPaneTrade.addTab(bundle.getString("TraderMainForm.panelRules.tab.title"), panelRules);
         }
         add(tabbedPaneTrade, CC.xywh(1, 5, 3, 1));
         add(separator2, CC.xywh(1, 7, 3, 1));
@@ -1587,6 +1622,12 @@ public class TraderMainForm extends JPanel {
     private JSlider sliderSellOrderAmount;
     private JLabel labelSellOrderTotal;
     private JLabel labelSellOrderTotalValue;
+    private JPanel panelRules;
+    private JScrollPane scrollPane2;
+    private JTable tableRules;
+    private JToolBar toolBar1;
+    private JButton buttonAddRule;
+    private JButton buttonDeleteRule;
     private JSeparator separator2;
     private JTabbedPane tabbedPaneInfo;
     private JPanel panelOrders;

@@ -97,7 +97,7 @@ public class ApiWorker implements AutoCloseable {
     volatile public BaseTradeApi tradeApi = null;
     volatile int timeInterval = 200;
     volatile Object pair = null;
-    volatile Callback callback = null;
+    volatile public Callback callback = null;
     private Map<ApiDataType, Thread> threadMap = new HashMap<>();
 
     synchronized public boolean isThreadRunning(final ApiDataType dataType) {

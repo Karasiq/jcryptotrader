@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RuleWorker implements AutoCloseable {
-    abstract static class RuleCallback {
+    public abstract static class RuleCallback {
         abstract void onSatisfied();
         void onError(Exception e) {
             e.printStackTrace();
@@ -23,7 +23,7 @@ public class RuleWorker implements AutoCloseable {
             mapData.put(ApiWorker.ApiDataType.MARKET_PRICES, apiWorker.marketInfo.price);
         }
     }
-    abstract class BaseCondition {
+    public static abstract class BaseCondition {
         protected Object compareType;
         protected Object conditionType;
         protected Object value;
@@ -34,7 +34,7 @@ public class RuleWorker implements AutoCloseable {
         }
         abstract boolean satisfied(Map<Object, Object> data) throws Exception;
     }
-    public class PriceCondition extends BaseCondition {
+    public static class PriceCondition extends BaseCondition {
         public PriceCondition(BaseTradeApi.PriceType priceType, Calculator.ArithmeticCompareCondition conditionType, BigDecimal value) {
             super(priceType, conditionType, value);
         }

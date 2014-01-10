@@ -12,7 +12,7 @@ new FormModel {
 		}
 		add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
 			"$columnSpecs": "max(pref;90dlu):grow, labelcompgap, max(pref;92dlu):grow"
-			"$rowSpecs": "default, 10dlu, top:max(default;95dlu), 10dlu, default, 0dlu, 10dlu, 15dlu, linegap, fill:max(default;150dlu):grow"
+			"$rowSpecs": "default, 10dlu, top:max(default;95dlu), 10dlu, default:grow, 0dlu, 10dlu, 15dlu, linegap, fill:max(default;150dlu):grow"
 		} ) {
 			name: "this"
 			add( new FormComponent( "javax.swing.JComboBox" ) {
@@ -381,6 +381,39 @@ new FormModel {
 					} )
 				}, new FormLayoutConstraints( null ) {
 					"title": new FormMessage( null, "sell.text" )
+				} )
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
+					"$columnSpecs": "default:grow, labelcompgap, right:16dlu"
+					"$rowSpecs": "fill:default"
+				} ) {
+					name: "panelRules"
+					add( new FormContainer( "javax.swing.JScrollPane", new FormLayoutManager( class javax.swing.JScrollPane ) ) {
+						name: "scrollPane2"
+						add( new FormComponent( "javax.swing.JTable" ) {
+							name: "tableRules"
+						} )
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 1
+						"gridY": 1
+					} )
+					add( new FormContainer( "javax.swing.JToolBar", new FormLayoutManager( class javax.swing.JToolBar ) ) {
+						name: "toolBar1"
+						"orientation": 1
+						"floatable": false
+						add( new FormComponent( "javax.swing.JButton" ) {
+							name: "buttonAddRule"
+							"icon": new com.jformdesigner.model.SwingIcon( 0, "/icons/plus.png" )
+						} )
+						add( new FormComponent( "javax.swing.JButton" ) {
+							name: "buttonDeleteRule"
+							"icon": new com.jformdesigner.model.SwingIcon( 0, "/icons/delete.png" )
+						} )
+					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
+						"gridX": 3
+						"gridY": 1
+					} )
+				}, new FormLayoutConstraints( null ) {
+					"title": new FormMessage( null, "TraderMainForm.panelRules.tab.title" )
 				} )
 			}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 				"gridY": 5
