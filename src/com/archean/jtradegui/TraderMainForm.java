@@ -6,9 +6,12 @@ package com.archean.jtradegui;
 
 import com.archean.coinmarketcap.CoinMarketCapParser;
 import com.archean.jautotrading.MarketRule;
+import com.archean.jautotrading.RuleAction;
+import com.archean.jautotrading.RuleCondition;
 import com.archean.jtradeapi.*;
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -26,17 +29,18 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.Exchanger;
 
 /**
  * @author Yarr harr
  */
 public class TraderMainForm extends JPanel {
-    private MarketRule.MarketRuleList ruleList = new MarketRule.MarketRuleList();
+    public volatile Map<String, MarketRule.MarketRuleList> ruleListDb = new HashMap<>();
+    private volatile MarketRule.MarketRuleList ruleList;
+    private volatile String currentPair = "";
     private double feePercent = 0.2;
 
     static private class ApiLag {
@@ -59,11 +63,15 @@ public class TraderMainForm extends JPanel {
     private volatile Map<String, Thread> threadMap = new HashMap<>();
     private Runnable marketCapUpdateTask = new Utils.Threads.CycledRunnable() {
         private CoinMarketCapParser parser = new CoinMarketCapParser();
-        @Override protected int onError(Exception e) {
+
+        @Override
+        protected int onError(Exception e) {
             processException(new Exception("Error retrieving market cap data", e));
             return 30 * 1000;
         }
-        @Override protected int cycle() throws Exception {
+
+        @Override
+        protected int cycle() throws Exception {
             updateMarketCap(parser.getData());
             return 2 * 60 * 1000; // 2m
         }
@@ -107,12 +115,44 @@ public class TraderMainForm extends JPanel {
         spinnerUpdateInterval.setValue(timeInterval);
         spinnerFeePercent.setValue(feePercent);
     }
+    public void setRuleListDb(Map<String, MarketRule.MarketRuleList> ruleListDb) {
+        this.ruleListDb = ruleListDb;
+        this.ruleList = ruleListDb.get(currentPair);
+        refreshRulesTable();
+    }
 
+    private void initPair(String pairName) {
+        this.currentPair = pairName;
+        Object pairId = pairList.get(pairName).pairId;
+        worker.setPair(pairId);
+        ruleList = ruleListDb.get(pairName);
+        if(ruleList == null) {
+            ruleList = new MarketRule.MarketRuleList();
+            ruleListDb.put(pairName, ruleList);
+        }
+        ruleList.callback = new MarketRule.MarketRuleList.MarketRuleListCallback() {
+            @Override
+            public void onSuccess(MarketRule rule) {
+                processNotification(String.format(locale.getString("RuleExecuted.notification.template"), formatMarketConditionString(rule.condition), formatMarketActionString(rule.action)));
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        refreshRulesTable();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Exception e) {
+                processError("Rule execution error: " + e.getMessage());
+            }
+        };
+        clearMarketData();
+    }
     public void setPair(final String pairName) {
         stopWorker();
         comboBoxPair.setSelectedItem(pairName);
-        worker.setPair(pairList.get(pairName).pairId);
-        clearMarketData();
+        initPair(pairName);
         startWorker();
     }
 
@@ -120,8 +160,8 @@ public class TraderMainForm extends JPanel {
         Map<String, Object> settings = new HashMap<>();
         settings.put("timeInterval", spinnerUpdateInterval.getValue());
         settings.put("feePercent", feePercent);
-        settings.put("currentPair", comboBoxPair.getSelectedItem());
-        // settings.put("keyPair", worker.tradeApi.apiKeyPair);
+        settings.put("currentPair", currentPair);
+        settings.put("marketRuleListDb", ruleListDb);
         return settings;
     }
 
@@ -185,7 +225,7 @@ public class TraderMainForm extends JPanel {
     protected void updateLabelTotal() {
         if (tabbedPaneTrade.getSelectedIndex() == 0) { // Buy
             double balance = getCurrentSecondaryBalance();
-            double enteredTotal = Calculator.totalWithFee(BaseTradeApi.Constants.ORDER_BUY, (Double)spinnerBuyOrderPrice.getValue(), (Double)spinnerBuyOrderAmount.getValue(), feePercent);
+            double enteredTotal = Calculator.totalWithFee(BaseTradeApi.Constants.ORDER_BUY, (Double) spinnerBuyOrderPrice.getValue(), (Double) spinnerBuyOrderAmount.getValue(), feePercent);
             labelBuyOrderTotalValue.setText(Utils.Strings.formatNumber(enteredTotal) + " / " + Utils.Strings.formatNumber(balance) + " " + getCurrentSecondaryCurrency());
             if (enteredTotal > balance) {
                 labelBuyOrderTotalValue.setForeground(Color.RED);
@@ -195,7 +235,7 @@ public class TraderMainForm extends JPanel {
         } else { // Sell
             double balance = getCurrentPrimaryBalance(),
                     amount = (Double) spinnerSellOrderAmount.getValue(),
-                    enteredTotal = Calculator.totalWithFee(BaseTradeApi.Constants.ORDER_SELL, (Double)spinnerSellOrderPrice.getValue(), (Double)spinnerSellOrderAmount.getValue(), feePercent);
+                    enteredTotal = Calculator.totalWithFee(BaseTradeApi.Constants.ORDER_SELL, (Double) spinnerSellOrderPrice.getValue(), (Double) spinnerSellOrderAmount.getValue(), feePercent);
 
             labelSellOrderTotalValue.setText(Utils.Strings.formatNumber(amount) + " / " + Utils.Strings.formatNumber(balance) + " " + getCurrentPrimaryCurrency() + " (" + Utils.Strings.formatNumber(enteredTotal) + " " + getCurrentSecondaryCurrency() + ")");
             if (amount > balance) {
@@ -237,6 +277,7 @@ public class TraderMainForm extends JPanel {
         textFieldVolume.setText("");
         priceChangeLastPrice = 0;
         needStepUpdate = true;
+        refreshRulesTable();
     }
 
     public void initMarket(AccountManager.Account account) {
@@ -250,10 +291,10 @@ public class TraderMainForm extends JPanel {
             }
             comboBoxPair.setModel(model);
             comboBoxPair.setSelectedIndex(0);
-            worker.setPair(((TreeMap<String, BaseTradeApi.StandartObjects.CurrencyPair>) pairList).firstEntry().getValue().pairId);
-            clearMarketData();
+            BaseTradeApi.StandartObjects.CurrencyPair firstPair = ((TreeMap<String, BaseTradeApi.StandartObjects.CurrencyPair>) pairList).firstEntry().getValue();
+            initPair(firstPair.pairName);
             worker.setTimeInterval((Integer) spinnerUpdateInterval.getValue());
-            feePercent = worker.tradeApi.getFeePercent(worker.getPair());
+            feePercent = worker.tradeApi.getFeePercent(firstPair.pairId);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -322,6 +363,7 @@ public class TraderMainForm extends JPanel {
                 }
             }
         });
+        ruleList.checkRules(worker);
     }
 
     private void updateDepth(final BaseTradeApi.StandartObjects.Depth depth) {
@@ -400,17 +442,19 @@ public class TraderMainForm extends JPanel {
             @Override
             public void run() {
                 int i = 0;
-                DefaultTableModel model = (DefaultTableModel) tableOpenOrders.getModel();
-                model.setRowCount(orders.size());
-                for (BaseTradeApi.StandartObjects.Order order : orders) {
-                    model.setValueAt(order.id, i, 0); // ID
-                    model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1); // Type
-                    model.setValueAt(order.price, i, 2); // Price
-                    model.setValueAt(order.amount, i, 3); // Amount
-                    model.setValueAt(Calculator.totalWithFee(order.type, order.price, order.amount, feePercent), i, 4); // Total
-                    i++;
+                synchronized (tableOpenOrders) {
+                    DefaultTableModel model = (DefaultTableModel) tableOpenOrders.getModel();
+                    model.setRowCount(orders.size());
+                    for (BaseTradeApi.StandartObjects.Order order : orders) {
+                        model.setValueAt(order.id, i, 0); // ID
+                        model.setValueAt(locale.getString(order.type == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), i, 1); // Type
+                        model.setValueAt(order.price, i, 2); // Price
+                        model.setValueAt(order.amount, i, 3); // Amount
+                        model.setValueAt(Calculator.totalWithFee(order.type, order.price, order.amount, feePercent), i, 4); // Total
+                        i++;
+                    }
+                    model.fireTableDataChanged();
                 }
-                model.fireTableDataChanged();
             }
         });
     }
@@ -486,7 +530,6 @@ public class TraderMainForm extends JPanel {
 
     public TraderMainForm(AccountManager.Account account) {
         initComponents();
-
         spinnerBuyOrderPrice.setEditor(new JSpinner.NumberEditor(spinnerBuyOrderPrice, "##############.########"));
         spinnerBuyOrderAmount.setEditor(new JSpinner.NumberEditor(spinnerBuyOrderAmount, "##############.########"));
         spinnerSellOrderPrice.setEditor(new JSpinner.NumberEditor(spinnerSellOrderPrice, "##############.########"));
@@ -607,7 +650,8 @@ public class TraderMainForm extends JPanel {
         initMarket(account);
 
         Thread apiLagThread = new Thread(new Utils.Threads.CycledRunnable() {
-            @Override protected int cycle() throws Exception {
+            @Override
+            protected int cycle() throws Exception {
                 if (lastUpdated.priceUpdated != 0 && isVisible()) {
                     SwingUtilities.invokeLater(new Runnable() {
                         @Override
@@ -621,7 +665,8 @@ public class TraderMainForm extends JPanel {
             }
         });
         Thread priceChangeTimerThread = new Thread(new Utils.Threads.CycledRunnable() {
-            @Override protected int cycle() throws Exception {
+            @Override
+            protected int cycle() throws Exception {
                 while (worker.marketInfo.price.last == 0) {
                     Thread.sleep(100);
                 }
@@ -642,22 +687,22 @@ public class TraderMainForm extends JPanel {
             worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.MARKET_DEPTH, ApiWorker.ApiDataType.MARKET_HISTORY, ApiWorker.ApiDataType.ACCOUNT_BALANCES, ApiWorker.ApiDataType.ACCOUNT_ORDERS, ApiWorker.ApiDataType.ACCOUNT_HISTORY}); // Update all
         } else switch (tabbedPaneInfo.getSelectedIndex()) {
             case 0: // Orders
-                worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.ACCOUNT_ORDERS});
+                worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.ACCOUNT_BALANCES, ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.ACCOUNT_ORDERS});
                 break;
             case 1: // Balances
                 worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.ACCOUNT_BALANCES});
                 break;
             case 2: // Depth
-                worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.MARKET_DEPTH});
+                worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.ACCOUNT_BALANCES, ApiWorker.ApiDataType.MARKET_DEPTH});
                 break;
             case 3: // History
                 if (panelHistory.getSelectedIndex() == 0)
-                    worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.ACCOUNT_HISTORY});
+                    worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.ACCOUNT_BALANCES, ApiWorker.ApiDataType.ACCOUNT_HISTORY});
                 else
-                    worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.MARKET_HISTORY});
+                    worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.ACCOUNT_BALANCES, ApiWorker.ApiDataType.MARKET_HISTORY});
                 break;
             default: // Other tabs
-                worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES});
+                worker.setActiveThreads(new ApiWorker.ApiDataType[]{ApiWorker.ApiDataType.MARKET_PRICES, ApiWorker.ApiDataType.ACCOUNT_BALANCES});
         }
     }
 
@@ -686,8 +731,12 @@ public class TraderMainForm extends JPanel {
         updateLabelTotal();
     }
 
+    private static String formatOrderRepresentation(int orderType, double amount, double price, String primaryCurrency, String secondaryCurrency) {
+        return String.format(locale.getString("order_representation.template"), locale.getString(orderType == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), Utils.Strings.formatNumber(amount), primaryCurrency, Utils.Strings.formatNumber(price), secondaryCurrency);
+    }
+
     private void buttonCommitBuyOrderActionPerformed(ActionEvent e) {
-        final String orderRepresentation = String.format(locale.getString("order_representation.template"), locale.getString("buy.text"), Utils.Strings.formatNumber(spinnerBuyOrderAmount.getValue()), getCurrentPrimaryCurrency(), Utils.Strings.formatNumber(spinnerBuyOrderPrice.getValue()), getCurrentSecondaryCurrency());
+        final String orderRepresentation = formatOrderRepresentation(BaseTradeApi.Constants.ORDER_BUY, (Double) spinnerBuyOrderAmount.getValue(), (Double) spinnerBuyOrderPrice.getValue(), getCurrentPrimaryCurrency(), getCurrentSecondaryCurrency());
 
         if (JOptionPane.showConfirmDialog(this, String.format(locale.getString("order_confirmation.template"), orderRepresentation), locale.getString("order_confirmation.caption"), JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             SwingUtilities.invokeLater(new Runnable() {
@@ -710,7 +759,7 @@ public class TraderMainForm extends JPanel {
     }
 
     private void buttonCommitSellOrderActionPerformed(ActionEvent e) {
-        final String orderRepresentation = String.format(locale.getString("order_representation.template"), locale.getString("sell.text"), Utils.Strings.formatNumber(spinnerSellOrderAmount.getValue()), getCurrentPrimaryCurrency(), Utils.Strings.formatNumber(spinnerSellOrderPrice.getValue()), getCurrentSecondaryCurrency());
+        final String orderRepresentation = formatOrderRepresentation(BaseTradeApi.Constants.ORDER_SELL, (Double) spinnerSellOrderAmount.getValue(), (Double) spinnerSellOrderPrice.getValue(), getCurrentPrimaryCurrency(), getCurrentSecondaryCurrency());
 
 
         if (JOptionPane.showConfirmDialog(this, String.format(locale.getString("order_confirmation.template"), orderRepresentation), locale.getString("order_confirmation.caption"), JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
@@ -735,28 +784,28 @@ public class TraderMainForm extends JPanel {
 
     private void tableOpenOrdersPopupMenuHandler(MouseEvent e) {
         if (e.isPopupTrigger()) {
-            popupMenuOrders.show(e.getComponent(), e.getX(), e.getY());
+            synchronized (tableOpenOrders) {
+                popupMenuOrders.show(e.getComponent(), e.getX(), e.getY());
+            }
         }
     }
 
     private void menuItemCancelOrderActionPerformed(ActionEvent e) {
-        if (JOptionPane.showConfirmDialog(this, String.format(locale.getString("order_cancel_confirmation.template"), tableOpenOrders.getValueAt(tableOpenOrders.getSelectedRow(), 0)), locale.getString("order_cancel_confirmation.caption"), JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            SwingUtilities.invokeLater(new Runnable() {
-                @Override
-                public void run() {
-                    tableOpenOrders.setEnabled(false);
-                    try {
-                        worker.tradeApi.cancelOrder((Long) tableOpenOrders.getValueAt(tableOpenOrders.getSelectedRow(), 0));
-                        processNotification(String.format(locale.getString("order_cancelled.template"), tableOpenOrders.getValueAt(tableOpenOrders.getSelectedRow(), 0)));
-                        ((DefaultTableModel) tableOpenOrders.getModel()).removeRow(tableOpenOrders.getSelectedRow());
-                    } catch (Exception e1) {
-                        processException(e1);
-                    } finally {
-                        tableOpenOrders.setEnabled(true);
-                    }
+        if (tableOpenOrders.getSelectedRow() == -1) return;
+        synchronized (tableOpenOrders) {
+            final long orderId = (Long) tableOpenOrders.getValueAt(tableOpenOrders.getSelectedRow(), 0);
+            if (JOptionPane.showConfirmDialog(this, String.format(locale.getString("order_cancel_confirmation.template"), orderId), locale.getString("order_cancel_confirmation.caption"), JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                tableOpenOrders.setEnabled(false);
+                try {
+                    worker.tradeApi.cancelOrder(orderId);
+                    processNotification(String.format(locale.getString("order_cancelled.template"), orderId));
+                    ((DefaultTableModel) tableOpenOrders.getModel()).removeRow(tableOpenOrders.getSelectedRow());
+                } catch (Exception e1) {
+                    processException(e1);
+                } finally {
+                    tableOpenOrders.setEnabled(true);
                 }
-            });
-
+            }
         }
     }
 
@@ -770,6 +819,114 @@ public class TraderMainForm extends JPanel {
 
     private void toggleButtonUpdateAllStateChanged(ChangeEvent e) {
         setUpdateOptions();
+    }
+
+    private static String priceToString(BaseTradeApi.PriceType priceType) {
+        switch (priceType) {
+            case LAST:
+                return locale.getString("TraderMainForm.labelLastPrice.text");
+            case LOW:
+                return locale.getString("TraderMainForm.labelLowPrice.text");
+            case HIGH:
+                return locale.getString("TraderMainForm.labelHighPrice.text");
+            case ASK:
+                return locale.getString("TraderMainForm.labelSellPrice.text");
+            case BID:
+                return locale.getString("TraderMainForm.labelBuyPrice.text");
+            case AVG:
+                return locale.getString("TraderMainForm.labelAvgPrice.text");
+            default:
+                throw new IllegalArgumentException();
+        }
+    }
+
+    private static String arithmeticComparatorToString(Calculator.ArithmeticCompareCondition compareCondition) {
+        switch (compareCondition) {
+            case EQUAL:
+                return "==";
+            case GREATER:
+                return ">";
+            case LESS:
+                return "<";
+            case GREATER_OR_EQUAL:
+                return ">=";
+            case LESS_OR_EQUAL:
+                return "<=";
+            default:
+                throw new IllegalArgumentException();
+        }
+    }
+
+    private static String formatMarketConditionString(RuleCondition.BaseCondition condition) {
+        String stringType = "", stringComparator = "", stringCondition = "", stringValue = condition.value.toString();
+        if (condition instanceof RuleCondition.PriceCondition) {
+            stringType = locale.getString("MarketRuleType.price.title");
+            stringCondition = priceToString((BaseTradeApi.PriceType) condition.conditionType);
+            stringValue = Utils.Strings.formatNumber(((BigDecimal) condition.value).doubleValue());
+        }
+        if (condition.compareType instanceof Calculator.ArithmeticCompareCondition) {
+            stringComparator = arithmeticComparatorToString((Calculator.ArithmeticCompareCondition) condition.compareType);
+        }
+        return String.format("%s <%s> %s %s", stringType, stringCondition, stringComparator, stringValue);
+    }
+
+    private static String formatMarketActionString(RuleAction.BaseAction action) {
+        if (action == null) {
+            return "-";
+        } else if (action instanceof RuleAction.TradeAction) {
+            RuleAction.TradeAction tradeAction = (RuleAction.TradeAction) action;
+            String stringAmount, stringPrice = tradeAction.priceCustom == null ? priceToString(tradeAction.priceType) : Utils.Strings.formatNumber(tradeAction.priceCustom.doubleValue());
+            if (tradeAction.amountType == RuleAction.TradeAction.AMOUNT_TYPE_CONSTANT) {
+                stringAmount = Utils.Strings.formatNumber(tradeAction.amount.doubleValue());
+            } else {
+                stringAmount = Utils.Strings.formatNumber(tradeAction.amount.doubleValue(), Utils.Strings.percentDecimalFormat) + "%";
+            }
+            return String.format(locale.getString("MarketRuleAction.trade.template"), locale.getString(tradeAction.tradeType == BaseTradeApi.Constants.ORDER_SELL ? "sell.text" : "buy.text"), stringAmount, stringPrice);
+        }
+        throw new NotImplementedException();
+    }
+
+    private void refreshRulesTable() {
+        DefaultTableModel model = (DefaultTableModel) tableRules.getModel();
+        int i = 0;
+        model.setRowCount(ruleList.size());
+        for (MarketRule rule : ruleList) {
+            model.setValueAt(i, i, 0); // Index
+            model.setValueAt(formatMarketConditionString(rule.condition), i, 1); // Condition
+            model.setValueAt(formatMarketActionString(rule.action), i, 2); // Action
+        }
+        model.fireTableDataChanged();
+        ruleListDb.put(currentPair, ruleList);
+    }
+
+    private void buttonAddRuleActionPerformed(ActionEvent e) {
+        final RuleAction.TradeAction.Callback tradeCallback = new RuleAction.TradeAction.Callback() {
+            @Override
+            public void onSuccess(long orderId, int tradeType, BigDecimal amount, BigDecimal price) {
+                final String orderRepresentation = formatOrderRepresentation(tradeType, amount.doubleValue(), price.doubleValue(), getCurrentPrimaryCurrency(), getCurrentSecondaryCurrency());
+                processNotification(String.format(locale.getString("order_created.template"), orderRepresentation, orderId));
+            }
+
+            @Override
+            public void onError(Exception e) {
+                processError("RuleAction error: " + e.getMessage());
+            }
+        };
+        RuleSettingsDlg ruleSettingsDlg = new RuleSettingsDlg((JFrame) SwingUtilities.getWindowAncestor(this));
+        ruleSettingsDlg.setVisible(true);
+        if (ruleSettingsDlg.result != null) {
+            MarketRule rule = ruleSettingsDlg.result;
+            if (rule.action instanceof RuleAction.TradeAction) {
+                rule.action.setCallback(tradeCallback);
+            }
+            ruleList.add(rule);
+            refreshRulesTable();
+        }
+    }
+
+    private void buttonDeleteRuleActionPerformed(ActionEvent e) {
+        ruleList.remove(tableRules.getSelectedRow());
+        refreshRulesTable();
     }
 
 
@@ -865,8 +1022,8 @@ public class TraderMainForm extends JPanel {
 
         //======== this ========
         setLayout(new FormLayout(
-            "[90dlu,pref]:grow, $lcgap, [92dlu,pref]:grow",
-            "default, 10dlu, top:[95dlu,default], 10dlu, default:grow, 0dlu, 10dlu, 15dlu, $lgap, fill:[150dlu,default]:grow"));
+                "[90dlu,pref]:grow, $lcgap, [92dlu,pref]:grow",
+                "default, 10dlu, top:[95dlu,default], 10dlu, default:grow, 0dlu, 10dlu, 15dlu, $lgap, fill:[150dlu,default]:grow"));
 
         //---- comboBoxPair ----
         comboBoxPair.setMaximumRowCount(20);
@@ -882,8 +1039,8 @@ public class TraderMainForm extends JPanel {
         //======== panelPrice ========
         {
             panelPrice.setLayout(new FormLayout(
-                "default:grow, $lcgap, 70dlu, $lcgap, default:grow",
-                "3*(default, $lgap), [18dlu,default], 2*($lgap, default)"));
+                    "default:grow, $lcgap, 70dlu, $lcgap, default:grow",
+                    "3*(default, $lgap), [18dlu,default], 2*($lgap, default)"));
 
             //---- labelBuyPrice ----
             labelBuyPrice.setText(bundle.getString("TraderMainForm.labelBuyPrice.text"));
@@ -923,7 +1080,7 @@ public class TraderMainForm extends JPanel {
 
             //---- labelPriceChange ----
             labelPriceChange.setText(bundle.getString("TraderMainForm.labelPriceChange.text"));
-            labelPriceChange.setFont(labelPriceChange.getFont().deriveFont(Font.BOLD|Font.ITALIC));
+            labelPriceChange.setFont(labelPriceChange.getFont().deriveFont(Font.BOLD | Font.ITALIC));
             panelPrice.add(labelPriceChange, CC.xy(3, 5, CC.CENTER, CC.DEFAULT));
 
             //---- labelHighPrice ----
@@ -982,8 +1139,8 @@ public class TraderMainForm extends JPanel {
             //======== panelBuy ========
             {
                 panelBuy.setLayout(new FormLayout(
-                    "5dlu, $lcgap, 30dlu, $lcgap, 108dlu, $lcgap, 45dlu:grow, $lcgap, [70dlu,default]:grow",
-                    "5dlu, 2*($lgap, default), $lgap, 14dlu"));
+                        "5dlu, $lcgap, 30dlu, $lcgap, 108dlu, $lcgap, 45dlu:grow, $lcgap, [70dlu,default]:grow",
+                        "5dlu, 2*($lgap, default), $lgap, 14dlu"));
 
                 //---- labelBuyOrderPrice ----
                 labelBuyOrderPrice.setText(bundle.getString("TraderMainForm.labelBuyOrderPrice.text"));
@@ -1060,8 +1217,8 @@ public class TraderMainForm extends JPanel {
             //======== panelSell ========
             {
                 panelSell.setLayout(new FormLayout(
-                    "5dlu, $lcgap, 30dlu, $lcgap, 108dlu, $lcgap, 45dlu:grow, $lcgap, [70dlu,default]:grow",
-                    "5dlu, 2*($lgap, default), $lgap, 14dlu"));
+                        "5dlu, $lcgap, 30dlu, $lcgap, 108dlu, $lcgap, 45dlu:grow, $lcgap, [70dlu,default]:grow",
+                        "5dlu, 2*($lgap, default), $lgap, 14dlu"));
 
                 //---- labelSellOrderPrice ----
                 labelSellOrderPrice.setText(bundle.getString("TraderMainForm.labelSellOrderPrice.text"));
@@ -1138,11 +1295,43 @@ public class TraderMainForm extends JPanel {
             //======== panelRules ========
             {
                 panelRules.setLayout(new FormLayout(
-                    "default:grow, $lcgap, right:16dlu",
-                    "fill:default"));
+                        "default:grow, $lcgap, right:16dlu",
+                        "fill:default"));
 
                 //======== scrollPane2 ========
                 {
+
+                    //---- tableRules ----
+                    tableRules.setModel(new DefaultTableModel(
+                            new Object[][]{
+                                    {null, null, null},
+                            },
+                            new String[]{
+                                    "#", "Condition", "Action"
+                            }
+                    ) {
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                Integer.class, Object.class, Object.class
+                        };
+                        boolean[] columnEditable = new boolean[]{
+                                false, false, false
+                        };
+
+                        @Override
+                        public Class<?> getColumnClass(int columnIndex) {
+                            return columnTypes[columnIndex];
+                        }
+
+                        @Override
+                        public boolean isCellEditable(int rowIndex, int columnIndex) {
+                            return columnEditable[columnIndex];
+                        }
+                    });
+                    {
+                        TableColumnModel cm = tableRules.getColumnModel();
+                        cm.getColumn(0).setMaxWidth(50);
+                        cm.getColumn(0).setPreferredWidth(20);
+                    }
                     scrollPane2.setViewportView(tableRules);
                 }
                 panelRules.add(scrollPane2, CC.xy(1, 1));
@@ -1154,10 +1343,22 @@ public class TraderMainForm extends JPanel {
 
                     //---- buttonAddRule ----
                     buttonAddRule.setIcon(new ImageIcon(getClass().getResource("/icons/plus.png")));
+                    buttonAddRule.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            buttonAddRuleActionPerformed(e);
+                        }
+                    });
                     toolBar1.add(buttonAddRule);
 
                     //---- buttonDeleteRule ----
                     buttonDeleteRule.setIcon(new ImageIcon(getClass().getResource("/icons/delete.png")));
+                    buttonDeleteRule.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            buttonDeleteRuleActionPerformed(e);
+                        }
+                    });
                     toolBar1.add(buttonDeleteRule);
                 }
                 panelRules.add(toolBar1, CC.xy(3, 1));
@@ -1179,31 +1380,33 @@ public class TraderMainForm extends JPanel {
             //======== panelOrders ========
             {
                 panelOrders.setLayout(new FormLayout(
-                    "default:grow",
-                    "default"));
+                        "default:grow",
+                        "default"));
 
                 //======== scrollPane4 ========
                 {
 
                     //---- tableOpenOrders ----
                     tableOpenOrders.setModel(new DefaultTableModel(
-                        new Object[][] {
-                            {null, null, null, null, null},
-                        },
-                        new String[] {
-                            "#", "Type", "Price", "Amount", "Total"
-                        }
+                            new Object[][]{
+                                    {null, null, null, null, null},
+                            },
+                            new String[]{
+                                    "#", "Type", "Price", "Amount", "Total"
+                            }
                     ) {
-                        Class<?>[] columnTypes = new Class<?>[] {
-                            Object.class, String.class, Double.class, Double.class, Double.class
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                Object.class, String.class, Double.class, Double.class, Double.class
                         };
-                        boolean[] columnEditable = new boolean[] {
-                            true, false, false, false, false
+                        boolean[] columnEditable = new boolean[]{
+                                true, false, false, false, false
                         };
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             return columnTypes[columnIndex];
                         }
+
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1214,6 +1417,7 @@ public class TraderMainForm extends JPanel {
                         public void mousePressed(MouseEvent e) {
                             tableOpenOrdersPopupMenuHandler(e);
                         }
+
                         @Override
                         public void mouseReleased(MouseEvent e) {
                             tableOpenOrdersPopupMenuHandler(e);
@@ -1228,31 +1432,33 @@ public class TraderMainForm extends JPanel {
             //======== panelBalance ========
             {
                 panelBalance.setLayout(new FormLayout(
-                    "112dlu:grow",
-                    "default"));
+                        "112dlu:grow",
+                        "default"));
 
                 //======== scrollPane3 ========
                 {
 
                     //---- tableBalances ----
                     tableBalances.setModel(new DefaultTableModel(
-                        new Object[][] {
-                            {null, null},
-                        },
-                        new String[] {
-                            "Currency", "Balance"
-                        }
+                            new Object[][]{
+                                    {null, null},
+                            },
+                            new String[]{
+                                    "Currency", "Balance"
+                            }
                     ) {
-                        Class<?>[] columnTypes = new Class<?>[] {
-                            String.class, Double.class
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                String.class, Double.class
                         };
-                        boolean[] columnEditable = new boolean[] {
-                            false, false
+                        boolean[] columnEditable = new boolean[]{
+                                false, false
                         };
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             return columnTypes[columnIndex];
                         }
+
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1269,8 +1475,8 @@ public class TraderMainForm extends JPanel {
             //======== panelDepth ========
             {
                 panelDepth.setLayout(new FormLayout(
-                    "[90dlu,default], $lcgap, [90dlu,default]",
-                    "default, $lgap, fill:137dlu:grow"));
+                        "[90dlu,default], $lcgap, [90dlu,default]",
+                        "default, $lgap, fill:137dlu:grow"));
 
                 //---- labelBuyOrders ----
                 labelBuyOrders.setText(bundle.getString("TraderMainForm.labelBuyOrders.text"));
@@ -1291,23 +1497,25 @@ public class TraderMainForm extends JPanel {
 
                     //---- tableBuyOrders ----
                     tableBuyOrders.setModel(new DefaultTableModel(
-                        new Object[][] {
-                            {null, null},
-                        },
-                        new String[] {
-                            "Price", "Amount"
-                        }
+                            new Object[][]{
+                                    {null, null},
+                            },
+                            new String[]{
+                                    "Price", "Amount"
+                            }
                     ) {
-                        Class<?>[] columnTypes = new Class<?>[] {
-                            Double.class, Double.class
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                Double.class, Double.class
                         };
-                        boolean[] columnEditable = new boolean[] {
-                            false, false
+                        boolean[] columnEditable = new boolean[]{
+                                false, false
                         };
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             return columnTypes[columnIndex];
                         }
+
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1324,23 +1532,25 @@ public class TraderMainForm extends JPanel {
 
                     //---- tableSellOrders ----
                     tableSellOrders.setModel(new DefaultTableModel(
-                        new Object[][] {
-                            {null, null},
-                        },
-                        new String[] {
-                            "Price", "Amount"
-                        }
+                            new Object[][]{
+                                    {null, null},
+                            },
+                            new String[]{
+                                    "Price", "Amount"
+                            }
                     ) {
-                        Class<?>[] columnTypes = new Class<?>[] {
-                            Double.class, Double.class
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                Double.class, Double.class
                         };
-                        boolean[] columnEditable = new boolean[] {
-                            false, false
+                        boolean[] columnEditable = new boolean[]{
+                                false, false
                         };
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             return columnTypes[columnIndex];
                         }
+
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1365,31 +1575,33 @@ public class TraderMainForm extends JPanel {
                 //======== panelMyTrades ========
                 {
                     panelMyTrades.setLayout(new FormLayout(
-                        "default:grow",
-                        "fill:default:grow"));
+                            "default:grow",
+                            "fill:default:grow"));
 
                     //======== scrollPane6 ========
                     {
 
                         //---- tableAccountHistory ----
                         tableAccountHistory.setModel(new DefaultTableModel(
-                            new Object[][] {
-                                {null, null, null, null, null},
-                            },
-                            new String[] {
-                                "Time", "Type", "Price", "Amount", "Total"
-                            }
+                                new Object[][]{
+                                        {null, null, null, null, null},
+                                },
+                                new String[]{
+                                        "Time", "Type", "Price", "Amount", "Total"
+                                }
                         ) {
-                            Class<?>[] columnTypes = new Class<?>[] {
-                                Date.class, String.class, Double.class, Double.class, Double.class
+                            Class<?>[] columnTypes = new Class<?>[]{
+                                    Date.class, String.class, Double.class, Double.class, Double.class
                             };
-                            boolean[] columnEditable = new boolean[] {
-                                false, false, false, false, false
+                            boolean[] columnEditable = new boolean[]{
+                                    false, false, false, false, false
                             };
+
                             @Override
                             public Class<?> getColumnClass(int columnIndex) {
                                 return columnTypes[columnIndex];
                             }
+
                             @Override
                             public boolean isCellEditable(int rowIndex, int columnIndex) {
                                 return columnEditable[columnIndex];
@@ -1405,31 +1617,33 @@ public class TraderMainForm extends JPanel {
                 //======== panelMarketTrades ========
                 {
                     panelMarketTrades.setLayout(new FormLayout(
-                        "default:grow",
-                        "fill:default:grow"));
+                            "default:grow",
+                            "fill:default:grow"));
 
                     //======== scrollPane7 ========
                     {
 
                         //---- tableMarketHistory ----
                         tableMarketHistory.setModel(new DefaultTableModel(
-                            new Object[][] {
-                                {null, null, null, null, null},
-                            },
-                            new String[] {
-                                "Time", "Type", "Price", "Amount", "Total"
-                            }
+                                new Object[][]{
+                                        {null, null, null, null, null},
+                                },
+                                new String[]{
+                                        "Time", "Type", "Price", "Amount", "Total"
+                                }
                         ) {
-                            Class<?>[] columnTypes = new Class<?>[] {
-                                Date.class, String.class, Double.class, Double.class, Double.class
+                            Class<?>[] columnTypes = new Class<?>[]{
+                                    Date.class, String.class, Double.class, Double.class, Double.class
                             };
-                            boolean[] columnEditable = new boolean[] {
-                                false, false, false, false, false
+                            boolean[] columnEditable = new boolean[]{
+                                    false, false, false, false, false
                             };
+
                             @Override
                             public Class<?> getColumnClass(int columnIndex) {
                                 return columnTypes[columnIndex];
                             }
+
                             @Override
                             public boolean isCellEditable(int rowIndex, int columnIndex) {
                                 return columnEditable[columnIndex];
@@ -1447,31 +1661,33 @@ public class TraderMainForm extends JPanel {
             //======== panelMarketCap ========
             {
                 panelMarketCap.setLayout(new FormLayout(
-                    "default:grow",
-                    "fill:default:grow"));
+                        "default:grow",
+                        "fill:default:grow"));
 
                 //======== scrollPane1 ========
                 {
 
                     //---- tableMarketCap ----
                     tableMarketCap.setModel(new DefaultTableModel(
-                        new Object[][] {
-                            {null, null, null, null, null, null, null},
-                        },
-                        new String[] {
-                            "#", "Currency", "USD cap", "BTC cap", "USD volume", "BTC volume", "Change (24h)"
-                        }
+                            new Object[][]{
+                                    {null, null, null, null, null, null, null},
+                            },
+                            new String[]{
+                                    "#", "Currency", "USD cap", "BTC cap", "USD volume", "BTC volume", "Change (24h)"
+                            }
                     ) {
-                        Class<?>[] columnTypes = new Class<?>[] {
-                            Short.class, String.class, Long.class, Long.class, Long.class, Long.class, Double.class
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                Short.class, String.class, Long.class, Long.class, Long.class, Long.class, Double.class
                         };
-                        boolean[] columnEditable = new boolean[] {
-                            true, false, false, false, false, false, false
+                        boolean[] columnEditable = new boolean[]{
+                                true, false, false, false, false, false, false
                         };
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             return columnTypes[columnIndex];
                         }
+
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1491,8 +1707,8 @@ public class TraderMainForm extends JPanel {
             //======== panelSettings ========
             {
                 panelSettings.setLayout(new FormLayout(
-                    "5dlu, $lcgap, 67dlu, $lcgap, 57dlu, 2*($lcgap, default)",
-                    "3*(default, $lgap), default"));
+                        "5dlu, $lcgap, 67dlu, $lcgap, 57dlu, 2*($lcgap, default)",
+                        "3*(default, $lgap), default"));
 
                 //---- labelFeePercent ----
                 labelFeePercent.setText(bundle.getString("TraderMainForm.labelFeePercent.text"));
@@ -1549,8 +1765,8 @@ public class TraderMainForm extends JPanel {
             //======== panelLog ========
             {
                 panelLog.setLayout(new FormLayout(
-                    "default:grow",
-                    "fill:default:grow"));
+                        "default:grow",
+                        "fill:default:grow"));
 
                 //======== scrollPane5 ========
                 {

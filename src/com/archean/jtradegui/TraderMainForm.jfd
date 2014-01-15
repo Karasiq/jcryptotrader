@@ -391,6 +391,29 @@ new FormModel {
 						name: "scrollPane2"
 						add( new FormComponent( "javax.swing.JTable" ) {
 							name: "tableRules"
+							"model": new com.jformdesigner.model.SwingTableModel( new java.util.Vector {
+								add( new java.util.Vector {
+									add( null )
+									add( null )
+									add( null )
+								} )
+							}, new java.util.Vector {
+								add( "#" )
+								add( "Condition" )
+								add( "Action" )
+							}, new java.util.Vector {
+								add( class java.lang.Integer )
+								add( null )
+								add( null )
+							}, new java.util.Vector {
+								add( false )
+								add( false )
+								add( false )
+							}, new java.util.Vector {
+								add( new com.jformdesigner.model.SwingTableColumn( null, 20, 0, 50, true ) )
+								add( null )
+								add( null )
+							} )
 						} )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 1
@@ -403,10 +426,12 @@ new FormModel {
 						add( new FormComponent( "javax.swing.JButton" ) {
 							name: "buttonAddRule"
 							"icon": new com.jformdesigner.model.SwingIcon( 0, "/icons/plus.png" )
+							addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "buttonAddRuleActionPerformed", true ) )
 						} )
 						add( new FormComponent( "javax.swing.JButton" ) {
 							name: "buttonDeleteRule"
 							"icon": new com.jformdesigner.model.SwingIcon( 0, "/icons/delete.png" )
+							addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "buttonDeleteRuleActionPerformed", true ) )
 						} )
 					}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 						"gridX": 3

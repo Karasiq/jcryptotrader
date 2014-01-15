@@ -2,11 +2,14 @@ package com.archean.jautotrading;
 
 import com.archean.jtradeapi.ApiWorker;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.*;
 
-public class MarketRule {
-    public RuleCondition.BaseCondition condition;
-    public RuleAction.BaseAction action;
+public class MarketRule implements Serializable {
+    public RuleCondition.BaseCondition condition = null;
+    public RuleAction.BaseAction action = null;
 
     public MarketRule(RuleCondition.BaseCondition condition, RuleAction.BaseAction action) {
         this.condition = condition;
@@ -18,17 +21,21 @@ public class MarketRule {
 
     public static class MarketRuleList extends ArrayList<MarketRule> { // Batch checker
         public static abstract class MarketRuleListCallback {
-            void onError(Exception e) {
-                e.printStackTrace();
+            public void onError(Exception e) {
+                // nothing
             }
-            abstract void onSuccess(MarketRule rule);
+            abstract public void onSuccess(MarketRule rule);
         }
         public enum MarketRuleExecutionType {
             QUEUED, PARALLEL, ONLY_FIRST_SATISFIED
         }
         MarketRuleExecutionType executionType = MarketRuleExecutionType.PARALLEL;
-        public MarketRuleListCallback callback = null;
-        private Map<Object, Object> ruleData = new HashMap<>(); // Cache
+        public transient MarketRuleListCallback callback = null;
+        private transient Map<Object, Object> ruleData = new HashMap<>(); // Cache
+        private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+            in.defaultReadObject();
+            ruleData = new HashMap<>();
+        }
         public void checkRules(final ApiWorker worker) {
             RuleCondition.makeConditionData(ruleData, worker);
             ListIterator<MarketRule> ruleIterator = this.listIterator();
@@ -40,6 +47,7 @@ public class MarketRule {
                     MarketRule rule = ruleIterator.next();
                     if(rule.condition.isSatisfied(ruleData)) {
                         if(rule.action != null) {
+                            rule.action.apiWorker = worker;
                             Thread actionThread = new Thread(rule.action);
                             actionThread.run();
                         }
@@ -53,10 +61,10 @@ public class MarketRule {
                         ruleIterator.remove(); // Rule executed
                     }
                 } catch (Exception e) {
+                    e.printStackTrace();
                     if(callback != null) {
                         callback.onError(e);
                     }
-                    else e.printStackTrace();
                 }
             }
         }

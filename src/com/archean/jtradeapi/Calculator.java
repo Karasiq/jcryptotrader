@@ -20,7 +20,7 @@ public class Calculator {
     }
 
     public static boolean compare(BigDecimal compareWant, BigDecimal compareActual, ArithmeticCompareCondition conditionType) {
-        int compareResult = compareWant.compareTo(compareActual);
+        int compareResult = compareActual.compareTo(compareWant);
         switch (conditionType) {
             case EQUAL:
                 return compareResult == 0;

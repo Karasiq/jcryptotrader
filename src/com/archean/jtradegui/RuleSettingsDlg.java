@@ -4,39 +4,47 @@
 
 package com.archean.jtradegui;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.math.BigDecimal;
-import java.math.MathContext;
-import java.util.*;
-import javax.swing.*;
-import javax.swing.border.*;
-import javax.swing.event.*;
-
+import com.archean.jautotrading.MarketRule;
+import com.archean.jautotrading.RuleAction;
 import com.archean.jautotrading.RuleCondition;
 import com.archean.jtradeapi.BaseTradeApi;
 import com.archean.jtradeapi.Calculator;
-import com.jgoodies.forms.factories.*;
-import com.jgoodies.forms.layout.*;
+import com.jgoodies.forms.factories.Borders;
+import com.jgoodies.forms.factories.CC;
+import com.jgoodies.forms.layout.FormLayout;
+
+import javax.swing.*;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.util.ResourceBundle;
 
 /**
  * @author Yarr harr
  */
 public class RuleSettingsDlg extends JDialog {
-    static class TradingRule {
-        RuleCondition.BaseCondition condition;
-        // RuleWorker.BaseAction action; // todo
+    public MarketRule result = null;
+
+    private void customInit() {
+        spinnerPrice.setEditor(new JSpinner.NumberEditor(spinnerPrice, "##############.########"));
+        spinnerTradePriceCustom.setEditor(new JSpinner.NumberEditor(spinnerTradePriceCustom, "##############.########"));
     }
-    public TradingRule result = null;
 
     public RuleSettingsDlg(Frame owner) {
         super(owner);
         initComponents();
+        customInit();
     }
 
     public RuleSettingsDlg(Dialog owner) {
         super(owner);
         initComponents();
+        customInit();
     }
 
     private void comboBoxTradePriceTypeActionPerformed(ActionEvent e) {
@@ -44,16 +52,16 @@ public class RuleSettingsDlg extends JDialog {
     }
 
     private void comboBoxAmountActionPerformed(ActionEvent e) {
-        SpinnerNumberModel model = (SpinnerNumberModel)spinnerAmount.getModel();
-        switch(comboBoxAmount.getSelectedIndex()) {
+        SpinnerNumberModel model = (SpinnerNumberModel) spinnerAmount.getModel();
+        switch (comboBoxAmount.getSelectedIndex()) {
             case 0: // Constant
-                model.setMaximum(0);
+                model.setMaximum(0.0);
                 model.setStepSize(0.01);
                 sliderAmount.setVisible(false);
                 break;
             case 1: // % of balance
-                model.setMaximum(100);
-                model.setStepSize(1);
+                model.setMaximum(100.0);
+                model.setStepSize(1.0);
                 sliderAmount.setVisible(true);
                 break;
             default:
@@ -71,7 +79,7 @@ public class RuleSettingsDlg extends JDialog {
     }
 
     private BaseTradeApi.PriceType getPriceType() {
-        switch(comboBoxPriceType.getSelectedIndex()) {
+        switch (comboBoxPriceType.getSelectedIndex()) {
             case 0:
                 return BaseTradeApi.PriceType.LAST;
             case 1:
@@ -88,8 +96,9 @@ public class RuleSettingsDlg extends JDialog {
                 throw new IllegalArgumentException();
         }
     }
+
     private Calculator.ArithmeticCompareCondition getCompareType(int i) {
-        switch(i) {
+        switch (i) {
             case 0:
                 return Calculator.ArithmeticCompareCondition.EQUAL;
             case 1:
@@ -106,15 +115,48 @@ public class RuleSettingsDlg extends JDialog {
     }
 
     private void okButtonActionPerformed(ActionEvent e) {
-        result = new TradingRule();
-        switch(tabbedPaneCondition.getSelectedIndex()) {
-            case 0:
-                result.condition = new RuleCondition.PriceCondition(getPriceType(), getCompareType(comboBoxPriceCompareType.getSelectedIndex()), new BigDecimal((Double)spinnerPrice.getValue(), MathContext.DECIMAL64));
+        RuleCondition.BaseCondition condition = null;
+        RuleAction.BaseAction action = null;
+        switch (tabbedPaneCondition.getSelectedIndex()) {
+            case 0: // price
+                condition = new RuleCondition.PriceCondition(getPriceType(), getCompareType(comboBoxPriceCompareType.getSelectedIndex()), new BigDecimal((Double) spinnerPrice.getValue(), MathContext.DECIMAL64));
                 break;
         }
-        switch(tabbedPaneAction.getSelectedIndex()) {
-            // not implemented todo
+        switch (tabbedPaneAction.getSelectedIndex()) {
+            case 0: // trade
+                RuleAction.TradeAction tradeAction = new RuleAction.TradeAction();
+                tradeAction.tradeType = comboBoxTradeType.getSelectedIndex() == 0 ? BaseTradeApi.Constants.ORDER_BUY : BaseTradeApi.Constants.ORDER_SELL;
+                tradeAction.amountType = comboBoxAmount.getSelectedIndex() == 0 ? RuleAction.TradeAction.AMOUNT_TYPE_CONSTANT : RuleAction.TradeAction.AMOUNT_TYPE_BALANCE_PERCENT;
+                tradeAction.amount = new BigDecimal(((Number) spinnerAmount.getValue()).doubleValue(), MathContext.DECIMAL64);
+
+                if (comboBoxTradePriceType.getSelectedIndex() == 0) {
+                    tradeAction.priceCustom = new BigDecimal(((Number) spinnerTradePriceCustom.getValue()).doubleValue(), MathContext.DECIMAL64);
+                } else {
+                    switch (comboBoxTradePriceType.getSelectedIndex()) {
+                        case 1:
+                            tradeAction.priceType = BaseTradeApi.PriceType.LAST;
+                            break;
+                        case 2:
+                            tradeAction.priceType = BaseTradeApi.PriceType.ASK;
+                            break;
+                        case 3:
+                            tradeAction.priceType = BaseTradeApi.PriceType.BID;
+                            break;
+                        case 4:
+                            tradeAction.priceType = BaseTradeApi.PriceType.HIGH;
+                            break;
+                        case 5:
+                            tradeAction.priceType = BaseTradeApi.PriceType.LOW;
+                            break;
+                        case 6:
+                            tradeAction.priceType = BaseTradeApi.PriceType.AVG;
+                            break;
+                    }
+                }
+                action = tradeAction;
+                break;
         }
+        this.result = new MarketRule(condition, action);
         dispose();
     }
 
@@ -145,6 +187,7 @@ public class RuleSettingsDlg extends JDialog {
         cancelButton = new JButton();
 
         //======== this ========
+        setModal(true);
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
@@ -156,8 +199,8 @@ public class RuleSettingsDlg extends JDialog {
             //======== contentPanel ========
             {
                 contentPanel.setLayout(new FormLayout(
-                    "default:grow",
-                    "fill:85dlu, fill:11dlu:grow"));
+                        "default:grow",
+                        "fill:85dlu, top:105dlu:grow"));
 
                 //======== tabbedPaneCondition ========
                 {
@@ -167,8 +210,8 @@ public class RuleSettingsDlg extends JDialog {
                     //======== panelPriceRule ========
                     {
                         panelPriceRule.setLayout(new FormLayout(
-                            "5dlu:grow, $lcgap, default, $lcgap, 81dlu, $lcgap, default:grow",
-                            "3dlu, 2*($lgap, default)"));
+                                "5dlu:grow, $lcgap, default, $lcgap, 81dlu, $lcgap, default:grow",
+                                "3dlu, 2*($lgap, default)"));
 
                         //---- labelPriceType ----
                         labelPriceType.setText(bundle.getString("RuleSettingsDlg.labelPriceType.text"));
@@ -176,23 +219,23 @@ public class RuleSettingsDlg extends JDialog {
                         panelPriceRule.add(labelPriceType, CC.xy(3, 3, CC.RIGHT, CC.DEFAULT));
 
                         //---- comboBoxPriceType ----
-                        comboBoxPriceType.setModel(new DefaultComboBoxModel<>(new String[] {
-                            "Last",
-                            "Ask",
-                            "Bid",
-                            "High",
-                            "Low",
-                            "Avg"
+                        comboBoxPriceType.setModel(new DefaultComboBoxModel<>(new String[]{
+                                "Last",
+                                "Ask",
+                                "Bid",
+                                "High",
+                                "Low",
+                                "Avg"
                         }));
                         panelPriceRule.add(comboBoxPriceType, CC.xy(5, 3));
 
                         //---- comboBoxPriceCompareType ----
-                        comboBoxPriceCompareType.setModel(new DefaultComboBoxModel<>(new String[] {
-                            "Equal",
-                            "Greater",
-                            "Less",
-                            "Greater or equal",
-                            "Less or equal"
+                        comboBoxPriceCompareType.setModel(new DefaultComboBoxModel<>(new String[]{
+                                "==",
+                                ">",
+                                "<",
+                                ">=",
+                                "<="
                         }));
                         panelPriceRule.add(comboBoxPriceCompareType, CC.xy(3, 5));
 
@@ -212,8 +255,8 @@ public class RuleSettingsDlg extends JDialog {
                     //======== panelActionTrade ========
                     {
                         panelActionTrade.setLayout(new FormLayout(
-                            "5dlu:grow, $lcgap, default, $lcgap, 77dlu, $lcgap, 5dlu, $lcgap, default, $lcgap, 52dlu, $lcgap, default:grow",
-                            "3dlu, 5*($lgap, default)"));
+                                "5dlu:grow, $lcgap, default, $lcgap, 77dlu, $lcgap, 5dlu, $lcgap, default, $lcgap, 52dlu, $lcgap, default:grow",
+                                "3dlu, 6*($lgap, default)"));
 
                         //---- labelTradeType ----
                         labelTradeType.setText(bundle.getString("RuleSettingsDlg.labelTradeType.text"));
@@ -221,9 +264,9 @@ public class RuleSettingsDlg extends JDialog {
                         panelActionTrade.add(labelTradeType, CC.xy(3, 3));
 
                         //---- comboBoxTradeType ----
-                        comboBoxTradeType.setModel(new DefaultComboBoxModel<>(new String[] {
-                            "Buy",
-                            "Sell"
+                        comboBoxTradeType.setModel(new DefaultComboBoxModel<>(new String[]{
+                                "Buy",
+                                "Sell"
                         }));
                         panelActionTrade.add(comboBoxTradeType, CC.xy(5, 3));
 
@@ -232,14 +275,14 @@ public class RuleSettingsDlg extends JDialog {
                         panelActionTrade.add(labelTradePriceType, CC.xy(9, 3));
 
                         //---- comboBoxTradePriceType ----
-                        comboBoxTradePriceType.setModel(new DefaultComboBoxModel<>(new String[] {
-                            "Custom",
-                            "Last",
-                            "Ask",
-                            "Bid",
-                            "High",
-                            "Low",
-                            "Avg"
+                        comboBoxTradePriceType.setModel(new DefaultComboBoxModel<>(new String[]{
+                                "Custom",
+                                "Last",
+                                "Ask",
+                                "Bid",
+                                "High",
+                                "Low",
+                                "Avg"
                         }));
                         comboBoxTradePriceType.addActionListener(new ActionListener() {
                             @Override
@@ -255,9 +298,9 @@ public class RuleSettingsDlg extends JDialog {
                         panelActionTrade.add(labelAmount, CC.xy(3, 5));
 
                         //---- comboBoxAmount ----
-                        comboBoxAmount.setModel(new DefaultComboBoxModel<>(new String[] {
-                            "Constant",
-                            "% of balance"
+                        comboBoxAmount.setModel(new DefaultComboBoxModel<>(new String[]{
+                                "Constant",
+                                "% of balance"
                         }));
                         comboBoxAmount.addActionListener(new ActionListener() {
                             @Override
@@ -266,6 +309,9 @@ public class RuleSettingsDlg extends JDialog {
                             }
                         });
                         panelActionTrade.add(comboBoxAmount, CC.xy(5, 5));
+
+                        //---- spinnerTradePriceCustom ----
+                        spinnerTradePriceCustom.setModel(new SpinnerNumberModel(1.0E-8, 1.0E-8, null, 1.0));
                         panelActionTrade.add(spinnerTradePriceCustom, CC.xywh(9, 5, 3, 1));
 
                         //---- spinnerAmount ----
@@ -273,6 +319,7 @@ public class RuleSettingsDlg extends JDialog {
                         panelActionTrade.add(spinnerAmount, CC.xywh(3, 7, 3, 1));
 
                         //---- sliderAmount ----
+                        sliderAmount.setVisible(false);
                         sliderAmount.addChangeListener(new ChangeListener() {
                             @Override
                             public void stateChanged(ChangeEvent e) {
@@ -291,8 +338,8 @@ public class RuleSettingsDlg extends JDialog {
             {
                 buttonBar.setBorder(Borders.createEmptyBorder("5dlu, 0dlu, 0dlu, 0dlu"));
                 buttonBar.setLayout(new FormLayout(
-                    "$glue, $button, $rgap, $button",
-                    "pref"));
+                        "$glue, $button, $rgap, $button",
+                        "pref"));
 
                 //---- okButton ----
                 okButton.setText(bundle.getString("RuleSettingsDlg.okButton.text"));

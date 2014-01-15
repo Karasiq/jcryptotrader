@@ -9,12 +9,13 @@ new FormModel {
 	root: new FormRoot {
 		add( new FormWindow( "javax.swing.JDialog", new FormLayoutManager( class java.awt.BorderLayout ) ) {
 			name: "this"
+			"modal": true
 			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.BorderLayout ) ) {
 				name: "dialogPane"
 				"border": sfield com.jgoodies.forms.factories.Borders DIALOG
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
 					"$columnSpecs": "default:grow"
-					"$rowSpecs": "fill:85dlu, fill:11dlu:grow"
+					"$rowSpecs": "fill:85dlu, top:105dlu:grow"
 				} ) {
 					name: "contentPanel"
 					add( new FormContainer( "javax.swing.JTabbedPane", new FormLayoutManager( class javax.swing.JTabbedPane ) ) {
@@ -53,12 +54,12 @@ new FormModel {
 							add( new FormComponent( "javax.swing.JComboBox" ) {
 								name: "comboBoxPriceCompareType"
 								"model": new javax.swing.DefaultComboBoxModel {
-									selectedItem: "Equal"
-									addElement( "Equal" )
-									addElement( "Greater" )
-									addElement( "Less" )
-									addElement( "Greater or equal" )
-									addElement( "Less or equal" )
+									selectedItem: "=="
+									addElement( "==" )
+									addElement( ">" )
+									addElement( "<" )
+									addElement( ">=" )
+									addElement( "<=" )
 								}
 							}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 								"gridX": 3
@@ -87,7 +88,7 @@ new FormModel {
 						"tabPlacement": 3
 						add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
 							"$columnSpecs": "5dlu:grow, labelcompgap, default, labelcompgap, 77dlu, labelcompgap, 5dlu, labelcompgap, default, labelcompgap, 52dlu, labelcompgap, default:grow"
-							"$rowSpecs": "3dlu, linegap, default, linegap, default, linegap, default, linegap, default, linegap, default"
+							"$rowSpecs": "3dlu, linegap, default, linegap, default, linegap, default, linegap, default, linegap, default, linegap, default"
 						} ) {
 							name: "panelActionTrade"
 							add( new FormComponent( "javax.swing.JLabel" ) {
@@ -155,6 +156,11 @@ new FormModel {
 							} )
 							add( new FormComponent( "javax.swing.JSpinner" ) {
 								name: "spinnerTradePriceCustom"
+								"model": new javax.swing.SpinnerNumberModel {
+									minimum: 1.0E-8
+									stepSize: 1.0
+									value: 1.0E-8
+								}
 							}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 								"gridX": 9
 								"gridY": 5
@@ -174,6 +180,7 @@ new FormModel {
 							} )
 							add( new FormComponent( "javax.swing.JSlider" ) {
 								name: "sliderAmount"
+								"visible": false
 								addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "sliderAmountStateChanged", true ) )
 							}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 								"gridX": 3

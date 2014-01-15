@@ -4,24 +4,24 @@
 
 package com.archean.jtradegui;
 
+import com.archean.jautotrading.MarketRule;
+import com.archean.jautotrading.RuleAction;
+import com.archean.jautotrading.RuleCondition;
 import com.archean.jtradeapi.AccountManager;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializer;
 import com.google.gson.reflect.TypeToken;
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
 import org.apache.commons.io.FileUtils;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
+import java.io.*;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.ResourceBundle;
 
 /**
  * @author Yarr harr
@@ -30,7 +30,7 @@ public class Controller extends JFrame {
     public AccountManager.AccountDb accountDb = new AccountManager.AccountDb();
     protected final static String settingsDir = System.getProperty("user.home") + "/jCryptoTrader/";
     protected final static String accountDbFile = settingsDir + "accounts.json";
-    protected final static String tabsDbFile = settingsDir + "tabs.json";
+    protected final static String tabsDbFile = settingsDir + "tabs.dat";
 
     public void loadAccountDb() {
         try {
@@ -48,11 +48,12 @@ public class Controller extends JFrame {
         }
     }
 
-    class SavedTab {
+    static class SavedTab implements Serializable {
         String accountLabel;
         double feePercent;
         int timeInterval;
         String pair;
+        Map<String, MarketRule.MarketRuleList> ruleListDb = new HashMap<>();
 
         public SavedTab(String accountLabel, TraderMainForm traderPanel) {
             this.accountLabel = accountLabel;
@@ -60,34 +61,43 @@ public class Controller extends JFrame {
             feePercent = (Double) settings.get("feePercent");
             timeInterval = (Integer) settings.get("timeInterval");
             pair = (String) settings.get("currentPair");
+            ruleListDb = (Map<String, MarketRule.MarketRuleList>) settings.get("marketRuleListDb");
         }
     }
 
     private void saveTabs() {
         List<SavedTab> savedTabList = new ArrayList<>();
         for (int i = 0; i < tabbedPaneTraders.getTabCount(); i++) {
-            savedTabList.add(new SavedTab(tabbedPaneTraders.getTitleAt(i), (TraderMainForm) tabbedPaneTraders.getComponentAt(i)));
+            TraderMainForm traderMainForm = (TraderMainForm) tabbedPaneTraders.getComponentAt(i);
+            savedTabList.add(new SavedTab(tabbedPaneTraders.getTitleAt(i), traderMainForm));
         }
-        try {
-            FileUtils.writeStringToFile(new File(tabsDbFile), new Gson().toJson(savedTabList), "UTF-8");
+        try(FileOutputStream fileOutputStream = new FileOutputStream(tabsDbFile);
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream)
+        ) {
+            objectOutputStream.writeObject(savedTabList);
+            objectOutputStream.flush();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private void loadTabs() {
-        try {
-            String json = FileUtils.readFileToString(new File(tabsDbFile), "UTF-8");
-            List<SavedTab> savedTabList = new Gson().fromJson(json, new TypeToken<List<SavedTab>>() {}.getType());
+        try(FileInputStream fileInputStream = new FileInputStream(tabsDbFile);
+            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream)
+        ) {
+            List<SavedTab> savedTabList = (List<SavedTab>)objectInputStream.readObject();
             for (SavedTab tab : savedTabList) {
                 TraderMainForm traderMainForm = new TraderMainForm(accountDb.get(tab.accountLabel));
                 tabbedPaneTraders.add(tab.accountLabel, traderMainForm);
                 traderMainForm.setSettings(tab.feePercent, tab.timeInterval);
                 traderMainForm.setPair(tab.pair);
+                traderMainForm.setRuleListDb(tab.ruleListDb);
                 traderMainForm.startWorker();
             }
         } catch (IOException e) {
             // nothing
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -144,15 +154,10 @@ public class Controller extends JFrame {
             @Override
             protected Object doInBackground() throws Exception {
                 AccountManagerDlg accountManagerDlg = new AccountManagerDlg(frame, accountDb);
-                accountManagerDlg.setVisible(true);
-                do {
-                    Thread.sleep(100);
-                } while (accountManagerDlg.isVisible());
-                if (accountManagerDlg.selectedAccount != null) {
-                    saveAccountDb();
-                    frame.addTab(accountManagerDlg.selectedAccount, accountDb.get(accountManagerDlg.selectedAccount));
-                    saveTabs();
-                }
+                accountManagerDlg.setVisible(true); // modal
+                saveAccountDb();
+                frame.addTab(accountManagerDlg.selectedAccount, accountDb.get(accountManagerDlg.selectedAccount));
+                saveTabs();
                 return null;
             }
         };
@@ -174,19 +179,6 @@ public class Controller extends JFrame {
     private void thisWindowClosing(WindowEvent e) {
         saveAccountDb();
         saveTabs();
-    }
-
-    private void tabbedPaneTradersStateChanged(ChangeEvent e) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < tabbedPaneTraders.getTabCount(); i++)
-                    if (i != tabbedPaneTraders.getSelectedIndex()) {
-                        ((TraderMainForm) tabbedPaneTraders.getComponentAt(i)).stopWorker();
-                    }
-                ((TraderMainForm) tabbedPaneTraders.getSelectedComponent()).startWorker();
-            }
-        });
     }
 
     private void thisWindowStateChanged(WindowEvent e) {
@@ -233,8 +225,8 @@ public class Controller extends JFrame {
         });
         Container contentPane = getContentPane();
         contentPane.setLayout(new FormLayout(
-            "[350dlu,default]:grow",
-            "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
+                "[350dlu,default]:grow",
+                "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
 
         //======== toolBar1 ========
         {
@@ -261,16 +253,6 @@ public class Controller extends JFrame {
             toolBar1.add(buttonDelete);
         }
         contentPane.add(toolBar1, CC.xy(1, 1, CC.FILL, CC.TOP));
-
-        //======== tabbedPaneTraders ========
-        {
-            tabbedPaneTraders.addChangeListener(new ChangeListener() {
-                @Override
-                public void stateChanged(ChangeEvent e) {
-                    tabbedPaneTradersStateChanged(e);
-                }
-            });
-        }
         contentPane.add(tabbedPaneTraders, CC.xy(1, 3));
         pack();
         setLocationRelativeTo(getOwner());
