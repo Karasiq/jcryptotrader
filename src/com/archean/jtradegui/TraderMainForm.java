@@ -5,6 +5,7 @@
 package com.archean.jtradegui;
 
 import com.archean.coinmarketcap.CoinMarketCapParser;
+import com.archean.jautotrading.MarketRule;
 import com.archean.jtradeapi.*;
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
@@ -35,6 +36,7 @@ import java.util.concurrent.Exchanger;
  * @author Yarr harr
  */
 public class TraderMainForm extends JPanel {
+    private MarketRule.MarketRuleList ruleList = new MarketRule.MarketRuleList();
     private double feePercent = 0.2;
 
     static private class ApiLag {

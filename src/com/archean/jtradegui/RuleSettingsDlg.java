@@ -13,19 +13,18 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.event.*;
 
-import com.archean.jautotrading.RuleWorker;
+import com.archean.jautotrading.RuleCondition;
 import com.archean.jtradeapi.BaseTradeApi;
 import com.archean.jtradeapi.Calculator;
 import com.jgoodies.forms.factories.*;
 import com.jgoodies.forms.layout.*;
-import javafx.scene.control.ComboBox;
 
 /**
  * @author Yarr harr
  */
 public class RuleSettingsDlg extends JDialog {
     static class TradingRule {
-        RuleWorker.BaseCondition condition;
+        RuleCondition.BaseCondition condition;
         // RuleWorker.BaseAction action; // todo
     }
     public TradingRule result = null;
@@ -110,7 +109,7 @@ public class RuleSettingsDlg extends JDialog {
         result = new TradingRule();
         switch(tabbedPaneCondition.getSelectedIndex()) {
             case 0:
-                result.condition = new RuleWorker.PriceCondition(getPriceType(), getCompareType(comboBoxPriceCompareType.getSelectedIndex()), new BigDecimal((Double)spinnerPrice.getValue(), MathContext.DECIMAL64));
+                result.condition = new RuleCondition.PriceCondition(getPriceType(), getCompareType(comboBoxPriceCompareType.getSelectedIndex()), new BigDecimal((Double)spinnerPrice.getValue(), MathContext.DECIMAL64));
                 break;
         }
         switch(tabbedPaneAction.getSelectedIndex()) {
