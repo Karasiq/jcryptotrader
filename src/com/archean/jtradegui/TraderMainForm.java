@@ -471,20 +471,10 @@ public class TraderMainForm extends JPanel {
                 model.fireTableDataChanged();
             }
         });
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(new Date());
-        calendar.add(Calendar.HOUR_OF_DAY, -1);
-        BaseTradeApi.StandartObjects.Order order = HistoryUtils.getNearestTrade(history, calendar.getTime());
-
-        labelPriceChangePercent.setToolTipText(String.format("%s -> %s", Utils.Strings.formatNumber(order.price), Utils.Strings.formatNumber(worker.marketInfo.price.last)));
-        double percent = Calculator.priceChangePercent(order.price, worker.marketInfo.price.last);
-        labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, Utils.Strings.percentDecimalFormat) + "%");
-        if (percent > 0)
-            labelPriceChangePercent.setForeground(Color.GREEN);
-        else
-            labelPriceChangePercent.setForeground(Color.RED);
 
         synchronized (candlesLock) {
+            // Update chart:
+            Calendar calendar = Calendar.getInstance();
             if (candles == null) {
                 calendar.setTime(new Date());
                 calendar.add(Calendar.DAY_OF_MONTH, -1);
@@ -493,6 +483,18 @@ public class TraderMainForm extends JPanel {
                 HistoryUtils.refreshCandles(candles, history, HistoryUtils.PERIOD_30M);
             }
             if (tabbedPaneInfo.getComponentAt(4).isVisible()) updateChart(candles);
+
+            // Price change 1h %:
+            calendar.setTime(new Date());
+            calendar.add(Calendar.HOUR_OF_DAY, -1);
+            HistoryUtils.Candle candle = HistoryUtils.getNearestCandle(candles, calendar.getTime());
+            labelPriceChangePercent.setToolTipText(String.format("%s -> %s", Utils.Strings.formatNumber(candle.open), Utils.Strings.formatNumber(worker.marketInfo.price.last)));
+            double percent = Calculator.priceChangePercent(candle.open, worker.marketInfo.price.last);
+            labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, Utils.Strings.percentDecimalFormat) + "%");
+            if (percent > 0)
+                labelPriceChangePercent.setForeground(Color.GREEN);
+            else
+                labelPriceChangePercent.setForeground(Color.RED);
         }
     }
 

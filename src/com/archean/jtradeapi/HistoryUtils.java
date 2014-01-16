@@ -11,7 +11,7 @@ public class HistoryUtils {
     public static final long PERIOD_15M = PERIOD_1M * 15;
     public static final long PERIOD_30M = PERIOD_15M * 2;
 
-    public static class Candle {
+    public static class Candle implements Comparable<Candle> {
         public enum CandleType {
             BULL, BEAR
         }
@@ -28,6 +28,11 @@ public class HistoryUtils {
         public double low;
         public double high;
         public double volume = 0;
+
+        @Override
+        public int compareTo(Candle candle) {
+            return start.compareTo(candle.start);
+        }
     }
 
     public static BaseTradeApi.StandartObjects.Order getNearestTrade(List<BaseTradeApi.StandartObjects.Order> history, Date targetDate) {
@@ -39,6 +44,20 @@ public class HistoryUtils {
                 // if the current iteration's date is "after" the current return date
                 if (order.time.compareTo(result.time) > 0) {
                     result = order;
+                }
+            }
+        }
+        return result;
+    }
+
+    public static Candle getNearestCandle(final List<Candle> candles, Date targetDate) {
+        Candle result = candles.get(0);
+        for (Candle candle : candles) {
+            // if the current iteration's date is "before" the target date
+            if (candle.start.compareTo(targetDate) <= 0) {
+                // if the current iteration's date is "after" the current return date
+                if (candle.start.compareTo(result.start) > 0) {
+                    result = candle;
                 }
             }
         }

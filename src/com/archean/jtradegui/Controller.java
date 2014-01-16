@@ -97,7 +97,7 @@ public class Controller extends JFrame {
 
     public static void main(String[] args) {
         try {
-            UIManager.setLookAndFeel("com.jtattoo.plaf.acryl.AcrylLookAndFeel");
+            UIManager.setLookAndFeel(SkinDlg.getLookAndFeelClassName("Aero"));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -185,12 +185,18 @@ public class Controller extends JFrame {
         }
     }
 
+    private void buttonSkinActionPerformed(ActionEvent e) {
+        SkinDlg skinDlg = new SkinDlg(this);
+        skinDlg.setVisible(true);
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         ResourceBundle bundle = ResourceBundle.getBundle("com.archean.jtradegui.locale", new UTF8Control());
         toolBar1 = new JToolBar();
         buttonAdd = new JButton();
         buttonDelete = new JButton();
+        buttonSkin = new JButton();
         tabbedPaneTraders = new JTabbedPane();
         popupMenuTray = new JPopupMenu();
         menuItemExit = new JButton();
@@ -237,6 +243,16 @@ public class Controller extends JFrame {
                 }
             });
             toolBar1.add(buttonDelete);
+
+            //---- buttonSkin ----
+            buttonSkin.setIcon(new ImageIcon(getClass().getResource("/icons/skin.png")));
+            buttonSkin.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    buttonSkinActionPerformed(e);
+                }
+            });
+            toolBar1.add(buttonSkin);
         }
         contentPane.add(toolBar1, CC.xy(1, 1, CC.FILL, CC.TOP));
         contentPane.add(tabbedPaneTraders, CC.xy(1, 3));
@@ -265,6 +281,7 @@ public class Controller extends JFrame {
     private JToolBar toolBar1;
     private JButton buttonAdd;
     private JButton buttonDelete;
+    private JButton buttonSkin;
     private JTabbedPane tabbedPaneTraders;
     private JPopupMenu popupMenuTray;
     private JButton menuItemExit;
