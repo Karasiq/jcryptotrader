@@ -193,6 +193,16 @@ public class Controller extends JFrame {
         skinDlg.setVisible(true);
     }
 
+    private void buttonAboutActionPerformed(ActionEvent e) {
+        JOptionPane.showMessageDialog(this, "jCryptoTrader trading client\n" +
+                "Copyright (C) 2014 1M4SKfh83ZxsCSDmfaXvfCfMonFxMa5vvh (BTC public key)\n" +
+                "\n" +
+                "This program is free software; you can redistribute it and/or\n" +
+                "modify it under the terms of the GNU General Public License\n" +
+                "as published by the Free Software Foundation; either version 2\n" +
+                "of the License, or (at your option) any later version.");
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         ResourceBundle bundle = ResourceBundle.getBundle("com.archean.jtradegui.locale", new UTF8Control());
@@ -200,6 +210,7 @@ public class Controller extends JFrame {
         buttonAdd = new JButton();
         buttonDelete = new JButton();
         buttonSkin = new JButton();
+        buttonAbout = new JButton();
         tabbedPaneTraders = new JTabbedPane();
         popupMenuTray = new JPopupMenu();
         menuItemExit = new JButton();
@@ -220,8 +231,8 @@ public class Controller extends JFrame {
         });
         Container contentPane = getContentPane();
         contentPane.setLayout(new FormLayout(
-                "[350dlu,default]:grow",
-                "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
+            "[350dlu,default]:grow",
+            "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
 
         //======== toolBar1 ========
         {
@@ -256,6 +267,16 @@ public class Controller extends JFrame {
                 }
             });
             toolBar1.add(buttonSkin);
+
+            //---- buttonAbout ----
+            buttonAbout.setIcon(new ImageIcon(getClass().getResource("/icons/info.png")));
+            buttonAbout.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    buttonAboutActionPerformed(e);
+                }
+            });
+            toolBar1.add(buttonAbout);
         }
         contentPane.add(toolBar1, CC.xy(1, 1, CC.FILL, CC.TOP));
         contentPane.add(tabbedPaneTraders, CC.xy(1, 3));
@@ -285,6 +306,7 @@ public class Controller extends JFrame {
     private JButton buttonAdd;
     private JButton buttonDelete;
     private JButton buttonSkin;
+    private JButton buttonAbout;
     private JTabbedPane tabbedPaneTraders;
     private JPopupMenu popupMenuTray;
     private JButton menuItemExit;
