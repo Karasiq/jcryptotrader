@@ -8,24 +8,27 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 public class Utils {
     public static class Threads {
         public static abstract class CycledRunnable implements Runnable {
             public static final int STOP_CYCLE = -1;
+
             abstract protected int cycle() throws Exception;
+
             protected int onError(Exception e) {
                 e.printStackTrace();
                 return 0;
             }
-            @Override public void run() {
+
+            @Override
+            public void run() {
                 int sleepTime = 0;
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
-                        if(sleepTime == STOP_CYCLE) break;
-                        else if(sleepTime != 0) Thread.sleep(sleepTime);
+                        if (sleepTime == STOP_CYCLE) break;
+                        else if (sleepTime != 0) Thread.sleep(sleepTime);
                         sleepTime = cycle();
                     } catch (InterruptedException e) {
                         break;
@@ -36,6 +39,7 @@ public class Utils {
             }
         }
     }
+
     public static class Crypto {
         public static class Hashing {
             public static final String MD5 = "MD5";
@@ -73,15 +77,18 @@ public class Utils {
                 symbols.setGroupingSeparator(groupingSeparator);
                 return new DecimalFormat(stringFormat, symbols);
             }
+
             public char decimalSeparator;
             public char groupingSeparator;
             public String stringFormat;
+
             public DecimalFormatDescription(String stringFormat, char decimalSeparator, char groupingSeparator) {
                 this.decimalSeparator = decimalSeparator;
                 this.groupingSeparator = groupingSeparator;
                 this.stringFormat = stringFormat;
             }
         }
+
         // Constants:
         public final static DecimalFormatDescription percentDecimalFormat = new DecimalFormatDescription("######.##", '.', ',');
         public final static DecimalFormatDescription moneyFormat = new DecimalFormatDescription("############.########", '.', ','); // precision = 1 satoshi
@@ -89,9 +96,10 @@ public class Utils {
         public final static DecimalFormatDescription moneyRoughRepresentFormat = new DecimalFormatDescription("###,###,###,###.###", '.', ','); // not precise
 
         private static Map<DecimalFormatDescription, DecimalFormat> decimalFormatMap = new HashMap<>(); // cached
+
         public static <T> String formatNumber(T value, DecimalFormatDescription format) { // custom format
             DecimalFormat df = decimalFormatMap.get(format);
-            if(df == null) {
+            if (df == null) {
                 df = format.toDecimalFormat();
                 decimalFormatMap.put(format, df);
             }

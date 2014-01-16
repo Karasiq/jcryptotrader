@@ -22,17 +22,20 @@ public class CoinMarketCapParser {
         public long btcVolume;
         public double change;
     }
+
     private final static String coinMarketCapUrl = "http://coinmarketcap.com/mineable.html";
     private final static Pattern coinMarketCapRegex = Pattern.compile("<tr id=\"(?:[\\w]{3,5})\">(?:[\\s]*)<td>(?:[0-9]*)</td>(?:[\\s]*)<td class=\"(?:no-wrap |)currency-name\">.*?target=\"_blank\">([\\w\\s]*)</a></td>(?:[\\s]*)<td class=\"(?:no-wrap |)market-cap\" data-usd=\"([0-9,]*)\" data-btc=\"([0-9,]*)\">.*?</td>(?:[\\s]*)<td(?: class=\"no-wrap\"|)><(?:.*?)class=\"price\" data-usd=\"([0-9.e-]*)\" data-btc=\"([0-9.e-]*)\">.*?</a></td>(?:[\\s]*)<td(?: class=\"no-wrap\"|)>(?:<a href=\".*?\">|)([0-9,]*) ([\\w]{3,5})(?:</a>|)</td>(?:[\\s]*)<td class=\"(?:no-wrap |)volume\" data-usd=\"([0-9,]*)\" data-btc=\"([0-9,]*)\">.*?</td>(?:[\\s]*)<td class=\"(?:no-wrap |)(?:positive|negative)_change\">((?:\\+?|-)[0-9.]*?) %</td>(?:[\\s]*).*?(?:[\\s]*?)</tr>");
+
     private String requestPage() throws IOException {
         BaseTradeApi.RequestSender requestSender = new BaseTradeApi.RequestSender();
         return requestSender.getResponseString(requestSender.getRequest(coinMarketCapUrl, new ArrayList<NameValuePair>(), new ArrayList<NameValuePair>()));
     }
+
     public List<CoinCapitalization> getData() throws IOException {
         List<CoinCapitalization> coinCapitalizationList = new ArrayList<>();
         String response = requestPage();
         Matcher regexMatcher = coinMarketCapRegex.matcher(response);
-        while(regexMatcher.find()) {
+        while (regexMatcher.find()) {
             CoinCapitalization capitalization = new CoinCapitalization();
             capitalization.coinName = regexMatcher.group(1);
             capitalization.usdCap = Long.parseLong(regexMatcher.group(2).replaceAll(",", ""));

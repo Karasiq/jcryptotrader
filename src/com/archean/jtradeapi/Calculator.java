@@ -8,9 +8,11 @@ public class Calculator {
     public static double totalWithFee(int orderType, double price, double amount, double feePercent) {
         return orderType == BaseTradeApi.Constants.ORDER_BUY ? amount * price * ((100.0 + feePercent) / 100.0) : amount * price / ((100.0 + feePercent) / 100.0);
     }
+
     public static double balancePercentAmount(double balance, double balancePercent, int orderType, double price, double feePercent) {
         return orderType == BaseTradeApi.Constants.ORDER_BUY ? (balance / price) * (balancePercent * 1.0 / 100.0) / ((100.0 + feePercent) / 100.0) : (balance * balancePercent * 1.0 / 100.0);
     }
+
     public static double priceChangePercent(double p1, double p2) {
         return ((p2 - p1) / p1) * 100.0;
     }

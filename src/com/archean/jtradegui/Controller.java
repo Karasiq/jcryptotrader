@@ -5,13 +5,7 @@
 package com.archean.jtradegui;
 
 import com.archean.jautotrading.MarketRule;
-import com.archean.jautotrading.RuleAction;
-import com.archean.jautotrading.RuleCondition;
 import com.archean.jtradeapi.AccountManager;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.reflect.TypeToken;
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
 import org.apache.commons.io.FileUtils;
@@ -71,8 +65,8 @@ public class Controller extends JFrame {
             TraderMainForm traderMainForm = (TraderMainForm) tabbedPaneTraders.getComponentAt(i);
             savedTabList.add(new SavedTab(tabbedPaneTraders.getTitleAt(i), traderMainForm));
         }
-        try(FileOutputStream fileOutputStream = new FileOutputStream(tabsDbFile);
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream)
+        try (FileOutputStream fileOutputStream = new FileOutputStream(tabsDbFile);
+             ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream)
         ) {
             objectOutputStream.writeObject(savedTabList);
             objectOutputStream.flush();
@@ -82,10 +76,10 @@ public class Controller extends JFrame {
     }
 
     private void loadTabs() {
-        try(FileInputStream fileInputStream = new FileInputStream(tabsDbFile);
-            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream)
+        try (FileInputStream fileInputStream = new FileInputStream(tabsDbFile);
+             ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream)
         ) {
-            List<SavedTab> savedTabList = (List<SavedTab>)objectInputStream.readObject();
+            List<SavedTab> savedTabList = (List<SavedTab>) objectInputStream.readObject();
             for (SavedTab tab : savedTabList) {
                 TraderMainForm traderMainForm = new TraderMainForm(accountDb.get(tab.accountLabel));
                 tabbedPaneTraders.add(tab.accountLabel, traderMainForm);

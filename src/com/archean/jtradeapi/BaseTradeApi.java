@@ -286,7 +286,7 @@ public abstract class BaseTradeApi {
 
     public static BigDecimal getPrice(BaseTradeApi.StandartObjects.Prices prices, PriceType priceType) {
         double price;
-        switch(priceType) {
+        switch (priceType) {
             case LAST:
                 price = prices.last;
                 break;

@@ -12,13 +12,16 @@ public class RuleAction {
     public abstract static class BaseAction implements Runnable, Serializable {
         public volatile transient ApiWorker apiWorker = null;
         public volatile transient Object callback = null;
+
         public void setCallback(Object callback) {
             this.callback = callback;
         }
     }
-    public static class TradeAction extends BaseAction  {
+
+    public static class TradeAction extends BaseAction {
         public abstract static class Callback {
             abstract public void onSuccess(long orderId, int tradeType, BigDecimal amount, BigDecimal price);
+
             abstract public void onError(Exception e);
         }
 
@@ -31,8 +34,9 @@ public class RuleAction {
         public BigDecimal priceCustom = null;
         public BigDecimal amount = null;
 
-        @Override public void run() {
-            if(priceCustom == null) {
+        @Override
+        public void run() {
+            if (priceCustom == null) {
                 priceCustom = BaseTradeApi.getPrice(apiWorker.marketInfo.price, priceType);
             }
             BaseTradeApi.StandartObjects.CurrencyPair pair;
@@ -40,30 +44,30 @@ public class RuleAction {
                 pair = apiWorker.tradeApi.getCurrencyPairs().get(apiWorker.getPair());
             } catch (Exception e) {
                 e.printStackTrace();
-                if(callback != null) {
-                    ((Callback)callback).onError(e);
+                if (callback != null) {
+                    ((Callback) callback).onError(e);
                 }
                 return;
             }
-            if(amountType == AMOUNT_TYPE_BALANCE_PERCENT) {
+            if (amountType == AMOUNT_TYPE_BALANCE_PERCENT) {
                 try {
                     amount = new BigDecimal(Calculator.balancePercentAmount(apiWorker.accountInfo.balance.getBalance(tradeType == BaseTradeApi.Constants.ORDER_SELL ? pair.firstCurrency : pair.secondCurrency), amount.doubleValue(), tradeType, priceCustom.doubleValue(), apiWorker.tradeApi.getFeePercent(apiWorker.getPair())), MathContext.DECIMAL64);
                     amountType = AMOUNT_TYPE_CONSTANT;
                 } catch (Exception e) {
                     e.printStackTrace();
-                    if(callback != null) {
-                        ((Callback)callback).onError(e);
+                    if (callback != null) {
+                        ((Callback) callback).onError(e);
                     }
                     return;
                 }
             }
             try {
                 long orderId = apiWorker.tradeApi.createOrder(apiWorker.getPair(), tradeType, amount.doubleValue(), priceCustom.doubleValue());
-                ((Callback)callback).onSuccess(orderId, tradeType, amount, priceCustom);
+                ((Callback) callback).onSuccess(orderId, tradeType, amount, priceCustom);
             } catch (Exception e) {
                 e.printStackTrace();
-                if(callback != null) {
-                    ((Callback)callback).onError(e);
+                if (callback != null) {
+                    ((Callback) callback).onError(e);
                 }
             }
         }

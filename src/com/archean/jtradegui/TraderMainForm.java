@@ -11,20 +11,17 @@ import com.archean.jautotrading.RuleCondition;
 import com.archean.jtradeapi.*;
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
-import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.labels.HighLowItemLabelGenerator;
-import org.jfree.chart.labels.StandardXYToolTipGenerator;
-import org.jfree.chart.labels.XYToolTipGenerator;
-import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
-import org.jfree.data.xy.*;
-import org.jfree.ui.ApplicationFrame;
-import org.jfree.ui.RefineryUtilities;
+import org.jfree.data.xy.AbstractXYDataset;
+import org.jfree.data.xy.DefaultOHLCDataset;
+import org.jfree.data.xy.OHLCDataItem;
+import org.jfree.data.xy.XYDataset;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.swing.*;
@@ -44,7 +41,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -133,6 +129,7 @@ public class TraderMainForm extends JPanel {
         spinnerUpdateInterval.setValue(timeInterval);
         spinnerFeePercent.setValue(feePercent);
     }
+
     public void setRuleListDb(Map<String, MarketRule.MarketRuleList> ruleListDb) {
         this.ruleListDb = ruleListDb;
         this.ruleList = ruleListDb.get(currentPair);
@@ -144,7 +141,7 @@ public class TraderMainForm extends JPanel {
         Object pairId = pairList.get(pairName).pairId;
         worker.setPair(pairId);
         ruleList = ruleListDb.get(pairName);
-        if(ruleList == null) {
+        if (ruleList == null) {
             ruleList = new MarketRule.MarketRuleList();
             ruleListDb.put(pairName, ruleList);
         }
@@ -167,6 +164,7 @@ public class TraderMainForm extends JPanel {
         };
         clearMarketData();
     }
+
     public void setPair(final String pairName) {
         stopWorker();
         comboBoxPair.setSelectedItem(pairName);
@@ -324,17 +322,19 @@ public class TraderMainForm extends JPanel {
     // GUI MVC functions
     protected List<OHLCDataItem> makeOHLCData(List<HistoryUtils.Candle> candleList) {
         List<OHLCDataItem> dataItems = new ArrayList<>();
-        for(HistoryUtils.Candle candle : candleList) {
+        for (HistoryUtils.Candle candle : candleList) {
             OHLCDataItem item = new OHLCDataItem(candle.start, candle.open, candle.high, candle.low, candle.close, candle.volume);
             dataItems.add(item);
         }
         return dataItems;
     }
+
     private AbstractXYDataset getOHLCDataSet(List<OHLCDataItem> dataList) {
         OHLCDataItem[] chartDataCache = new OHLCDataItem[dataList.size()];
         dataList.toArray(chartDataCache);
         return new DefaultOHLCDataset(currentPair, chartDataCache);
     }
+
     private void drawChart(XYDataset dataset) {
         final DateAxis domainAxis = new DateAxis(locale.getString("Chart.legend.time.string"));
         NumberAxis rangeAxis = new NumberAxis(locale.getString("Chart.legend.price.string"));
@@ -352,20 +352,21 @@ public class TraderMainForm extends JPanel {
         mainPlot.setRangePannable(true);
         tabbedPaneInfo.setComponentAt(4, chartPanel);
     }
+
     private void updateChart(List<HistoryUtils.Candle> candles) {
-        if(candles == null || candles.isEmpty()) return;
+        if (candles == null || candles.isEmpty()) return;
         HistoryUtils.Candle lastCandle = candles.get(candles.size() - 1);
-        if(lastCandle.update == null || !lastChartUpdate.before(lastCandle.update)) {
+        if (lastCandle.update == null || !lastChartUpdate.before(lastCandle.update)) {
             return;
         }
 
         List<OHLCDataItem> chartDataListCache = makeOHLCData(candles);
         XYDataset dataset = getOHLCDataSet(chartDataListCache);
-        if(chartDataListCache.size() > 0 && dataset != null) {
-            if(tabbedPaneInfo.getComponentAt(4) instanceof ChartPanel) {
-                XYPlot mainPlot = ((ChartPanel)tabbedPaneInfo.getComponentAt(4)).getChart().getXYPlot();
+        if (chartDataListCache.size() > 0 && dataset != null) {
+            if (tabbedPaneInfo.getComponentAt(4) instanceof ChartPanel) {
+                XYPlot mainPlot = ((ChartPanel) tabbedPaneInfo.getComponentAt(4)).getChart().getXYPlot();
                 mainPlot.setDataset(dataset);
-                ((ChartPanel)tabbedPaneInfo.getComponentAt(4)).getChart().setTitle(currentPair);
+                ((ChartPanel) tabbedPaneInfo.getComponentAt(4)).getChart().setTitle(currentPair);
             } else {
                 drawChart(dataset);
             }
@@ -484,14 +485,14 @@ public class TraderMainForm extends JPanel {
             labelPriceChangePercent.setForeground(Color.RED);
 
         synchronized (candlesLock) {
-            if(candles == null) {
+            if (candles == null) {
                 calendar.setTime(new Date());
                 calendar.add(Calendar.DAY_OF_MONTH, -1);
                 candles = HistoryUtils.buildCandles(history, calendar.getTime(), HistoryUtils.PERIOD_30M);
             } else {
                 HistoryUtils.refreshCandles(candles, history, HistoryUtils.PERIOD_30M);
             }
-            if(tabbedPaneInfo.getComponentAt(4).isVisible()) updateChart(candles);
+            if (tabbedPaneInfo.getComponentAt(4).isVisible()) updateChart(candles);
         }
     }
 
@@ -1090,8 +1091,8 @@ public class TraderMainForm extends JPanel {
 
         //======== this ========
         setLayout(new FormLayout(
-            "[90dlu,pref]:grow, $lcgap, [92dlu,pref]:grow",
-            "default, 10dlu, top:[95dlu,default], 10dlu, 77dlu, 0dlu, 10dlu, top:15dlu, $lgap, fill:[150dlu,default]:grow"));
+                "[90dlu,pref]:grow, $lcgap, [92dlu,pref]:grow",
+                "default, 10dlu, top:[95dlu,default], 10dlu, 77dlu, 0dlu, 10dlu, top:15dlu, $lgap, fill:[150dlu,default]:grow"));
 
         //---- comboBoxPair ----
         comboBoxPair.setMaximumRowCount(20);
@@ -1107,8 +1108,8 @@ public class TraderMainForm extends JPanel {
         //======== panelPrice ========
         {
             panelPrice.setLayout(new FormLayout(
-                "default:grow, $lcgap, 70dlu, $lcgap, default:grow",
-                "3*(default, $lgap), [18dlu,default], 2*($lgap, default)"));
+                    "default:grow, $lcgap, 70dlu, $lcgap, default:grow",
+                    "3*(default, $lgap), [18dlu,default], 2*($lgap, default)"));
 
             //---- labelBuyPrice ----
             labelBuyPrice.setText(bundle.getString("TraderMainForm.labelBuyPrice.text"));
@@ -1148,7 +1149,7 @@ public class TraderMainForm extends JPanel {
 
             //---- labelPriceChange ----
             labelPriceChange.setText(bundle.getString("TraderMainForm.labelPriceChange.text"));
-            labelPriceChange.setFont(labelPriceChange.getFont().deriveFont(Font.BOLD|Font.ITALIC));
+            labelPriceChange.setFont(labelPriceChange.getFont().deriveFont(Font.BOLD | Font.ITALIC));
             panelPrice.add(labelPriceChange, CC.xy(3, 5, CC.CENTER, CC.DEFAULT));
 
             //---- labelHighPrice ----
@@ -1207,8 +1208,8 @@ public class TraderMainForm extends JPanel {
             //======== panelBuy ========
             {
                 panelBuy.setLayout(new FormLayout(
-                    "5dlu, $lcgap, 30dlu, $lcgap, 108dlu, $lcgap, 45dlu:grow, $lcgap, [70dlu,default]:grow",
-                    "5dlu, 2*($lgap, default), $lgap, 14dlu"));
+                        "5dlu, $lcgap, 30dlu, $lcgap, 108dlu, $lcgap, 45dlu:grow, $lcgap, [70dlu,default]:grow",
+                        "5dlu, 2*($lgap, default), $lgap, 14dlu"));
 
                 //---- labelBuyOrderPrice ----
                 labelBuyOrderPrice.setText(bundle.getString("TraderMainForm.labelBuyOrderPrice.text"));
@@ -1285,8 +1286,8 @@ public class TraderMainForm extends JPanel {
             //======== panelSell ========
             {
                 panelSell.setLayout(new FormLayout(
-                    "5dlu, $lcgap, 30dlu, $lcgap, 108dlu, $lcgap, 45dlu:grow, $lcgap, [70dlu,default]:grow",
-                    "5dlu, 2*($lgap, default), $lgap, 14dlu"));
+                        "5dlu, $lcgap, 30dlu, $lcgap, 108dlu, $lcgap, 45dlu:grow, $lcgap, [70dlu,default]:grow",
+                        "5dlu, 2*($lgap, default), $lgap, 14dlu"));
 
                 //---- labelSellOrderPrice ----
                 labelSellOrderPrice.setText(bundle.getString("TraderMainForm.labelSellOrderPrice.text"));
@@ -1363,31 +1364,33 @@ public class TraderMainForm extends JPanel {
             //======== panelRules ========
             {
                 panelRules.setLayout(new FormLayout(
-                    "default:grow, $lcgap, right:16dlu",
-                    "fill:default"));
+                        "default:grow, $lcgap, right:16dlu",
+                        "fill:default"));
 
                 //======== scrollPane2 ========
                 {
 
                     //---- tableRules ----
                     tableRules.setModel(new DefaultTableModel(
-                        new Object[][] {
-                            {null, null, null},
-                        },
-                        new String[] {
-                            "#", "Condition", "Action"
-                        }
+                            new Object[][]{
+                                    {null, null, null},
+                            },
+                            new String[]{
+                                    "#", "Condition", "Action"
+                            }
                     ) {
-                        Class<?>[] columnTypes = new Class<?>[] {
-                            Integer.class, Object.class, Object.class
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                Integer.class, Object.class, Object.class
                         };
-                        boolean[] columnEditable = new boolean[] {
-                            false, false, false
+                        boolean[] columnEditable = new boolean[]{
+                                false, false, false
                         };
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             return columnTypes[columnIndex];
                         }
+
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1446,31 +1449,33 @@ public class TraderMainForm extends JPanel {
             //======== panelOrders ========
             {
                 panelOrders.setLayout(new FormLayout(
-                    "default:grow",
-                    "default"));
+                        "default:grow",
+                        "default"));
 
                 //======== scrollPane4 ========
                 {
 
                     //---- tableOpenOrders ----
                     tableOpenOrders.setModel(new DefaultTableModel(
-                        new Object[][] {
-                            {null, null, null, null, null},
-                        },
-                        new String[] {
-                            "#", "Type", "Price", "Amount", "Total"
-                        }
+                            new Object[][]{
+                                    {null, null, null, null, null},
+                            },
+                            new String[]{
+                                    "#", "Type", "Price", "Amount", "Total"
+                            }
                     ) {
-                        Class<?>[] columnTypes = new Class<?>[] {
-                            Object.class, String.class, Double.class, Double.class, Double.class
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                Object.class, String.class, Double.class, Double.class, Double.class
                         };
-                        boolean[] columnEditable = new boolean[] {
-                            true, false, false, false, false
+                        boolean[] columnEditable = new boolean[]{
+                                true, false, false, false, false
                         };
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             return columnTypes[columnIndex];
                         }
+
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1481,6 +1486,7 @@ public class TraderMainForm extends JPanel {
                         public void mousePressed(MouseEvent e) {
                             tableOpenOrdersPopupMenuHandler(e);
                         }
+
                         @Override
                         public void mouseReleased(MouseEvent e) {
                             tableOpenOrdersPopupMenuHandler(e);
@@ -1495,31 +1501,33 @@ public class TraderMainForm extends JPanel {
             //======== panelBalance ========
             {
                 panelBalance.setLayout(new FormLayout(
-                    "112dlu:grow",
-                    "default"));
+                        "112dlu:grow",
+                        "default"));
 
                 //======== scrollPane3 ========
                 {
 
                     //---- tableBalances ----
                     tableBalances.setModel(new DefaultTableModel(
-                        new Object[][] {
-                            {null, null},
-                        },
-                        new String[] {
-                            "Currency", "Balance"
-                        }
+                            new Object[][]{
+                                    {null, null},
+                            },
+                            new String[]{
+                                    "Currency", "Balance"
+                            }
                     ) {
-                        Class<?>[] columnTypes = new Class<?>[] {
-                            String.class, Double.class
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                String.class, Double.class
                         };
-                        boolean[] columnEditable = new boolean[] {
-                            false, false
+                        boolean[] columnEditable = new boolean[]{
+                                false, false
                         };
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             return columnTypes[columnIndex];
                         }
+
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1536,8 +1544,8 @@ public class TraderMainForm extends JPanel {
             //======== panelDepth ========
             {
                 panelDepth.setLayout(new FormLayout(
-                    "[90dlu,default], $lcgap, [90dlu,default]",
-                    "default, $lgap, fill:137dlu:grow"));
+                        "[90dlu,default], $lcgap, [90dlu,default]",
+                        "default, $lgap, fill:137dlu:grow"));
 
                 //---- labelBuyOrders ----
                 labelBuyOrders.setText(bundle.getString("TraderMainForm.labelBuyOrders.text"));
@@ -1558,23 +1566,25 @@ public class TraderMainForm extends JPanel {
 
                     //---- tableBuyOrders ----
                     tableBuyOrders.setModel(new DefaultTableModel(
-                        new Object[][] {
-                            {null, null},
-                        },
-                        new String[] {
-                            "Price", "Amount"
-                        }
+                            new Object[][]{
+                                    {null, null},
+                            },
+                            new String[]{
+                                    "Price", "Amount"
+                            }
                     ) {
-                        Class<?>[] columnTypes = new Class<?>[] {
-                            Double.class, Double.class
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                Double.class, Double.class
                         };
-                        boolean[] columnEditable = new boolean[] {
-                            false, false
+                        boolean[] columnEditable = new boolean[]{
+                                false, false
                         };
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             return columnTypes[columnIndex];
                         }
+
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1591,23 +1601,25 @@ public class TraderMainForm extends JPanel {
 
                     //---- tableSellOrders ----
                     tableSellOrders.setModel(new DefaultTableModel(
-                        new Object[][] {
-                            {null, null},
-                        },
-                        new String[] {
-                            "Price", "Amount"
-                        }
+                            new Object[][]{
+                                    {null, null},
+                            },
+                            new String[]{
+                                    "Price", "Amount"
+                            }
                     ) {
-                        Class<?>[] columnTypes = new Class<?>[] {
-                            Double.class, Double.class
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                Double.class, Double.class
                         };
-                        boolean[] columnEditable = new boolean[] {
-                            false, false
+                        boolean[] columnEditable = new boolean[]{
+                                false, false
                         };
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             return columnTypes[columnIndex];
                         }
+
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1632,31 +1644,33 @@ public class TraderMainForm extends JPanel {
                 //======== panelMyTrades ========
                 {
                     panelMyTrades.setLayout(new FormLayout(
-                        "default:grow",
-                        "fill:default:grow"));
+                            "default:grow",
+                            "fill:default:grow"));
 
                     //======== scrollPane6 ========
                     {
 
                         //---- tableAccountHistory ----
                         tableAccountHistory.setModel(new DefaultTableModel(
-                            new Object[][] {
-                                {null, null, null, null, null},
-                            },
-                            new String[] {
-                                "Time", "Type", "Price", "Amount", "Total"
-                            }
+                                new Object[][]{
+                                        {null, null, null, null, null},
+                                },
+                                new String[]{
+                                        "Time", "Type", "Price", "Amount", "Total"
+                                }
                         ) {
-                            Class<?>[] columnTypes = new Class<?>[] {
-                                Date.class, String.class, Double.class, Double.class, Double.class
+                            Class<?>[] columnTypes = new Class<?>[]{
+                                    Date.class, String.class, Double.class, Double.class, Double.class
                             };
-                            boolean[] columnEditable = new boolean[] {
-                                false, false, false, false, false
+                            boolean[] columnEditable = new boolean[]{
+                                    false, false, false, false, false
                             };
+
                             @Override
                             public Class<?> getColumnClass(int columnIndex) {
                                 return columnTypes[columnIndex];
                             }
+
                             @Override
                             public boolean isCellEditable(int rowIndex, int columnIndex) {
                                 return columnEditable[columnIndex];
@@ -1672,31 +1686,33 @@ public class TraderMainForm extends JPanel {
                 //======== panelMarketTrades ========
                 {
                     panelMarketTrades.setLayout(new FormLayout(
-                        "default:grow",
-                        "fill:default:grow"));
+                            "default:grow",
+                            "fill:default:grow"));
 
                     //======== scrollPane7 ========
                     {
 
                         //---- tableMarketHistory ----
                         tableMarketHistory.setModel(new DefaultTableModel(
-                            new Object[][] {
-                                {null, null, null, null, null},
-                            },
-                            new String[] {
-                                "Time", "Type", "Price", "Amount", "Total"
-                            }
+                                new Object[][]{
+                                        {null, null, null, null, null},
+                                },
+                                new String[]{
+                                        "Time", "Type", "Price", "Amount", "Total"
+                                }
                         ) {
-                            Class<?>[] columnTypes = new Class<?>[] {
-                                Date.class, String.class, Double.class, Double.class, Double.class
+                            Class<?>[] columnTypes = new Class<?>[]{
+                                    Date.class, String.class, Double.class, Double.class, Double.class
                             };
-                            boolean[] columnEditable = new boolean[] {
-                                false, false, false, false, false
+                            boolean[] columnEditable = new boolean[]{
+                                    false, false, false, false, false
                             };
+
                             @Override
                             public Class<?> getColumnClass(int columnIndex) {
                                 return columnTypes[columnIndex];
                             }
+
                             @Override
                             public boolean isCellEditable(int rowIndex, int columnIndex) {
                                 return columnEditable[columnIndex];
@@ -1714,39 +1730,41 @@ public class TraderMainForm extends JPanel {
             //======== panelCharts ========
             {
                 panelCharts.setLayout(new FormLayout(
-                    "default, $lcgap, default",
-                    "2*(default, $lgap), default"));
+                        "default, $lcgap, default",
+                        "2*(default, $lgap), default"));
             }
             tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelCharts.tab.title"), panelCharts);
 
             //======== panelMarketCap ========
             {
                 panelMarketCap.setLayout(new FormLayout(
-                    "default:grow",
-                    "fill:default:grow"));
+                        "default:grow",
+                        "fill:default:grow"));
 
                 //======== scrollPane1 ========
                 {
 
                     //---- tableMarketCap ----
                     tableMarketCap.setModel(new DefaultTableModel(
-                        new Object[][] {
-                            {null, null, null, null, null, null, null},
-                        },
-                        new String[] {
-                            "#", "Currency", "USD cap", "BTC cap", "USD volume", "BTC volume", "Change (24h)"
-                        }
+                            new Object[][]{
+                                    {null, null, null, null, null, null, null},
+                            },
+                            new String[]{
+                                    "#", "Currency", "USD cap", "BTC cap", "USD volume", "BTC volume", "Change (24h)"
+                            }
                     ) {
-                        Class<?>[] columnTypes = new Class<?>[] {
-                            Short.class, String.class, Long.class, Long.class, Long.class, Long.class, Double.class
+                        Class<?>[] columnTypes = new Class<?>[]{
+                                Short.class, String.class, Long.class, Long.class, Long.class, Long.class, Double.class
                         };
-                        boolean[] columnEditable = new boolean[] {
-                            true, false, false, false, false, false, false
+                        boolean[] columnEditable = new boolean[]{
+                                true, false, false, false, false, false, false
                         };
+
                         @Override
                         public Class<?> getColumnClass(int columnIndex) {
                             return columnTypes[columnIndex];
                         }
+
                         @Override
                         public boolean isCellEditable(int rowIndex, int columnIndex) {
                             return columnEditable[columnIndex];
@@ -1766,8 +1784,8 @@ public class TraderMainForm extends JPanel {
             //======== panelSettings ========
             {
                 panelSettings.setLayout(new FormLayout(
-                    "5dlu, $lcgap, 67dlu, $lcgap, 57dlu, 2*($lcgap, default)",
-                    "3*(default, $lgap), default"));
+                        "5dlu, $lcgap, 67dlu, $lcgap, 57dlu, 2*($lcgap, default)",
+                        "3*(default, $lgap), default"));
 
                 //---- labelFeePercent ----
                 labelFeePercent.setText(bundle.getString("TraderMainForm.labelFeePercent.text"));
@@ -1824,8 +1842,8 @@ public class TraderMainForm extends JPanel {
             //======== panelLog ========
             {
                 panelLog.setLayout(new FormLayout(
-                    "default:grow",
-                    "fill:default:grow"));
+                        "default:grow",
+                        "fill:default:grow"));
 
                 //======== scrollPane5 ========
                 {

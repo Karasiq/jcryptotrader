@@ -1,8 +1,6 @@
 package com.archean.jtradeapi;
 
-import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.Exchanger;
 
 public class ApiWorker implements AutoCloseable {
     public abstract static class Callback {
@@ -69,7 +67,8 @@ public class ApiWorker implements AutoCloseable {
             }
         }
 
-        @Override protected int onError(Exception e) {
+        @Override
+        protected int onError(Exception e) {
             if (callback != null)
                 callback.onError(new Exception("ApiWorker error: " + e.getLocalizedMessage(), e));
             else
@@ -78,7 +77,9 @@ public class ApiWorker implements AutoCloseable {
         }
 
         private Object data = null;
-        @Override protected int cycle() throws Exception {
+
+        @Override
+        protected int cycle() throws Exception {
             data = retrieveData();
             if (data != null && !Thread.currentThread().isInterrupted()) {
                 updateWorkerData(data);
