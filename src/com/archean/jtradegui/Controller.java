@@ -189,14 +189,6 @@ public class Controller extends JFrame {
                 exc.printStackTrace();
             }
         }
-
-        if (!isVisible()) {
-            for (int i = 0; i < tabbedPaneTraders.getTabCount(); i++) {
-                ((TraderMainForm) tabbedPaneTraders.getComponentAt(i)).stopWorker();
-            }
-        } else {
-            ((TraderMainForm) tabbedPaneTraders.getSelectedComponent()).startWorker();
-        }
     }
 
     private void initComponents() {
