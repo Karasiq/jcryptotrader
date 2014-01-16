@@ -7,4 +7,4 @@ jCryptoTrader currently supports Cryptsy, BTC-E and partially MtGox (only public
 
 # Todo:
 * Add more exchanges
-* Add graphics
+* Add bot engine
