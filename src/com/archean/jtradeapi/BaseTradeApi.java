@@ -167,8 +167,8 @@ public abstract class BaseTradeApi {
         }
 
         public static class Depth {
-            public List<Order> sellOrders = new ArrayList<Order>(); // Ask
-            public List<Order> buyOrders = new ArrayList<Order>(); // Bid
+            public List<Order> sellOrders = new ArrayList<>(); // Ask
+            public List<Order> buyOrders = new ArrayList<>(); // Bid
         }
 
         public static class CurrencyPair {
@@ -181,7 +181,7 @@ public abstract class BaseTradeApi {
         public static class MarketInfo extends CurrencyPair {
             public Prices price = new Prices();
             public Depth depth = new Depth();
-            public List<Order> history = new ArrayList<Order>();
+            public List<Order> history = new ArrayList<>();
         }
 
         public static class AccountInfo {
@@ -200,8 +200,8 @@ public abstract class BaseTradeApi {
             }
 
             public AccountBalance balance = new AccountBalance();
-            public List<Order> orders = new ArrayList<Order>();
-            public List<Order> history = new ArrayList<Order>();
+            public List<Order> orders = new ArrayList<>();
+            public List<Order> history = new ArrayList<>();
         }
 
         public static class CurrencyPairMapper extends TreeMap<Object, CurrencyPair> {
@@ -210,7 +210,7 @@ public abstract class BaseTradeApi {
             }
 
             public Map<String, CurrencyPair> makeNameInfoMap() {
-                Map<String, CurrencyPair> nameKeyMap = new TreeMap<String, CurrencyPair>();
+                Map<String, CurrencyPair> nameKeyMap = new TreeMap<>();
                 for (Map.Entry<Object, CurrencyPair> entry : this.entrySet()) {
                     nameKeyMap.put(entry.getValue().pairName, entry.getValue());
                 }
@@ -276,7 +276,7 @@ public abstract class BaseTradeApi {
     }
 
     protected String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
-        if (urlParameters == null) urlParameters = new ArrayList<NameValuePair>(); // empty list
+        if (urlParameters == null) urlParameters = new ArrayList<>(); // empty list
         List<NameValuePair> httpHeaders = new ArrayList<>();
         cleanAuth(urlParameters, httpHeaders);
         if (needAuth) writeAuthParams(urlParameters, httpHeaders);

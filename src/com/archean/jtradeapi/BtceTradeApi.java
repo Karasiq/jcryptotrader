@@ -89,12 +89,12 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
         }
 
         static class Depth {
-            List<List<Double>> asks = new ArrayList<List<Double>>(); // [0] - price, [1] - amount
-            List<List<Double>> bids = new ArrayList<List<Double>>();
+            List<List<Double>> asks = new ArrayList<>(); // [0] - price, [1] - amount
+            List<List<Double>> bids = new ArrayList<>();
         }
 
         static class AccountInfo {
-            TreeMap<String, Double> funds = new TreeMap<String, Double>();
+            TreeMap<String, Double> funds = new TreeMap<>();
 
             private class Rights {
                 int info;
@@ -126,12 +126,12 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
             double received;
             double remains;
             long order_id;
-            TreeMap<String, Double> funds = new TreeMap<String, Double>();
+            TreeMap<String, Double> funds = new TreeMap<>();
         }
 
         private static class CancelOrderStatus {
             long order_id;
-            TreeMap<String, Double> funds = new TreeMap<String, Double>();
+            TreeMap<String, Double> funds = new TreeMap<>();
         }
     }
 
@@ -277,7 +277,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
         return accountInfo;
     }
 
-    Map<String, Double> feePercentCache = new HashMap<String, Double>();
+    Map<String, Double> feePercentCache = new HashMap<>();
 
     private double internalGetFeePercent(String pair) throws IOException {
         if (!feePercentCache.containsKey(pair)) {
@@ -293,7 +293,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
     private final String privateApiUrl = "https://btc-e.com/tapi";
 
     private ApiStatus<BtceObjects.AccountInfo> internalGetAccountInfo() throws IOException {
-        List<NameValuePair> httpParameters = new ArrayList<NameValuePair>();
+        List<NameValuePair> httpParameters = new ArrayList<>();
         httpParameters.add(new BasicNameValuePair("method", "getInfo"));
         String json = executeRequest(true, privateApiUrl, httpParameters, Constants.REQUEST_POST);
         return jsonParser.fromJson(json, new TypeToken<ApiStatus<BtceObjects.AccountInfo>>() {
@@ -301,7 +301,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
     }
 
     private ApiStatus<TreeMap<Long, BtceObjects.Order>> internalGetOpenOrders(String pair) throws IOException {
-        List<NameValuePair> httpParameters = new ArrayList<NameValuePair>();
+        List<NameValuePair> httpParameters = new ArrayList<>();
         httpParameters.add(new BasicNameValuePair("method", "ActiveOrders"));
         if (pair != null && !pair.isEmpty() && !pair.equals("")) {
             httpParameters.add(new BasicNameValuePair("pair", pair));
@@ -312,7 +312,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
     }
 
     private ApiStatus<TreeMap<Long, BtceObjects.AccountTrade>> internalGetAccountHistory(String pair) throws IOException {
-        List<NameValuePair> httpParameters = new ArrayList<NameValuePair>();
+        List<NameValuePair> httpParameters = new ArrayList<>();
         httpParameters.add(new BasicNameValuePair("method", "TradeHistory"));
         if (pair != null && !pair.isEmpty() && !pair.equals("")) {
             httpParameters.add(new BasicNameValuePair("pair", pair));
@@ -323,7 +323,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
     }
 
     private ApiStatus<BtceObjects.OpenOrderStatus> internalOpenOrder(String pair, int type, double amount, double price) throws IOException {
-        List<NameValuePair> httpParameters = new ArrayList<NameValuePair>();
+        List<NameValuePair> httpParameters = new ArrayList<>();
         httpParameters.add(new BasicNameValuePair("method", "Trade"));
         httpParameters.add(new BasicNameValuePair("pair", pair));
         httpParameters.add(new BasicNameValuePair("type", type == Constants.ORDER_SELL ? "sell" : "buy"));
@@ -335,7 +335,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
     }
 
     private ApiStatus<BtceObjects.CancelOrderStatus> internalCancelOrder(long orderId) throws IOException {
-        List<NameValuePair> httpParameters = new ArrayList<NameValuePair>();
+        List<NameValuePair> httpParameters = new ArrayList<>();
         httpParameters.add(new BasicNameValuePair("method", "CancelOrder"));
         httpParameters.add(new BasicNameValuePair("order_id", Long.toString(orderId)));
         String json = executeRequest(true, privateApiUrl, httpParameters, Constants.REQUEST_POST);

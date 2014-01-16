@@ -31,8 +31,8 @@ public class CryptsyTradeApi extends BaseTradeApi {
     private class CryptsyObjects { // Cryptsy api specific objects
 
         class DepthInfo {
-            List<List<Double>> sell = new ArrayList<List<Double>>();
-            List<List<Double>> buy = new ArrayList<List<Double>>();
+            List<List<Double>> sell = new ArrayList<>();
+            List<List<Double>> buy = new ArrayList<>();
         }
 
         class TradeOrder {
@@ -56,8 +56,8 @@ public class CryptsyTradeApi extends BaseTradeApi {
         }
 
         class OrderBookData extends CurrencyPair {
-            List<TradeOrder> sellorders = new ArrayList<TradeOrder>();
-            List<TradeOrder> buyorders = new ArrayList<TradeOrder>();
+            List<TradeOrder> sellorders = new ArrayList<>();
+            List<TradeOrder> buyorders = new ArrayList<>();
         }
 
         class OrderBook extends TreeMap<String, OrderBookData> {
@@ -70,16 +70,16 @@ public class CryptsyTradeApi extends BaseTradeApi {
             double lasttradeprice;
             double volume;
             Date lasttradetime;
-            List<TradeHistory> recenttrades = new ArrayList<TradeHistory>();
+            List<TradeHistory> recenttrades = new ArrayList<>();
         }
 
         class Markets {
-            TreeMap<String, MarketData> markets = new TreeMap<String, MarketData>();
+            TreeMap<String, MarketData> markets = new TreeMap<>();
         }
 
         class AccountInfo {
-            TreeMap<String, Double> balances_available = new TreeMap<String, Double>();
-            TreeMap<String, Double> balances_hold = new TreeMap<String, Double>();
+            TreeMap<String, Double> balances_available = new TreeMap<>();
+            TreeMap<String, Double> balances_hold = new TreeMap<>();
             int openordercount;
             int servertimestamp;
             String servertimezone;
@@ -137,7 +137,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
     // Internal
     @Deprecated
     private ApiStatus<CryptsyObjects.Markets> internalGetMarketData(int marketId) throws IOException {
-        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        List<NameValuePair> arguments = new ArrayList<>();
         if (marketId == 0) {
             arguments.add(new BasicNameValuePair("method", "marketdatav2"));
         } else {
@@ -151,7 +151,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
 
     @Deprecated
     private ApiStatus<CryptsyObjects.OrderBook> internalGetOrders(int marketId) throws IOException {
-        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        List<NameValuePair> arguments = new ArrayList<>();
         if (marketId == 0) {
             arguments.add(new BasicNameValuePair("method", "orderdata"));
         } else {
@@ -164,7 +164,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
     }
 
     private ApiStatus<CryptsyObjects.AccountInfo> internalGetAccountInfo() throws IOException {
-        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        List<NameValuePair> arguments = new ArrayList<>();
         arguments.add(new BasicNameValuePair("method", "getinfo"));
         String json = executeRequest(true, PrivateApiUrl, arguments, Constants.REQUEST_POST);
         return jsonParser.fromJson(json, new TypeToken<ApiStatus<CryptsyObjects.AccountInfo>>() {
@@ -172,7 +172,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
     }
 
     private ApiStatus<List<CryptsyObjects.MarketDataPrivate>> internalGetMarketDataPrivate() throws IOException {
-        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        List<NameValuePair> arguments = new ArrayList<>();
         arguments.add(new BasicNameValuePair("method", "getmarkets"));
         String json = executeRequest(true, PrivateApiUrl, arguments, Constants.REQUEST_POST);
         return jsonParser.fromJson(json, new TypeToken<ApiStatus<ArrayList<CryptsyObjects.MarketDataPrivate>>>() {
@@ -180,7 +180,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
     }
 
     private ApiStatus<List<CryptsyObjects.Trade>> internalGetAccountHistory(Integer marketId) throws IOException {
-        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        List<NameValuePair> arguments = new ArrayList<>();
         if (marketId == 0) {
             arguments.add(new BasicNameValuePair("method", "allmytrades"));
         } else {
@@ -193,7 +193,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
     }
 
     private ApiStatus<List<CryptsyObjects.Order>> internalGetMyOrders(Integer marketId) throws IOException {
-        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        List<NameValuePair> arguments = new ArrayList<>();
         if (marketId == 0) {
             arguments.add(new BasicNameValuePair("method", "allmyorders"));
         } else {
@@ -206,7 +206,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
     }
 
     private ApiStatus<CryptsyObjects.DepthInfo> internalGetMarketDepth(int marketId) throws IOException {
-        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        List<NameValuePair> arguments = new ArrayList<>();
         arguments.add(new BasicNameValuePair("method", "depth"));
         arguments.add(new BasicNameValuePair("marketid", Integer.toString(marketId)));
         String json = executeRequest(true, PrivateApiUrl, arguments, Constants.REQUEST_POST);
@@ -215,7 +215,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
     }
 
     private ApiStatus<List<CryptsyObjects.Trade>> internalGetMarketHistory(Integer marketId) throws IOException {
-        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        List<NameValuePair> arguments = new ArrayList<>();
         arguments.add(new BasicNameValuePair("method", "markettrades"));
         arguments.add(new BasicNameValuePair("marketid", Integer.toString(marketId)));
         String json = executeRequest(true, PrivateApiUrl, arguments, Constants.REQUEST_POST);
@@ -225,7 +225,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
 
     @Deprecated
     private ApiStatus<CryptsyObjects.Fee> internalCalculateFees(int orderType, double quantity, double price) throws IOException {
-        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        List<NameValuePair> arguments = new ArrayList<>();
         arguments.add(new BasicNameValuePair("method", "calculatefees"));
         arguments.add(new BasicNameValuePair("ordertype", orderType == Constants.ORDER_BUY ? "Buy" : "Sell"));
         arguments.add(new BasicNameValuePair("quantity", Utils.Strings.formatNumber(quantity)));
@@ -235,8 +235,8 @@ public class CryptsyTradeApi extends BaseTradeApi {
         }.getType());
     }
 
-    private CryptsyObjects.OrderCreateStatus internalCreateOrder(Integer marketId, int orderType, double quantity, double price) throws IOException, TradeApiError {
-        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+    private CryptsyObjects.OrderCreateStatus internalCreateOrder(Integer marketId, int orderType, double quantity, double price) throws IOException {
+        List<NameValuePair> arguments = new ArrayList<>();
         arguments.add(new BasicNameValuePair("method", "createorder"));
         arguments.add(new BasicNameValuePair("marketid", Integer.toString(marketId)));
         arguments.add(new BasicNameValuePair("ordertype", orderType == Constants.ORDER_BUY ? "Buy" : "Sell"));
@@ -248,7 +248,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
     }
 
     private ApiStatus<String> internalCancelOrder(long orderId) throws Exception {
-        List<NameValuePair> arguments = new ArrayList<NameValuePair>();
+        List<NameValuePair> arguments = new ArrayList<>();
         arguments.add(new BasicNameValuePair("method", "cancelorder"));
         arguments.add(new BasicNameValuePair("orderid", Long.toString(orderId)));
         String json = executeRequest(true, PrivateApiUrl, arguments, Constants.REQUEST_POST);
@@ -389,7 +389,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
             StandartObjects.Order uOrder = new StandartObjects.Order();
             uOrder.amount = order.quantity;
             uOrder.price = order.price;
-            uOrder.pair = (Integer) order.marketid;
+            uOrder.pair = order.marketid;
             uOrder.type = order.ordertype.equals("Sell") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
             uOrder.id = order.orderid;
             uOrder.time = order.created;

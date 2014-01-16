@@ -13,7 +13,7 @@ package com.archean.jtradeapi;
 import java.math.BigDecimal;
 
 public class Calculator {
-    public static double MINIMAL_AMOUNT = 0.00000001; // 1 Satoshi
+    public static final double MINIMAL_AMOUNT = 0.00000001; // 1 Satoshi
 
     public static double totalWithFee(int orderType, double price, double amount, double feePercent) {
         return orderType == BaseTradeApi.Constants.ORDER_BUY ? amount * price * ((100.0 + feePercent) / 100.0) : amount * price / ((100.0 + feePercent) / 100.0);

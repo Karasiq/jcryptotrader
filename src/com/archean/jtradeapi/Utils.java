@@ -105,7 +105,7 @@ public class Utils {
         public final static DecimalFormatDescription moneyRepresentFormat = new DecimalFormatDescription("###,###,###,###.########", '.', ','); // with groupings
         public final static DecimalFormatDescription moneyRoughRepresentFormat = new DecimalFormatDescription("###,###,###,###.###", '.', ','); // not precise
 
-        private static Map<DecimalFormatDescription, DecimalFormat> decimalFormatMap = new HashMap<>(); // cached
+        private static final Map<DecimalFormatDescription, DecimalFormat> decimalFormatMap = new HashMap<>(); // cached
 
         public static <T> String formatNumber(T value, DecimalFormatDescription format) { // custom format
             DecimalFormat df = decimalFormatMap.get(format);
