@@ -12,7 +12,7 @@ new FormModel {
 		}
 		add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
 			"$columnSpecs": "max(pref;90dlu):grow, labelcompgap, max(pref;92dlu):grow"
-			"$rowSpecs": "default, 10dlu, top:max(default;95dlu), 10dlu, default:grow, 0dlu, 10dlu, 15dlu, linegap, fill:max(default;150dlu):grow"
+			"$rowSpecs": "default, 10dlu, top:max(default;95dlu), 10dlu, 77dlu, 0dlu, 10dlu, top:15dlu, linegap, fill:max(default;150dlu):grow"
 		} ) {
 			name: "this"
 			add( new FormComponent( "javax.swing.JComboBox" ) {

@@ -1091,7 +1091,7 @@ public class TraderMainForm extends JPanel {
         //======== this ========
         setLayout(new FormLayout(
             "[90dlu,pref]:grow, $lcgap, [92dlu,pref]:grow",
-            "default, 10dlu, top:[95dlu,default], 10dlu, default:grow, 0dlu, 10dlu, 15dlu, $lgap, fill:[150dlu,default]:grow"));
+            "default, 10dlu, top:[95dlu,default], 10dlu, 77dlu, 0dlu, 10dlu, top:15dlu, $lgap, fill:[150dlu,default]:grow"));
 
         //---- comboBoxPair ----
         comboBoxPair.setMaximumRowCount(20);
