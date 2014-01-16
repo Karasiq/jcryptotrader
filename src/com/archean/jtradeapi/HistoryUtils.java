@@ -25,6 +25,7 @@ public class HistoryUtils {
         public double volume = 0;
     }
     public static BaseTradeApi.StandartObjects.Order getNearestTrade(List<BaseTradeApi.StandartObjects.Order> history, Date targetDate){
+        Collections.sort(history, Collections.reverseOrder());
         BaseTradeApi.StandartObjects.Order result = history.get(0);
         for (BaseTradeApi.StandartObjects.Order order : history) {
             // if the current iteration's date is "before" the target date
@@ -51,7 +52,7 @@ public class HistoryUtils {
         }
 
         Candle candle = new Candle();
-        candle.start = history.get(i).time; // first
+        candle.start = candle.update = history.get(i).time; // first
         candle.open = candle.close = candle.high = candle.low = history.get(i).price;
         i++;
         while(i < history.size()) {
@@ -69,7 +70,7 @@ public class HistoryUtils {
                 candle.end = order.time;
                 candles.add(candle);
                 candle = new Candle();
-                candle.start = order.time;
+                candle.start = candle.update = order.time;
                 candle.open = candle.close = candle.high = candle.low = order.price;
             }
             i++;
@@ -94,7 +95,7 @@ public class HistoryUtils {
                 candle.end = order.time;
                 candles.add(candle);
                 candle = new Candle();
-                candle.start = order.time;
+                candle.start = candle.update = order.time;
                 candle.open = candle.close = candle.high = candle.low = order.price;
             }
         }

@@ -75,9 +75,9 @@ public class TraderMainForm extends JPanel {
     static ResourceBundle locale = ResourceBundle.getBundle("com.archean.jtradegui.locale", new UTF8Control());
     private volatile boolean initialized = false;
     private volatile boolean needStepUpdate = true;
-    private volatile double priceChangeLastPrice = 0;
     private volatile List<HistoryUtils.Candle> candles = null;
     private final Object candlesLock = new Object();
+    private Date lastChartUpdate = new Date(0);
     private volatile Map<String, Thread> threadMap = new HashMap<>();
     private Runnable marketCapUpdateTask = new Utils.Threads.CycledRunnable() {
         private CoinMarketCapParser parser = new CoinMarketCapParser();
@@ -293,11 +293,10 @@ public class TraderMainForm extends JPanel {
         textFieldLowPrice.setText("");
         textFieldLastPrice.setText("");
         textFieldVolume.setText("");
-        priceChangeLastPrice = 0;
         needStepUpdate = true;
         synchronized (candlesLock) {
             candles = null;
-            chartDataListCache = null;
+            lastChartUpdate = new Date(0);
         }
         refreshRulesTable();
     }
@@ -332,15 +331,10 @@ public class TraderMainForm extends JPanel {
         return dataItems;
     }
     private AbstractXYDataset getOHLCDataSet(List<OHLCDataItem> dataList) {
-        if(chartDataCache == null || chartDataCache.length < dataList.size()) {
-            chartDataCache = new OHLCDataItem[dataList.size()];
-        }
+        OHLCDataItem[] chartDataCache = new OHLCDataItem[dataList.size()];
         dataList.toArray(chartDataCache);
         return new DefaultOHLCDataset(currentPair, chartDataCache);
     }
-    private volatile OHLCDataItem[] chartDataCache = null;
-    private volatile List<OHLCDataItem> chartDataListCache = null;
-
     private void drawChart(XYDataset dataset) {
         final DateAxis domainAxis = new DateAxis(locale.getString("Chart.legend.time.string"));
         NumberAxis rangeAxis = new NumberAxis(locale.getString("Chart.legend.price.string"));
@@ -360,18 +354,21 @@ public class TraderMainForm extends JPanel {
     }
     private void updateChart(List<HistoryUtils.Candle> candles) {
         if(candles == null || candles.isEmpty()) return;
-        if(chartDataListCache == null || chartDataListCache.size() < candles.size()) { // Full update
-            chartDataListCache = makeOHLCData(candles);
-        } else { // Only last candle
-            HistoryUtils.Candle candle = candles.get(candles.size() - 1);
-            chartDataListCache.set(chartDataListCache.size() - 1, new OHLCDataItem(candle.start, candle.open, candle.high, candle.low, candle.close, candle.volume));
+        HistoryUtils.Candle lastCandle = candles.get(candles.size() - 1);
+        if(lastCandle.update == null || !lastChartUpdate.before(lastCandle.update)) {
+            return;
         }
+
+        List<OHLCDataItem> chartDataListCache = makeOHLCData(candles);
         XYDataset dataset = getOHLCDataSet(chartDataListCache);
-        if(tabbedPaneInfo.getComponentAt(4) instanceof ChartPanel) {
-            XYPlot mainPlot = ((ChartPanel)tabbedPaneInfo.getComponentAt(4)).getChart().getXYPlot();
-            mainPlot.setDataset(dataset);
-        } else {
-            drawChart(dataset);
+        if(chartDataListCache.size() > 0 && dataset != null) {
+            if(tabbedPaneInfo.getComponentAt(4) instanceof ChartPanel) {
+                XYPlot mainPlot = ((ChartPanel)tabbedPaneInfo.getComponentAt(4)).getChart().getXYPlot();
+                mainPlot.setDataset(dataset);
+                ((ChartPanel)tabbedPaneInfo.getComponentAt(4)).getChart().setTitle(currentPair);
+            } else {
+                drawChart(dataset);
+            }
         }
     }
 
@@ -420,20 +417,6 @@ public class TraderMainForm extends JPanel {
                     ((SpinnerNumberModel) spinnerSellOrderAmount.getModel()).setStepSize(getCurrentPrimaryBalance() * 0.01);
                     updateLabelTotal();
                     needStepUpdate = false;
-                }
-
-                if (priceChangeLastPrice == 0) {
-                    labelPriceChangePercent.setText("0%");
-                    labelPriceChangePercent.setForeground(Color.BLACK);
-                    labelPriceChangePercent.setToolTipText("");
-                } else {
-                    labelPriceChangePercent.setToolTipText(String.format("%f -> %f", priceChangeLastPrice, price.last));
-                    double percent = Calculator.priceChangePercent(priceChangeLastPrice, price.last);
-                    labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, Utils.Strings.percentDecimalFormat) + "%");
-                    if (percent > 0)
-                        labelPriceChangePercent.setForeground(Color.GREEN);
-                    else
-                        labelPriceChangePercent.setForeground(Color.RED);
                 }
             }
         });
@@ -487,16 +470,28 @@ public class TraderMainForm extends JPanel {
                 model.fireTableDataChanged();
             }
         });
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        calendar.add(Calendar.HOUR_OF_DAY, -1);
+        BaseTradeApi.StandartObjects.Order order = HistoryUtils.getNearestTrade(history, calendar.getTime());
+
+        labelPriceChangePercent.setToolTipText(String.format("%s -> %s", Utils.Strings.formatNumber(order.price), Utils.Strings.formatNumber(worker.marketInfo.price.last)));
+        double percent = Calculator.priceChangePercent(order.price, worker.marketInfo.price.last);
+        labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, Utils.Strings.percentDecimalFormat) + "%");
+        if (percent > 0)
+            labelPriceChangePercent.setForeground(Color.GREEN);
+        else
+            labelPriceChangePercent.setForeground(Color.RED);
+
         synchronized (candlesLock) {
             if(candles == null) {
-                Calendar calendar = Calendar.getInstance();
                 calendar.setTime(new Date());
                 calendar.add(Calendar.DAY_OF_MONTH, -1);
                 candles = HistoryUtils.buildCandles(history, calendar.getTime(), HistoryUtils.PERIOD_30M);
             } else {
                 HistoryUtils.refreshCandles(candles, history, HistoryUtils.PERIOD_30M);
             }
-            updateChart(candles);
+            if(tabbedPaneInfo.getComponentAt(4).isVisible()) updateChart(candles);
         }
     }
 
@@ -749,21 +744,8 @@ public class TraderMainForm extends JPanel {
                 return 200;
             }
         });
-        Thread priceChangeTimerThread = new Thread(new Utils.Threads.CycledRunnable() {
-            @Override
-            protected int cycle() throws Exception {
-                while (worker.marketInfo.price.last == 0) {
-                    Thread.sleep(100);
-                }
-                priceChangeLastPrice = worker.marketInfo.price.last;
-                return 1000 * 60 * 60; // 1h
-            }
-        });
         apiLagThread.start();
-        priceChangeTimerThread.start();
-
         threadMap.put("apiLag", apiLagThread);
-        threadMap.put("priceChangeTimer", priceChangeTimerThread);
     }
 
     protected void setUpdateOptions() {
