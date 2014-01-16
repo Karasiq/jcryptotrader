@@ -67,6 +67,12 @@ public class Utils {
 
     public static class Strings {
         public static class DecimalFormatDescription {
+            public DecimalFormat toDecimalFormat() {
+                DecimalFormatSymbols symbols = new DecimalFormatSymbols();
+                symbols.setDecimalSeparator(decimalSeparator);
+                symbols.setGroupingSeparator(groupingSeparator);
+                return new DecimalFormat(stringFormat, symbols);
+            }
             public char decimalSeparator;
             public char groupingSeparator;
             public String stringFormat;
@@ -86,10 +92,7 @@ public class Utils {
         public static <T> String formatNumber(T value, DecimalFormatDescription format) { // custom format
             DecimalFormat df = decimalFormatMap.get(format);
             if(df == null) {
-                DecimalFormatSymbols symbols = new DecimalFormatSymbols();
-                symbols.setDecimalSeparator(format.decimalSeparator);
-                symbols.setGroupingSeparator(format.groupingSeparator);
-                df = new DecimalFormat(format.stringFormat, symbols);
+                df = format.toDecimalFormat();
                 decimalFormatMap.put(format, df);
             }
             return df.format(value);

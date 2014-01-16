@@ -724,6 +724,14 @@ new FormModel {
 					"title": new FormMessage( null, "TraderMainForm.panelHistory.tab.title" )
 				} )
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
+					"$columnSpecs": "default, labelcompgap, default"
+					"$rowSpecs": "default, linegap, default, linegap, default"
+				} ) {
+					name: "panelCharts"
+				}, new FormLayoutConstraints( null ) {
+					"title": new FormMessage( null, "TraderMainForm.panelCharts.tab.title" )
+				} )
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class com.jgoodies.forms.layout.FormLayout ) {
 					"$columnSpecs": "default:grow"
 					"$rowSpecs": "fill:default:grow"
 				} ) {

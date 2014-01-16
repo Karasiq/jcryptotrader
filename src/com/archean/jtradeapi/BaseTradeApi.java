@@ -133,7 +133,7 @@ public abstract class BaseTradeApi {
             public double volume;
         }
 
-        public static class Order {
+        public static class Order implements Comparable<Order> {
             public Order() {
                 super();
             }
@@ -149,6 +149,11 @@ public abstract class BaseTradeApi {
             public double amount;
             public Date time;
             public int type; // ORDER_BUY/ORDER_SELL
+
+            @Override
+            public int compareTo(Order order) {
+                return order.time.compareTo(time);
+            }
         }
 
         public static class Depth {
