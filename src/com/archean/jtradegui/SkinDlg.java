@@ -1,5 +1,11 @@
 /*
- * Created by JFormDesigner on Thu Jan 16 18:08:55 MSK 2014
+ * jCryptoTrader trading client
+ * Copyright (C) 2014 1M4SKfh83ZxsCSDmfaXvfCfMonFxMa5vvh (BTC public key)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  */
 
 package com.archean.jtradegui;
@@ -14,9 +20,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ResourceBundle;
 
-/**
- * @author Yarr harr
- */
 public class SkinDlg extends JDialog {
     public SkinDlg(Frame owner) {
         super(owner);
@@ -124,27 +127,27 @@ public class SkinDlg extends JDialog {
             //======== contentPanel ========
             {
                 contentPanel.setLayout(new FormLayout(
-                        "default:grow",
-                        "2*(default, $lgap), default"));
+                    "default:grow",
+                    "2*(default, $lgap), default"));
 
                 //---- comboBox1 ----
-                comboBox1.setModel(new DefaultComboBoxModel<>(new String[]{
-                        "System",
-                        "Metal",
-                        "Motif",
-                        "GTK",
-                        "Acryl",
-                        "Aero",
-                        "Aluminium",
-                        "Bernstein",
-                        "Fast",
-                        "HiFi",
-                        "McWin",
-                        "Mint",
-                        "Noire",
-                        "Smart",
-                        "Luna",
-                        "Texture"
+                comboBox1.setModel(new DefaultComboBoxModel<>(new String[] {
+                    "System",
+                    "Metal",
+                    "Motif",
+                    "GTK",
+                    "Acryl",
+                    "Aero",
+                    "Aluminium",
+                    "Bernstein",
+                    "Fast",
+                    "HiFi",
+                    "McWin",
+                    "Mint",
+                    "Noire",
+                    "Smart",
+                    "Luna",
+                    "Texture"
                 }));
                 contentPanel.add(comboBox1, CC.xy(1, 1));
             }
@@ -154,8 +157,8 @@ public class SkinDlg extends JDialog {
             {
                 buttonBar.setBorder(Borders.createEmptyBorder("5dlu, 0dlu, 0dlu, 0dlu"));
                 buttonBar.setLayout(new FormLayout(
-                        "[50dlu,pref]:grow, $rgap, [50dlu,pref]:grow",
-                        "pref"));
+                    "[50dlu,pref]:grow, $rgap, [50dlu,pref]:grow",
+                    "pref"));
 
                 //---- okButton ----
                 okButton.setText(bundle.getString("SkinDlg.okButton.text"));

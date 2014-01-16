@@ -1,5 +1,11 @@
 /*
- * Created by JFormDesigner on Wed Jan 01 13:03:04 MSK 2014
+ * jCryptoTrader trading client
+ * Copyright (C) 2014 1M4SKfh83ZxsCSDmfaXvfCfMonFxMa5vvh (BTC public key)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  */
 
 package com.archean.jtradegui;
@@ -46,9 +52,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 
-/**
- * @author Yarr harr
- */
 public class TraderMainForm extends JPanel {
     public volatile Map<String, MarketRule.MarketRuleList> ruleListDb = new HashMap<>();
     private volatile MarketRule.MarketRuleList ruleList;

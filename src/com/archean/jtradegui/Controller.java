@@ -1,5 +1,11 @@
 /*
- * Created by JFormDesigner on Thu Jan 02 14:52:49 MSK 2014
+ * jCryptoTrader trading client
+ * Copyright (C) 2014 1M4SKfh83ZxsCSDmfaXvfCfMonFxMa5vvh (BTC public key)
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  */
 
 package com.archean.jtradegui;
@@ -17,9 +23,6 @@ import java.io.*;
 import java.util.*;
 import java.util.List;
 
-/**
- * @author Yarr harr
- */
 public class Controller extends JFrame {
     public AccountManager.AccountDb accountDb = new AccountManager.AccountDb();
     protected final static String settingsDir = System.getProperty("user.home") + "/jCryptoTrader/";
