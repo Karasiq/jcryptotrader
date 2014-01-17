@@ -136,6 +136,10 @@ public class TraderMainForm extends JPanel {
     public void setRuleListDb(Map<String, MarketRule.MarketRuleList> ruleListDb) {
         this.ruleListDb = ruleListDb;
         this.ruleList = ruleListDb.get(currentPair);
+        if (ruleList == null) {
+            ruleList = new MarketRule.MarketRuleList();
+            ruleListDb.put(currentPair, ruleList);
+        }
         refreshRulesTable();
     }
 
