@@ -11,3 +11,4 @@ jCryptoTrader currently supports Cryptsy, BTC-E and partially MtGox (only public
 
 # Known issues:
 * BTC-e returns insufficient history data
+* Skins "System", "Motif" and "GTK" doesn't work properly

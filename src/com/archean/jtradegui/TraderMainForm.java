@@ -1023,6 +1023,7 @@ public class TraderMainForm extends JPanel {
         labelApiLagValue = new JLabel();
         textFieldVolume = new JTextField();
         separator1 = new JSeparator();
+        splitPane1 = new JSplitPane();
         tabbedPaneTrade = new JTabbedPane();
         panelBuy = new JPanel();
         labelBuyOrderPrice = new JLabel();
@@ -1050,7 +1051,6 @@ public class TraderMainForm extends JPanel {
         toolBar1 = new JToolBar();
         buttonAddRule = new JButton();
         buttonDeleteRule = new JButton();
-        separator2 = new JSeparator();
         tabbedPaneInfo = new JTabbedPane();
         panelOrders = new JPanel();
         scrollPane4 = new JScrollPane();
@@ -1091,8 +1091,8 @@ public class TraderMainForm extends JPanel {
 
         //======== this ========
         setLayout(new FormLayout(
-                "[90dlu,pref]:grow, $lcgap, [92dlu,pref]:grow",
-                "default, 10dlu, top:[95dlu,default], 10dlu, 77dlu, 0dlu, 10dlu, top:15dlu, $lgap, fill:[150dlu,default]:grow"));
+            "[90dlu,pref]:grow, $lcgap, [92dlu,pref]:grow",
+            "default, 10dlu, top:[95dlu,default], 10dlu, 77dlu, 0dlu, 10dlu, $lgap, fill:[55dlu,default]:grow"));
 
         //---- comboBoxPair ----
         comboBoxPair.setMaximumRowCount(20);
@@ -1108,8 +1108,8 @@ public class TraderMainForm extends JPanel {
         //======== panelPrice ========
         {
             panelPrice.setLayout(new FormLayout(
-                    "default:grow, $lcgap, 70dlu, $lcgap, default:grow",
-                    "3*(default, $lgap), [18dlu,default], 2*($lgap, default)"));
+                "default:grow, $lcgap, 70dlu, $lcgap, default:grow",
+                "3*(default, $lgap), [18dlu,default], 2*($lgap, default)"));
 
             //---- labelBuyPrice ----
             labelBuyPrice.setText(bundle.getString("TraderMainForm.labelBuyPrice.text"));
@@ -1149,7 +1149,7 @@ public class TraderMainForm extends JPanel {
 
             //---- labelPriceChange ----
             labelPriceChange.setText(bundle.getString("TraderMainForm.labelPriceChange.text"));
-            labelPriceChange.setFont(labelPriceChange.getFont().deriveFont(Font.BOLD | Font.ITALIC));
+            labelPriceChange.setFont(labelPriceChange.getFont().deriveFont(Font.BOLD|Font.ITALIC));
             panelPrice.add(labelPriceChange, CC.xy(3, 5, CC.CENTER, CC.DEFAULT));
 
             //---- labelHighPrice ----
@@ -1202,658 +1202,646 @@ public class TraderMainForm extends JPanel {
         add(panelPrice, CC.xywh(1, 3, 3, 1));
         add(separator1, CC.xywh(1, 4, 3, 1));
 
-        //======== tabbedPaneTrade ========
+        //======== splitPane1 ========
         {
+            splitPane1.setOrientation(JSplitPane.VERTICAL_SPLIT);
 
-            //======== panelBuy ========
+            //======== tabbedPaneTrade ========
             {
-                panelBuy.setLayout(new FormLayout(
+
+                //======== panelBuy ========
+                {
+                    panelBuy.setLayout(new FormLayout(
                         "5dlu, $lcgap, 30dlu, $lcgap, 108dlu, $lcgap, 45dlu:grow, $lcgap, [70dlu,default]:grow",
                         "5dlu, 2*($lgap, default), $lgap, 14dlu"));
 
-                //---- labelBuyOrderPrice ----
-                labelBuyOrderPrice.setText(bundle.getString("TraderMainForm.labelBuyOrderPrice.text"));
-                labelBuyOrderPrice.setLabelFor(spinnerBuyOrderPrice);
-                panelBuy.add(labelBuyOrderPrice, CC.xy(3, 3, CC.LEFT, CC.DEFAULT));
+                    //---- labelBuyOrderPrice ----
+                    labelBuyOrderPrice.setText(bundle.getString("TraderMainForm.labelBuyOrderPrice.text"));
+                    labelBuyOrderPrice.setLabelFor(spinnerBuyOrderPrice);
+                    panelBuy.add(labelBuyOrderPrice, CC.xy(3, 3, CC.LEFT, CC.DEFAULT));
 
-                //---- spinnerBuyOrderPrice ----
-                spinnerBuyOrderPrice.setModel(new SpinnerNumberModel(0.0, 0.0, null, 1.0));
-                spinnerBuyOrderPrice.addChangeListener(new ChangeListener() {
-                    @Override
-                    public void stateChanged(ChangeEvent e) {
-                        spinnerPriceOrAmountStateChanged(e);
-                    }
-                });
-                panelBuy.add(spinnerBuyOrderPrice, CC.xy(5, 3));
+                    //---- spinnerBuyOrderPrice ----
+                    spinnerBuyOrderPrice.setModel(new SpinnerNumberModel(0.0, 0.0, null, 1.0));
+                    spinnerBuyOrderPrice.addChangeListener(new ChangeListener() {
+                        @Override
+                        public void stateChanged(ChangeEvent e) {
+                            spinnerPriceOrAmountStateChanged(e);
+                        }
+                    });
+                    panelBuy.add(spinnerBuyOrderPrice, CC.xy(5, 3));
 
-                //---- buttonBuyOrderPriceSetCurrent ----
-                buttonBuyOrderPriceSetCurrent.setText(bundle.getString("TraderMainForm.buttonBuyOrderPriceSetCurrent.text"));
-                buttonBuyOrderPriceSetCurrent.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        buttonBuyOrderPriceSetCurrentActionPerformed(e);
-                    }
-                });
-                panelBuy.add(buttonBuyOrderPriceSetCurrent, CC.xy(7, 3, CC.FILL, CC.DEFAULT));
+                    //---- buttonBuyOrderPriceSetCurrent ----
+                    buttonBuyOrderPriceSetCurrent.setText(bundle.getString("TraderMainForm.buttonBuyOrderPriceSetCurrent.text"));
+                    buttonBuyOrderPriceSetCurrent.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            buttonBuyOrderPriceSetCurrentActionPerformed(e);
+                        }
+                    });
+                    panelBuy.add(buttonBuyOrderPriceSetCurrent, CC.xy(7, 3, CC.FILL, CC.DEFAULT));
 
-                //---- buttonCommitBuyOrder ----
-                buttonCommitBuyOrder.setText(bundle.getString("buy.text"));
-                buttonCommitBuyOrder.setFont(buttonCommitBuyOrder.getFont().deriveFont(buttonCommitBuyOrder.getFont().getStyle() | Font.BOLD));
-                buttonCommitBuyOrder.setBackground(new Color(45, 195, 22));
-                buttonCommitBuyOrder.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        buttonCommitBuyOrderActionPerformed(e);
-                    }
-                });
-                panelBuy.add(buttonCommitBuyOrder, CC.xy(9, 3, CC.FILL, CC.DEFAULT));
+                    //---- buttonCommitBuyOrder ----
+                    buttonCommitBuyOrder.setText(bundle.getString("buy.text"));
+                    buttonCommitBuyOrder.setFont(buttonCommitBuyOrder.getFont().deriveFont(buttonCommitBuyOrder.getFont().getStyle() | Font.BOLD));
+                    buttonCommitBuyOrder.setBackground(new Color(45, 195, 22));
+                    buttonCommitBuyOrder.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            buttonCommitBuyOrderActionPerformed(e);
+                        }
+                    });
+                    panelBuy.add(buttonCommitBuyOrder, CC.xy(9, 3, CC.FILL, CC.DEFAULT));
 
-                //---- labelBuyOrderAmount ----
-                labelBuyOrderAmount.setText(bundle.getString("TraderMainForm.labelBuyOrderAmount.text"));
-                labelBuyOrderAmount.setLabelFor(spinnerBuyOrderAmount);
-                panelBuy.add(labelBuyOrderAmount, CC.xy(3, 5, CC.LEFT, CC.DEFAULT));
+                    //---- labelBuyOrderAmount ----
+                    labelBuyOrderAmount.setText(bundle.getString("TraderMainForm.labelBuyOrderAmount.text"));
+                    labelBuyOrderAmount.setLabelFor(spinnerBuyOrderAmount);
+                    panelBuy.add(labelBuyOrderAmount, CC.xy(3, 5, CC.LEFT, CC.DEFAULT));
 
-                //---- spinnerBuyOrderAmount ----
-                spinnerBuyOrderAmount.setModel(new SpinnerNumberModel(0.0, 0.0, null, 0.01));
-                spinnerBuyOrderAmount.addChangeListener(new ChangeListener() {
-                    @Override
-                    public void stateChanged(ChangeEvent e) {
-                        spinnerPriceOrAmountStateChanged(e);
-                    }
-                });
-                panelBuy.add(spinnerBuyOrderAmount, CC.xy(5, 5));
+                    //---- spinnerBuyOrderAmount ----
+                    spinnerBuyOrderAmount.setModel(new SpinnerNumberModel(0.0, 0.0, null, 0.01));
+                    spinnerBuyOrderAmount.addChangeListener(new ChangeListener() {
+                        @Override
+                        public void stateChanged(ChangeEvent e) {
+                            spinnerPriceOrAmountStateChanged(e);
+                        }
+                    });
+                    panelBuy.add(spinnerBuyOrderAmount, CC.xy(5, 5));
 
-                //---- sliderBuyOrderAmount ----
-                sliderBuyOrderAmount.setValue(0);
-                sliderBuyOrderAmount.addChangeListener(new ChangeListener() {
-                    @Override
-                    public void stateChanged(ChangeEvent e) {
-                        sliderBuyOrderAmountStateChanged(e);
-                    }
-                });
-                panelBuy.add(sliderBuyOrderAmount, CC.xywh(7, 5, 3, 1, CC.FILL, CC.DEFAULT));
+                    //---- sliderBuyOrderAmount ----
+                    sliderBuyOrderAmount.setValue(0);
+                    sliderBuyOrderAmount.addChangeListener(new ChangeListener() {
+                        @Override
+                        public void stateChanged(ChangeEvent e) {
+                            sliderBuyOrderAmountStateChanged(e);
+                        }
+                    });
+                    panelBuy.add(sliderBuyOrderAmount, CC.xywh(7, 5, 3, 1, CC.FILL, CC.DEFAULT));
 
-                //---- labelBuyOrderTotal ----
-                labelBuyOrderTotal.setText(bundle.getString("TraderMainForm.labelBuyOrderTotal.text"));
-                panelBuy.add(labelBuyOrderTotal, CC.xy(3, 7, CC.LEFT, CC.DEFAULT));
+                    //---- labelBuyOrderTotal ----
+                    labelBuyOrderTotal.setText(bundle.getString("TraderMainForm.labelBuyOrderTotal.text"));
+                    panelBuy.add(labelBuyOrderTotal, CC.xy(3, 7, CC.LEFT, CC.DEFAULT));
 
-                //---- labelBuyOrderTotalValue ----
-                labelBuyOrderTotalValue.setText("0 / 0");
-                panelBuy.add(labelBuyOrderTotalValue, CC.xywh(5, 7, 5, 1, CC.LEFT, CC.DEFAULT));
-            }
-            tabbedPaneTrade.addTab(bundle.getString("buy.text"), panelBuy);
+                    //---- labelBuyOrderTotalValue ----
+                    labelBuyOrderTotalValue.setText("0 / 0");
+                    panelBuy.add(labelBuyOrderTotalValue, CC.xywh(5, 7, 5, 1, CC.LEFT, CC.DEFAULT));
+                }
+                tabbedPaneTrade.addTab(bundle.getString("buy.text"), panelBuy);
 
-            //======== panelSell ========
-            {
-                panelSell.setLayout(new FormLayout(
+                //======== panelSell ========
+                {
+                    panelSell.setLayout(new FormLayout(
                         "5dlu, $lcgap, 30dlu, $lcgap, 108dlu, $lcgap, 45dlu:grow, $lcgap, [70dlu,default]:grow",
                         "5dlu, 2*($lgap, default), $lgap, 14dlu"));
 
-                //---- labelSellOrderPrice ----
-                labelSellOrderPrice.setText(bundle.getString("TraderMainForm.labelSellOrderPrice.text"));
-                labelSellOrderPrice.setLabelFor(spinnerSellOrderPrice);
-                panelSell.add(labelSellOrderPrice, CC.xy(3, 3, CC.LEFT, CC.DEFAULT));
+                    //---- labelSellOrderPrice ----
+                    labelSellOrderPrice.setText(bundle.getString("TraderMainForm.labelSellOrderPrice.text"));
+                    labelSellOrderPrice.setLabelFor(spinnerSellOrderPrice);
+                    panelSell.add(labelSellOrderPrice, CC.xy(3, 3, CC.LEFT, CC.DEFAULT));
 
-                //---- spinnerSellOrderPrice ----
-                spinnerSellOrderPrice.setModel(new SpinnerNumberModel(0.0, 0.0, null, 1.0));
-                spinnerSellOrderPrice.addChangeListener(new ChangeListener() {
-                    @Override
-                    public void stateChanged(ChangeEvent e) {
-                        spinnerPriceOrAmountStateChanged(e);
-                    }
-                });
-                panelSell.add(spinnerSellOrderPrice, CC.xy(5, 3));
+                    //---- spinnerSellOrderPrice ----
+                    spinnerSellOrderPrice.setModel(new SpinnerNumberModel(0.0, 0.0, null, 1.0));
+                    spinnerSellOrderPrice.addChangeListener(new ChangeListener() {
+                        @Override
+                        public void stateChanged(ChangeEvent e) {
+                            spinnerPriceOrAmountStateChanged(e);
+                        }
+                    });
+                    panelSell.add(spinnerSellOrderPrice, CC.xy(5, 3));
 
-                //---- buttonSellOrderPriceSetCurrent ----
-                buttonSellOrderPriceSetCurrent.setText(bundle.getString("TraderMainForm.buttonSellOrderPriceSetCurrent.text"));
-                buttonSellOrderPriceSetCurrent.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        buttonSellOrderPriceSetCurrentActionPerformed(e);
-                    }
-                });
-                panelSell.add(buttonSellOrderPriceSetCurrent, CC.xy(7, 3, CC.FILL, CC.DEFAULT));
+                    //---- buttonSellOrderPriceSetCurrent ----
+                    buttonSellOrderPriceSetCurrent.setText(bundle.getString("TraderMainForm.buttonSellOrderPriceSetCurrent.text"));
+                    buttonSellOrderPriceSetCurrent.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            buttonSellOrderPriceSetCurrentActionPerformed(e);
+                        }
+                    });
+                    panelSell.add(buttonSellOrderPriceSetCurrent, CC.xy(7, 3, CC.FILL, CC.DEFAULT));
 
-                //---- buttonCommitSellOrder ----
-                buttonCommitSellOrder.setText(bundle.getString("sell.text"));
-                buttonCommitSellOrder.setBackground(new Color(255, 81, 81));
-                buttonCommitSellOrder.setFont(buttonCommitSellOrder.getFont().deriveFont(buttonCommitSellOrder.getFont().getStyle() | Font.BOLD));
-                buttonCommitSellOrder.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        buttonCommitSellOrderActionPerformed(e);
-                    }
-                });
-                panelSell.add(buttonCommitSellOrder, CC.xy(9, 3, CC.FILL, CC.DEFAULT));
+                    //---- buttonCommitSellOrder ----
+                    buttonCommitSellOrder.setText(bundle.getString("sell.text"));
+                    buttonCommitSellOrder.setBackground(new Color(255, 81, 81));
+                    buttonCommitSellOrder.setFont(buttonCommitSellOrder.getFont().deriveFont(buttonCommitSellOrder.getFont().getStyle() | Font.BOLD));
+                    buttonCommitSellOrder.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            buttonCommitSellOrderActionPerformed(e);
+                        }
+                    });
+                    panelSell.add(buttonCommitSellOrder, CC.xy(9, 3, CC.FILL, CC.DEFAULT));
 
-                //---- labelSellOrderAmount ----
-                labelSellOrderAmount.setText(bundle.getString("TraderMainForm.labelSellOrderAmount.text"));
-                labelSellOrderAmount.setLabelFor(spinnerSellOrderAmount);
-                panelSell.add(labelSellOrderAmount, CC.xy(3, 5, CC.LEFT, CC.DEFAULT));
+                    //---- labelSellOrderAmount ----
+                    labelSellOrderAmount.setText(bundle.getString("TraderMainForm.labelSellOrderAmount.text"));
+                    labelSellOrderAmount.setLabelFor(spinnerSellOrderAmount);
+                    panelSell.add(labelSellOrderAmount, CC.xy(3, 5, CC.LEFT, CC.DEFAULT));
 
-                //---- spinnerSellOrderAmount ----
-                spinnerSellOrderAmount.setModel(new SpinnerNumberModel(0.0, 0.0, null, 0.01));
-                spinnerSellOrderAmount.addChangeListener(new ChangeListener() {
-                    @Override
-                    public void stateChanged(ChangeEvent e) {
-                        spinnerPriceOrAmountStateChanged(e);
-                    }
-                });
-                panelSell.add(spinnerSellOrderAmount, CC.xy(5, 5));
+                    //---- spinnerSellOrderAmount ----
+                    spinnerSellOrderAmount.setModel(new SpinnerNumberModel(0.0, 0.0, null, 0.01));
+                    spinnerSellOrderAmount.addChangeListener(new ChangeListener() {
+                        @Override
+                        public void stateChanged(ChangeEvent e) {
+                            spinnerPriceOrAmountStateChanged(e);
+                        }
+                    });
+                    panelSell.add(spinnerSellOrderAmount, CC.xy(5, 5));
 
-                //---- sliderSellOrderAmount ----
-                sliderSellOrderAmount.setValue(0);
-                sliderSellOrderAmount.addChangeListener(new ChangeListener() {
-                    @Override
-                    public void stateChanged(ChangeEvent e) {
-                        sliderSellOrderAmountStateChanged(e);
-                    }
-                });
-                panelSell.add(sliderSellOrderAmount, CC.xywh(7, 5, 3, 1, CC.FILL, CC.DEFAULT));
+                    //---- sliderSellOrderAmount ----
+                    sliderSellOrderAmount.setValue(0);
+                    sliderSellOrderAmount.addChangeListener(new ChangeListener() {
+                        @Override
+                        public void stateChanged(ChangeEvent e) {
+                            sliderSellOrderAmountStateChanged(e);
+                        }
+                    });
+                    panelSell.add(sliderSellOrderAmount, CC.xywh(7, 5, 3, 1, CC.FILL, CC.DEFAULT));
 
-                //---- labelSellOrderTotal ----
-                labelSellOrderTotal.setText(bundle.getString("TraderMainForm.labelSellOrderTotal.text"));
-                panelSell.add(labelSellOrderTotal, CC.xy(3, 7, CC.LEFT, CC.DEFAULT));
+                    //---- labelSellOrderTotal ----
+                    labelSellOrderTotal.setText(bundle.getString("TraderMainForm.labelSellOrderTotal.text"));
+                    panelSell.add(labelSellOrderTotal, CC.xy(3, 7, CC.LEFT, CC.DEFAULT));
 
-                //---- labelSellOrderTotalValue ----
-                labelSellOrderTotalValue.setText("0 / 0");
-                panelSell.add(labelSellOrderTotalValue, CC.xywh(5, 7, 5, 1, CC.LEFT, CC.DEFAULT));
-            }
-            tabbedPaneTrade.addTab(bundle.getString("sell.text"), panelSell);
+                    //---- labelSellOrderTotalValue ----
+                    labelSellOrderTotalValue.setText("0 / 0");
+                    panelSell.add(labelSellOrderTotalValue, CC.xywh(5, 7, 5, 1, CC.LEFT, CC.DEFAULT));
+                }
+                tabbedPaneTrade.addTab(bundle.getString("sell.text"), panelSell);
 
-            //======== panelRules ========
-            {
-                panelRules.setLayout(new FormLayout(
+                //======== panelRules ========
+                {
+                    panelRules.setLayout(new FormLayout(
                         "default:grow, $lcgap, right:16dlu",
                         "fill:default"));
 
-                //======== scrollPane2 ========
-                {
-
-                    //---- tableRules ----
-                    tableRules.setModel(new DefaultTableModel(
-                            new Object[][]{
-                                    {null, null, null},
-                            },
-                            new String[]{
-                                    "#", "Condition", "Action"
-                            }
-                    ) {
-                        Class<?>[] columnTypes = new Class<?>[]{
-                                Integer.class, Object.class, Object.class
-                        };
-                        boolean[] columnEditable = new boolean[]{
-                                false, false, false
-                        };
-
-                        @Override
-                        public Class<?> getColumnClass(int columnIndex) {
-                            return columnTypes[columnIndex];
-                        }
-
-                        @Override
-                        public boolean isCellEditable(int rowIndex, int columnIndex) {
-                            return columnEditable[columnIndex];
-                        }
-                    });
+                    //======== scrollPane2 ========
                     {
-                        TableColumnModel cm = tableRules.getColumnModel();
-                        cm.getColumn(0).setMaxWidth(50);
-                        cm.getColumn(0).setPreferredWidth(20);
+
+                        //---- tableRules ----
+                        tableRules.setModel(new DefaultTableModel(
+                            new Object[][] {
+                                {null, null, null},
+                            },
+                            new String[] {
+                                "#", "Condition", "Action"
+                            }
+                        ) {
+                            Class<?>[] columnTypes = new Class<?>[] {
+                                Integer.class, Object.class, Object.class
+                            };
+                            boolean[] columnEditable = new boolean[] {
+                                false, false, false
+                            };
+                            @Override
+                            public Class<?> getColumnClass(int columnIndex) {
+                                return columnTypes[columnIndex];
+                            }
+                            @Override
+                            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                                return columnEditable[columnIndex];
+                            }
+                        });
+                        {
+                            TableColumnModel cm = tableRules.getColumnModel();
+                            cm.getColumn(0).setMaxWidth(50);
+                            cm.getColumn(0).setPreferredWidth(20);
+                        }
+                        scrollPane2.setViewportView(tableRules);
                     }
-                    scrollPane2.setViewportView(tableRules);
-                }
-                panelRules.add(scrollPane2, CC.xy(1, 1));
+                    panelRules.add(scrollPane2, CC.xy(1, 1));
 
-                //======== toolBar1 ========
-                {
-                    toolBar1.setOrientation(SwingConstants.VERTICAL);
-                    toolBar1.setFloatable(false);
+                    //======== toolBar1 ========
+                    {
+                        toolBar1.setOrientation(SwingConstants.VERTICAL);
+                        toolBar1.setFloatable(false);
 
-                    //---- buttonAddRule ----
-                    buttonAddRule.setIcon(new ImageIcon(getClass().getResource("/icons/plus.png")));
-                    buttonAddRule.addActionListener(new ActionListener() {
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            buttonAddRuleActionPerformed(e);
-                        }
-                    });
-                    toolBar1.add(buttonAddRule);
-
-                    //---- buttonDeleteRule ----
-                    buttonDeleteRule.setIcon(new ImageIcon(getClass().getResource("/icons/delete.png")));
-                    buttonDeleteRule.addActionListener(new ActionListener() {
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            buttonDeleteRuleActionPerformed(e);
-                        }
-                    });
-                    toolBar1.add(buttonDeleteRule);
-                }
-                panelRules.add(toolBar1, CC.xy(3, 1));
-            }
-            tabbedPaneTrade.addTab(bundle.getString("TraderMainForm.panelRules.tab.title"), panelRules);
-        }
-        add(tabbedPaneTrade, CC.xywh(1, 5, 3, 1));
-        add(separator2, CC.xywh(1, 7, 3, 1));
-
-        //======== tabbedPaneInfo ========
-        {
-            tabbedPaneInfo.addChangeListener(new ChangeListener() {
-                @Override
-                public void stateChanged(ChangeEvent e) {
-                    tabbedPaneInfoStateChanged(e);
-                }
-            });
-
-            //======== panelOrders ========
-            {
-                panelOrders.setLayout(new FormLayout(
-                        "default:grow",
-                        "default"));
-
-                //======== scrollPane4 ========
-                {
-
-                    //---- tableOpenOrders ----
-                    tableOpenOrders.setModel(new DefaultTableModel(
-                            new Object[][]{
-                                    {null, null, null, null, null},
-                            },
-                            new String[]{
-                                    "#", "Type", "Price", "Amount", "Total"
+                        //---- buttonAddRule ----
+                        buttonAddRule.setIcon(new ImageIcon(getClass().getResource("/icons/plus.png")));
+                        buttonAddRule.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                buttonAddRuleActionPerformed(e);
                             }
-                    ) {
-                        Class<?>[] columnTypes = new Class<?>[]{
-                                Object.class, String.class, Double.class, Double.class, Double.class
-                        };
-                        boolean[] columnEditable = new boolean[]{
-                                true, false, false, false, false
-                        };
+                        });
+                        toolBar1.add(buttonAddRule);
 
-                        @Override
-                        public Class<?> getColumnClass(int columnIndex) {
-                            return columnTypes[columnIndex];
-                        }
-
-                        @Override
-                        public boolean isCellEditable(int rowIndex, int columnIndex) {
-                            return columnEditable[columnIndex];
-                        }
-                    });
-                    tableOpenOrders.addMouseListener(new MouseAdapter() {
-                        @Override
-                        public void mousePressed(MouseEvent e) {
-                            tableOpenOrdersPopupMenuHandler(e);
-                        }
-
-                        @Override
-                        public void mouseReleased(MouseEvent e) {
-                            tableOpenOrdersPopupMenuHandler(e);
-                        }
-                    });
-                    scrollPane4.setViewportView(tableOpenOrders);
-                }
-                panelOrders.add(scrollPane4, CC.xy(1, 1));
-            }
-            tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelOrders.tab.title"), panelOrders);
-
-            //======== panelBalance ========
-            {
-                panelBalance.setLayout(new FormLayout(
-                        "112dlu:grow",
-                        "default"));
-
-                //======== scrollPane3 ========
-                {
-
-                    //---- tableBalances ----
-                    tableBalances.setModel(new DefaultTableModel(
-                            new Object[][]{
-                                    {null, null},
-                            },
-                            new String[]{
-                                    "Currency", "Balance"
+                        //---- buttonDeleteRule ----
+                        buttonDeleteRule.setIcon(new ImageIcon(getClass().getResource("/icons/delete.png")));
+                        buttonDeleteRule.addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                buttonDeleteRuleActionPerformed(e);
                             }
-                    ) {
-                        Class<?>[] columnTypes = new Class<?>[]{
-                                String.class, Double.class
-                        };
-                        boolean[] columnEditable = new boolean[]{
-                                false, false
-                        };
-
-                        @Override
-                        public Class<?> getColumnClass(int columnIndex) {
-                            return columnTypes[columnIndex];
-                        }
-
-                        @Override
-                        public boolean isCellEditable(int rowIndex, int columnIndex) {
-                            return columnEditable[columnIndex];
-                        }
-                    });
-                    tableBalances.setAutoCreateRowSorter(true);
-                    tableBalances.setCellSelectionEnabled(true);
-                    scrollPane3.setViewportView(tableBalances);
+                        });
+                        toolBar1.add(buttonDeleteRule);
+                    }
+                    panelRules.add(toolBar1, CC.xy(3, 1));
                 }
-                panelBalance.add(scrollPane3, CC.xy(1, 1));
+                tabbedPaneTrade.addTab(bundle.getString("TraderMainForm.panelRules.tab.title"), panelRules);
             }
-            tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelBalance.tab.title"), panelBalance);
+            splitPane1.setTopComponent(tabbedPaneTrade);
 
-            //======== panelDepth ========
+            //======== tabbedPaneInfo ========
             {
-                panelDepth.setLayout(new FormLayout(
-                        "[90dlu,default], $lcgap, [90dlu,default]",
-                        "default, $lgap, fill:137dlu:grow"));
-
-                //---- labelBuyOrders ----
-                labelBuyOrders.setText(bundle.getString("TraderMainForm.labelBuyOrders.text"));
-                labelBuyOrders.setHorizontalAlignment(SwingConstants.CENTER);
-                labelBuyOrders.setFont(labelBuyOrders.getFont().deriveFont(labelBuyOrders.getFont().getStyle() | Font.BOLD));
-                labelBuyOrders.setLabelFor(tableBuyOrders);
-                panelDepth.add(labelBuyOrders, CC.xy(1, 1));
-
-                //---- labelSellOrders ----
-                labelSellOrders.setText(bundle.getString("TraderMainForm.labelSellOrders.text"));
-                labelSellOrders.setLabelFor(tableSellOrders);
-                labelSellOrders.setHorizontalAlignment(SwingConstants.CENTER);
-                labelSellOrders.setFont(labelSellOrders.getFont().deriveFont(labelSellOrders.getFont().getStyle() | Font.BOLD));
-                panelDepth.add(labelSellOrders, CC.xy(3, 1));
-
-                //======== scrollPaneBuyOrders ========
-                {
-
-                    //---- tableBuyOrders ----
-                    tableBuyOrders.setModel(new DefaultTableModel(
-                            new Object[][]{
-                                    {null, null},
-                            },
-                            new String[]{
-                                    "Price", "Amount"
-                            }
-                    ) {
-                        Class<?>[] columnTypes = new Class<?>[]{
-                                Double.class, Double.class
-                        };
-                        boolean[] columnEditable = new boolean[]{
-                                false, false
-                        };
-
-                        @Override
-                        public Class<?> getColumnClass(int columnIndex) {
-                            return columnTypes[columnIndex];
-                        }
-
-                        @Override
-                        public boolean isCellEditable(int rowIndex, int columnIndex) {
-                            return columnEditable[columnIndex];
-                        }
-                    });
-                    tableBuyOrders.setAutoCreateRowSorter(true);
-                    tableBuyOrders.setCellSelectionEnabled(true);
-                    scrollPaneBuyOrders.setViewportView(tableBuyOrders);
-                }
-                panelDepth.add(scrollPaneBuyOrders, CC.xy(1, 3));
-
-                //======== scrollPaneSellOrders ========
-                {
-
-                    //---- tableSellOrders ----
-                    tableSellOrders.setModel(new DefaultTableModel(
-                            new Object[][]{
-                                    {null, null},
-                            },
-                            new String[]{
-                                    "Price", "Amount"
-                            }
-                    ) {
-                        Class<?>[] columnTypes = new Class<?>[]{
-                                Double.class, Double.class
-                        };
-                        boolean[] columnEditable = new boolean[]{
-                                false, false
-                        };
-
-                        @Override
-                        public Class<?> getColumnClass(int columnIndex) {
-                            return columnTypes[columnIndex];
-                        }
-
-                        @Override
-                        public boolean isCellEditable(int rowIndex, int columnIndex) {
-                            return columnEditable[columnIndex];
-                        }
-                    });
-                    tableSellOrders.setAutoCreateRowSorter(true);
-                    scrollPaneSellOrders.setViewportView(tableSellOrders);
-                }
-                panelDepth.add(scrollPaneSellOrders, CC.xy(3, 3));
-            }
-            tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelDepth.tab.title"), panelDepth);
-
-            //======== panelHistory ========
-            {
-                panelHistory.addChangeListener(new ChangeListener() {
+                tabbedPaneInfo.addChangeListener(new ChangeListener() {
                     @Override
                     public void stateChanged(ChangeEvent e) {
-                        panelHistoryStateChanged(e);
+                        tabbedPaneInfoStateChanged(e);
                     }
                 });
 
-                //======== panelMyTrades ========
+                //======== panelOrders ========
                 {
-                    panelMyTrades.setLayout(new FormLayout(
-                            "default:grow",
-                            "fill:default:grow"));
-
-                    //======== scrollPane6 ========
-                    {
-
-                        //---- tableAccountHistory ----
-                        tableAccountHistory.setModel(new DefaultTableModel(
-                                new Object[][]{
-                                        {null, null, null, null, null},
-                                },
-                                new String[]{
-                                        "Time", "Type", "Price", "Amount", "Total"
-                                }
-                        ) {
-                            Class<?>[] columnTypes = new Class<?>[]{
-                                    Date.class, String.class, Double.class, Double.class, Double.class
-                            };
-                            boolean[] columnEditable = new boolean[]{
-                                    false, false, false, false, false
-                            };
-
-                            @Override
-                            public Class<?> getColumnClass(int columnIndex) {
-                                return columnTypes[columnIndex];
-                            }
-
-                            @Override
-                            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                                return columnEditable[columnIndex];
-                            }
-                        });
-                        tableAccountHistory.setAutoCreateRowSorter(true);
-                        scrollPane6.setViewportView(tableAccountHistory);
-                    }
-                    panelMyTrades.add(scrollPane6, CC.xy(1, 1));
-                }
-                panelHistory.addTab(bundle.getString("TraderMainForm.panelMyTrades.tab.title"), panelMyTrades);
-
-                //======== panelMarketTrades ========
-                {
-                    panelMarketTrades.setLayout(new FormLayout(
-                            "default:grow",
-                            "fill:default:grow"));
-
-                    //======== scrollPane7 ========
-                    {
-
-                        //---- tableMarketHistory ----
-                        tableMarketHistory.setModel(new DefaultTableModel(
-                                new Object[][]{
-                                        {null, null, null, null, null},
-                                },
-                                new String[]{
-                                        "Time", "Type", "Price", "Amount", "Total"
-                                }
-                        ) {
-                            Class<?>[] columnTypes = new Class<?>[]{
-                                    Date.class, String.class, Double.class, Double.class, Double.class
-                            };
-                            boolean[] columnEditable = new boolean[]{
-                                    false, false, false, false, false
-                            };
-
-                            @Override
-                            public Class<?> getColumnClass(int columnIndex) {
-                                return columnTypes[columnIndex];
-                            }
-
-                            @Override
-                            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                                return columnEditable[columnIndex];
-                            }
-                        });
-                        tableMarketHistory.setAutoCreateRowSorter(true);
-                        scrollPane7.setViewportView(tableMarketHistory);
-                    }
-                    panelMarketTrades.add(scrollPane7, CC.xy(1, 1));
-                }
-                panelHistory.addTab(bundle.getString("TraderMainForm.panelMarketTrades.tab.title"), panelMarketTrades);
-            }
-            tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelHistory.tab.title"), panelHistory);
-
-            //======== panelCharts ========
-            {
-                panelCharts.setLayout(new FormLayout(
-                        "default, $lcgap, default",
-                        "2*(default, $lgap), default"));
-            }
-            tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelCharts.tab.title"), panelCharts);
-
-            //======== panelMarketCap ========
-            {
-                panelMarketCap.setLayout(new FormLayout(
+                    panelOrders.setLayout(new FormLayout(
                         "default:grow",
-                        "fill:default:grow"));
+                        "[55dlu,default]"));
 
-                //======== scrollPane1 ========
-                {
+                    //======== scrollPane4 ========
+                    {
 
-                    //---- tableMarketCap ----
-                    tableMarketCap.setModel(new DefaultTableModel(
-                            new Object[][]{
-                                    {null, null, null, null, null, null, null},
+                        //---- tableOpenOrders ----
+                        tableOpenOrders.setModel(new DefaultTableModel(
+                            new Object[][] {
+                                {null, null, null, null, null},
                             },
-                            new String[]{
-                                    "#", "Currency", "USD cap", "BTC cap", "USD volume", "BTC volume", "Change (24h)"
+                            new String[] {
+                                "#", "Type", "Price", "Amount", "Total"
                             }
-                    ) {
-                        Class<?>[] columnTypes = new Class<?>[]{
-                                Short.class, String.class, Long.class, Long.class, Long.class, Long.class, Double.class
-                        };
-                        boolean[] columnEditable = new boolean[]{
-                                true, false, false, false, false, false, false
-                        };
+                        ) {
+                            Class<?>[] columnTypes = new Class<?>[] {
+                                Object.class, String.class, Double.class, Double.class, Double.class
+                            };
+                            boolean[] columnEditable = new boolean[] {
+                                true, false, false, false, false
+                            };
+                            @Override
+                            public Class<?> getColumnClass(int columnIndex) {
+                                return columnTypes[columnIndex];
+                            }
+                            @Override
+                            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                                return columnEditable[columnIndex];
+                            }
+                        });
+                        tableOpenOrders.addMouseListener(new MouseAdapter() {
+                            @Override
+                            public void mousePressed(MouseEvent e) {
+                                tableOpenOrdersPopupMenuHandler(e);
+                            }
+                            @Override
+                            public void mouseReleased(MouseEvent e) {
+                                tableOpenOrdersPopupMenuHandler(e);
+                            }
+                        });
+                        scrollPane4.setViewportView(tableOpenOrders);
+                    }
+                    panelOrders.add(scrollPane4, CC.xy(1, 1));
+                }
+                tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelOrders.tab.title"), panelOrders);
 
-                        @Override
-                        public Class<?> getColumnClass(int columnIndex) {
-                            return columnTypes[columnIndex];
-                        }
+                //======== panelBalance ========
+                {
+                    panelBalance.setLayout(new FormLayout(
+                        "112dlu:grow",
+                        "[55dlu,default]"));
 
+                    //======== scrollPane3 ========
+                    {
+
+                        //---- tableBalances ----
+                        tableBalances.setModel(new DefaultTableModel(
+                            new Object[][] {
+                                {null, null},
+                            },
+                            new String[] {
+                                "Currency", "Balance"
+                            }
+                        ) {
+                            Class<?>[] columnTypes = new Class<?>[] {
+                                String.class, Double.class
+                            };
+                            boolean[] columnEditable = new boolean[] {
+                                false, false
+                            };
+                            @Override
+                            public Class<?> getColumnClass(int columnIndex) {
+                                return columnTypes[columnIndex];
+                            }
+                            @Override
+                            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                                return columnEditable[columnIndex];
+                            }
+                        });
+                        tableBalances.setAutoCreateRowSorter(true);
+                        tableBalances.setCellSelectionEnabled(true);
+                        scrollPane3.setViewportView(tableBalances);
+                    }
+                    panelBalance.add(scrollPane3, CC.xy(1, 1));
+                }
+                tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelBalance.tab.title"), panelBalance);
+
+                //======== panelDepth ========
+                {
+                    panelDepth.setLayout(new FormLayout(
+                        "[90dlu,default], $lcgap, [90dlu,default]",
+                        "default, $lgap, fill:[55dlu,default]:grow"));
+
+                    //---- labelBuyOrders ----
+                    labelBuyOrders.setText(bundle.getString("TraderMainForm.labelBuyOrders.text"));
+                    labelBuyOrders.setHorizontalAlignment(SwingConstants.CENTER);
+                    labelBuyOrders.setFont(labelBuyOrders.getFont().deriveFont(labelBuyOrders.getFont().getStyle() | Font.BOLD));
+                    labelBuyOrders.setLabelFor(tableBuyOrders);
+                    panelDepth.add(labelBuyOrders, CC.xy(1, 1));
+
+                    //---- labelSellOrders ----
+                    labelSellOrders.setText(bundle.getString("TraderMainForm.labelSellOrders.text"));
+                    labelSellOrders.setLabelFor(tableSellOrders);
+                    labelSellOrders.setHorizontalAlignment(SwingConstants.CENTER);
+                    labelSellOrders.setFont(labelSellOrders.getFont().deriveFont(labelSellOrders.getFont().getStyle() | Font.BOLD));
+                    panelDepth.add(labelSellOrders, CC.xy(3, 1));
+
+                    //======== scrollPaneBuyOrders ========
+                    {
+
+                        //---- tableBuyOrders ----
+                        tableBuyOrders.setModel(new DefaultTableModel(
+                            new Object[][] {
+                                {null, null},
+                            },
+                            new String[] {
+                                "Price", "Amount"
+                            }
+                        ) {
+                            Class<?>[] columnTypes = new Class<?>[] {
+                                Double.class, Double.class
+                            };
+                            boolean[] columnEditable = new boolean[] {
+                                false, false
+                            };
+                            @Override
+                            public Class<?> getColumnClass(int columnIndex) {
+                                return columnTypes[columnIndex];
+                            }
+                            @Override
+                            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                                return columnEditable[columnIndex];
+                            }
+                        });
+                        tableBuyOrders.setAutoCreateRowSorter(true);
+                        tableBuyOrders.setCellSelectionEnabled(true);
+                        scrollPaneBuyOrders.setViewportView(tableBuyOrders);
+                    }
+                    panelDepth.add(scrollPaneBuyOrders, CC.xy(1, 3));
+
+                    //======== scrollPaneSellOrders ========
+                    {
+
+                        //---- tableSellOrders ----
+                        tableSellOrders.setModel(new DefaultTableModel(
+                            new Object[][] {
+                                {null, null},
+                            },
+                            new String[] {
+                                "Price", "Amount"
+                            }
+                        ) {
+                            Class<?>[] columnTypes = new Class<?>[] {
+                                Double.class, Double.class
+                            };
+                            boolean[] columnEditable = new boolean[] {
+                                false, false
+                            };
+                            @Override
+                            public Class<?> getColumnClass(int columnIndex) {
+                                return columnTypes[columnIndex];
+                            }
+                            @Override
+                            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                                return columnEditable[columnIndex];
+                            }
+                        });
+                        tableSellOrders.setAutoCreateRowSorter(true);
+                        scrollPaneSellOrders.setViewportView(tableSellOrders);
+                    }
+                    panelDepth.add(scrollPaneSellOrders, CC.xy(3, 3));
+                }
+                tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelDepth.tab.title"), panelDepth);
+
+                //======== panelHistory ========
+                {
+                    panelHistory.addChangeListener(new ChangeListener() {
                         @Override
-                        public boolean isCellEditable(int rowIndex, int columnIndex) {
-                            return columnEditable[columnIndex];
+                        public void stateChanged(ChangeEvent e) {
+                            panelHistoryStateChanged(e);
                         }
                     });
-                    {
-                        TableColumnModel cm = tableMarketCap.getColumnModel();
-                        cm.getColumn(0).setPreferredWidth(20);
-                    }
-                    tableMarketCap.setAutoCreateRowSorter(true);
-                    scrollPane1.setViewportView(tableMarketCap);
-                }
-                panelMarketCap.add(scrollPane1, CC.xy(1, 1));
-            }
-            tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelMarketCap.tab.title"), panelMarketCap);
 
-            //======== panelSettings ========
-            {
-                panelSettings.setLayout(new FormLayout(
+                    //======== panelMyTrades ========
+                    {
+                        panelMyTrades.setLayout(new FormLayout(
+                            "default:grow",
+                            "fill:[55dlu,default]:grow"));
+
+                        //======== scrollPane6 ========
+                        {
+
+                            //---- tableAccountHistory ----
+                            tableAccountHistory.setModel(new DefaultTableModel(
+                                new Object[][] {
+                                    {null, null, null, null, null},
+                                },
+                                new String[] {
+                                    "Time", "Type", "Price", "Amount", "Total"
+                                }
+                            ) {
+                                Class<?>[] columnTypes = new Class<?>[] {
+                                    Date.class, String.class, Double.class, Double.class, Double.class
+                                };
+                                boolean[] columnEditable = new boolean[] {
+                                    false, false, false, false, false
+                                };
+                                @Override
+                                public Class<?> getColumnClass(int columnIndex) {
+                                    return columnTypes[columnIndex];
+                                }
+                                @Override
+                                public boolean isCellEditable(int rowIndex, int columnIndex) {
+                                    return columnEditable[columnIndex];
+                                }
+                            });
+                            tableAccountHistory.setAutoCreateRowSorter(true);
+                            scrollPane6.setViewportView(tableAccountHistory);
+                        }
+                        panelMyTrades.add(scrollPane6, CC.xy(1, 1));
+                    }
+                    panelHistory.addTab(bundle.getString("TraderMainForm.panelMyTrades.tab.title"), panelMyTrades);
+
+                    //======== panelMarketTrades ========
+                    {
+                        panelMarketTrades.setLayout(new FormLayout(
+                            "default:grow",
+                            "fill:[55dlu,default]:grow"));
+
+                        //======== scrollPane7 ========
+                        {
+
+                            //---- tableMarketHistory ----
+                            tableMarketHistory.setModel(new DefaultTableModel(
+                                new Object[][] {
+                                    {null, null, null, null, null},
+                                },
+                                new String[] {
+                                    "Time", "Type", "Price", "Amount", "Total"
+                                }
+                            ) {
+                                Class<?>[] columnTypes = new Class<?>[] {
+                                    Date.class, String.class, Double.class, Double.class, Double.class
+                                };
+                                boolean[] columnEditable = new boolean[] {
+                                    false, false, false, false, false
+                                };
+                                @Override
+                                public Class<?> getColumnClass(int columnIndex) {
+                                    return columnTypes[columnIndex];
+                                }
+                                @Override
+                                public boolean isCellEditable(int rowIndex, int columnIndex) {
+                                    return columnEditable[columnIndex];
+                                }
+                            });
+                            tableMarketHistory.setAutoCreateRowSorter(true);
+                            scrollPane7.setViewportView(tableMarketHistory);
+                        }
+                        panelMarketTrades.add(scrollPane7, CC.xy(1, 1));
+                    }
+                    panelHistory.addTab(bundle.getString("TraderMainForm.panelMarketTrades.tab.title"), panelMarketTrades);
+                }
+                tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelHistory.tab.title"), panelHistory);
+
+                //======== panelCharts ========
+                {
+                    panelCharts.setLayout(new FormLayout(
+                        "default, $lcgap, default",
+                        "2*(default, $lgap), default"));
+                }
+                tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelCharts.tab.title"), panelCharts);
+
+                //======== panelMarketCap ========
+                {
+                    panelMarketCap.setLayout(new FormLayout(
+                        "default:grow",
+                        "fill:[55dlu,default]:grow"));
+
+                    //======== scrollPane1 ========
+                    {
+
+                        //---- tableMarketCap ----
+                        tableMarketCap.setModel(new DefaultTableModel(
+                            new Object[][] {
+                                {null, null, null, null, null, null, null},
+                            },
+                            new String[] {
+                                "#", "Currency", "USD cap", "BTC cap", "USD volume", "BTC volume", "Change (24h)"
+                            }
+                        ) {
+                            Class<?>[] columnTypes = new Class<?>[] {
+                                Short.class, String.class, Long.class, Long.class, Long.class, Long.class, Double.class
+                            };
+                            boolean[] columnEditable = new boolean[] {
+                                true, false, false, false, false, false, false
+                            };
+                            @Override
+                            public Class<?> getColumnClass(int columnIndex) {
+                                return columnTypes[columnIndex];
+                            }
+                            @Override
+                            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                                return columnEditable[columnIndex];
+                            }
+                        });
+                        {
+                            TableColumnModel cm = tableMarketCap.getColumnModel();
+                            cm.getColumn(0).setPreferredWidth(20);
+                        }
+                        tableMarketCap.setAutoCreateRowSorter(true);
+                        scrollPane1.setViewportView(tableMarketCap);
+                    }
+                    panelMarketCap.add(scrollPane1, CC.xy(1, 1));
+                }
+                tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelMarketCap.tab.title"), panelMarketCap);
+
+                //======== panelSettings ========
+                {
+                    panelSettings.setLayout(new FormLayout(
                         "5dlu, $lcgap, 67dlu, $lcgap, 57dlu, 2*($lcgap, default)",
                         "3*(default, $lgap), default"));
 
-                //---- labelFeePercent ----
-                labelFeePercent.setText(bundle.getString("TraderMainForm.labelFeePercent.text"));
-                labelFeePercent.setLabelFor(spinnerFeePercent);
-                panelSettings.add(labelFeePercent, CC.xy(3, 1));
+                    //---- labelFeePercent ----
+                    labelFeePercent.setText(bundle.getString("TraderMainForm.labelFeePercent.text"));
+                    labelFeePercent.setLabelFor(spinnerFeePercent);
+                    panelSettings.add(labelFeePercent, CC.xy(3, 1));
 
-                //---- spinnerFeePercent ----
-                spinnerFeePercent.setModel(new SpinnerNumberModel(0.2, 0.0, 100.0, 0.1));
-                spinnerFeePercent.addChangeListener(new ChangeListener() {
-                    @Override
-                    public void stateChanged(ChangeEvent e) {
-                        settingsChanged(e);
-                    }
-                });
-                panelSettings.add(spinnerFeePercent, CC.xy(5, 1));
+                    //---- spinnerFeePercent ----
+                    spinnerFeePercent.setModel(new SpinnerNumberModel(0.2, 0.0, 100.0, 0.1));
+                    spinnerFeePercent.addChangeListener(new ChangeListener() {
+                        @Override
+                        public void stateChanged(ChangeEvent e) {
+                            settingsChanged(e);
+                        }
+                    });
+                    panelSettings.add(spinnerFeePercent, CC.xy(5, 1));
 
-                //---- toggleButtonUpdateAll ----
-                toggleButtonUpdateAll.setText(bundle.getString("TraderMainForm.toggleButtonUpdateAll.text"));
-                toggleButtonUpdateAll.addChangeListener(new ChangeListener() {
-                    @Override
-                    public void stateChanged(ChangeEvent e) {
-                        toggleButtonUpdateAllStateChanged(e);
-                    }
-                });
-                panelSettings.add(toggleButtonUpdateAll, CC.xy(9, 1));
+                    //---- toggleButtonUpdateAll ----
+                    toggleButtonUpdateAll.setText(bundle.getString("TraderMainForm.toggleButtonUpdateAll.text"));
+                    toggleButtonUpdateAll.addChangeListener(new ChangeListener() {
+                        @Override
+                        public void stateChanged(ChangeEvent e) {
+                            toggleButtonUpdateAllStateChanged(e);
+                        }
+                    });
+                    panelSettings.add(toggleButtonUpdateAll, CC.xy(9, 1));
 
-                //---- labelUpdateInterval ----
-                labelUpdateInterval.setText(bundle.getString("TraderMainForm.labelUpdateInterval.text"));
-                labelUpdateInterval.setLabelFor(spinnerUpdateInterval);
-                panelSettings.add(labelUpdateInterval, CC.xy(3, 3));
+                    //---- labelUpdateInterval ----
+                    labelUpdateInterval.setText(bundle.getString("TraderMainForm.labelUpdateInterval.text"));
+                    labelUpdateInterval.setLabelFor(spinnerUpdateInterval);
+                    panelSettings.add(labelUpdateInterval, CC.xy(3, 3));
 
-                //---- spinnerUpdateInterval ----
-                spinnerUpdateInterval.setModel(new SpinnerNumberModel(100, 0, 30000, 50));
-                spinnerUpdateInterval.addChangeListener(new ChangeListener() {
-                    @Override
-                    public void stateChanged(ChangeEvent e) {
-                        settingsChanged(e);
-                    }
-                });
-                panelSettings.add(spinnerUpdateInterval, CC.xy(5, 3));
+                    //---- spinnerUpdateInterval ----
+                    spinnerUpdateInterval.setModel(new SpinnerNumberModel(100, 0, 30000, 50));
+                    spinnerUpdateInterval.addChangeListener(new ChangeListener() {
+                        @Override
+                        public void stateChanged(ChangeEvent e) {
+                            settingsChanged(e);
+                        }
+                    });
+                    panelSettings.add(spinnerUpdateInterval, CC.xy(5, 3));
 
-                //---- buttonApplySettings ----
-                buttonApplySettings.setText(bundle.getString("TraderMainForm.buttonApplySettings.text"));
-                buttonApplySettings.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        buttonApplySettingsActionPerformed(e);
-                    }
-                });
-                panelSettings.add(buttonApplySettings, CC.xywh(3, 5, 3, 1));
-            }
-            tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelSettings.tab.title"), panelSettings);
-
-            //======== panelLog ========
-            {
-                panelLog.setLayout(new FormLayout(
-                        "default:grow",
-                        "fill:default:grow"));
-
-                //======== scrollPane5 ========
-                {
-                    scrollPane5.setViewportView(textPaneLog);
+                    //---- buttonApplySettings ----
+                    buttonApplySettings.setText(bundle.getString("TraderMainForm.buttonApplySettings.text"));
+                    buttonApplySettings.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            buttonApplySettingsActionPerformed(e);
+                        }
+                    });
+                    panelSettings.add(buttonApplySettings, CC.xywh(3, 5, 3, 1));
                 }
-                panelLog.add(scrollPane5, CC.xy(1, 1));
+                tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelSettings.tab.title"), panelSettings);
+
+                //======== panelLog ========
+                {
+                    panelLog.setLayout(new FormLayout(
+                        "default:grow",
+                        "fill:[55dlu,default]:grow"));
+
+                    //======== scrollPane5 ========
+                    {
+                        scrollPane5.setViewportView(textPaneLog);
+                    }
+                    panelLog.add(scrollPane5, CC.xy(1, 1));
+                }
+                tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelLog.tab.title"), panelLog);
             }
-            tabbedPaneInfo.addTab(bundle.getString("TraderMainForm.panelLog.tab.title"), panelLog);
+            splitPane1.setBottomComponent(tabbedPaneInfo);
         }
-        add(tabbedPaneInfo, CC.xywh(1, 8, 3, 3));
+        add(splitPane1, CC.xywh(1, 5, 3, 5, CC.FILL, CC.FILL));
 
         //======== popupMenuOrders ========
         {
@@ -1896,6 +1884,7 @@ public class TraderMainForm extends JPanel {
     private JLabel labelApiLagValue;
     private JTextField textFieldVolume;
     private JSeparator separator1;
+    private JSplitPane splitPane1;
     private JTabbedPane tabbedPaneTrade;
     private JPanel panelBuy;
     private JLabel labelBuyOrderPrice;
@@ -1923,7 +1912,6 @@ public class TraderMainForm extends JPanel {
     private JToolBar toolBar1;
     private JButton buttonAddRule;
     private JButton buttonDeleteRule;
-    private JSeparator separator2;
     private JTabbedPane tabbedPaneInfo;
     private JPanel panelOrders;
     private JScrollPane scrollPane4;
