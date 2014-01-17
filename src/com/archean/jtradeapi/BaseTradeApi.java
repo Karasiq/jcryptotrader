@@ -162,7 +162,7 @@ public abstract class BaseTradeApi {
 
             @Override
             public int compareTo(Order order) {
-                return order.time.compareTo(time);
+                return time.compareTo(order.time);
             }
         }
 

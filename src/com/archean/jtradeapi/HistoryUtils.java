@@ -11,10 +11,7 @@
 package com.archean.jtradeapi;
 
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class HistoryUtils {
     public static final long PERIOD_1M = 60 * 1000;
@@ -45,8 +42,17 @@ public class HistoryUtils {
         }
     }
 
+    private final static Calendar calendar = Calendar.getInstance();
+    public static Date timeDelta(Date date, int field, int amount) {
+        calendar.setTime(date);
+        calendar.add(field, amount);
+        return calendar.getTime();
+    }
+    public static Date timeDelta(int field, int amount) { // Date = now
+        return timeDelta(new Date(), field, amount);
+    }
     public static BaseTradeApi.StandartObjects.Order getNearestTrade(List<BaseTradeApi.StandartObjects.Order> history, Date targetDate) {
-        Collections.sort(history, Collections.reverseOrder());
+        Collections.sort(history);
         BaseTradeApi.StandartObjects.Order result = history.get(0);
         for (BaseTradeApi.StandartObjects.Order order : history) {
             // if the current iteration's date is "before" the target date
@@ -76,10 +82,10 @@ public class HistoryUtils {
 
     public static List<Candle> buildCandles(List<BaseTradeApi.StandartObjects.Order> history, Date limit, long period) {
         List<Candle> candles = new ArrayList<>();
-        Collections.sort(history, Collections.reverseOrder());
+        Collections.sort(history);
 
         int i = 0;
-        while (i < history.size()) {
+        if(limit != null) while (i < history.size()) {
             if (history.get(i).time.before(limit)) {
                 i++;
             } else {
@@ -115,7 +121,20 @@ public class HistoryUtils {
         return candles;
     }
 
-    public static void refreshCandles(List<Candle> candles, List<BaseTradeApi.StandartObjects.Order> history, long period) { // fast update
+    public static void refreshCandles(List<Candle> candles, List<BaseTradeApi.StandartObjects.Order> history, Date limit, long period) { // fast update
+
+        // Remove old:
+        if(limit != null) {
+            Iterator<Candle> candleIterator = candles.listIterator();
+            while(candleIterator.hasNext()) {
+                Candle candle = candleIterator.next();
+                if(candle.start.before(limit)) {
+                    candleIterator.remove();
+                }
+            }
+        }
+
+        // Refresh/add new:
         Candle candle = candles.get(candles.size() - 1);
         for (BaseTradeApi.StandartObjects.Order order : history) {
             if (order.time.before(candle.update) || order.time.equals(candle.update)) continue;

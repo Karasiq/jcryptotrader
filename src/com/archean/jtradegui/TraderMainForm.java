@@ -477,20 +477,15 @@ public class TraderMainForm extends JPanel {
 
         synchronized (candlesLock) {
             // Update chart:
-            Calendar calendar = Calendar.getInstance();
             if (candles == null) {
-                calendar.setTime(new Date());
-                calendar.add(Calendar.DAY_OF_MONTH, -1);
-                candles = HistoryUtils.buildCandles(history, calendar.getTime(), HistoryUtils.PERIOD_30M);
+                candles = HistoryUtils.buildCandles(history, HistoryUtils.timeDelta(Calendar.DAY_OF_MONTH, -1), HistoryUtils.PERIOD_30M);
             } else {
-                HistoryUtils.refreshCandles(candles, history, HistoryUtils.PERIOD_30M);
+                HistoryUtils.refreshCandles(candles, history, HistoryUtils.timeDelta(Calendar.DAY_OF_MONTH, -1), HistoryUtils.PERIOD_30M);
             }
             if (tabbedPaneInfo.getComponentAt(4).isVisible()) updateChart(candles);
 
             // Price change 1h %:
-            calendar.setTime(new Date());
-            calendar.add(Calendar.HOUR_OF_DAY, -1);
-            HistoryUtils.Candle candle = HistoryUtils.getNearestCandle(candles, calendar.getTime());
+            HistoryUtils.Candle candle = HistoryUtils.getNearestCandle(candles, HistoryUtils.timeDelta(Calendar.HOUR_OF_DAY, -1));
             labelPriceChangePercent.setToolTipText(String.format("%s -> %s", Utils.Strings.formatNumber(candle.open), Utils.Strings.formatNumber(worker.marketInfo.price.last)));
             double percent = Calculator.priceChangePercent(candle.open, worker.marketInfo.price.last);
             labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, Utils.Strings.percentDecimalFormat) + "%");
