@@ -11,6 +11,8 @@
 package com.archean.jtradeapi;
 
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.*;
 
 public class HistoryUtils {
@@ -39,6 +41,21 @@ public class HistoryUtils {
         @Override
         public int compareTo(Candle candle) {
             return start.compareTo(candle.start);
+        }
+    }
+    public static class TimestampedChartData implements Comparable<TimestampedChartData> {
+        public Date date;
+        public BigDecimal value;
+        public TimestampedChartData(Date date, BigDecimal value) {
+            this.date = date;
+            this.value = value;
+        }
+        public TimestampedChartData(Date date, double value) {
+            this(date, new BigDecimal(value, MathContext.DECIMAL64));
+        }
+        @Override
+        public int compareTo(TimestampedChartData data) {
+            return date.compareTo(data.date);
         }
     }
 

@@ -12,6 +12,8 @@
 
 package com.archean.TechAnalysis;
 
+import com.archean.jtradeapi.HistoryUtils;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,22 +22,23 @@ public class StochRSI {
     private static BigDecimal stochRsi(BigDecimal current, BigDecimal low, BigDecimal high) {
         return current.subtract(low).divide(high.subtract(low));
     }
-    public static List<BigDecimal> build(List<BigDecimal> rsi, int period) {
-        List<BigDecimal> result = new ArrayList<>();
+
+    public static List<HistoryUtils.TimestampedChartData> build(List<HistoryUtils.TimestampedChartData> rsi, int period) {
+        List<HistoryUtils.TimestampedChartData> result = new ArrayList<>();
         BigDecimal low = null, high = null;
         int i = 0;
-        for(BigDecimal decimal : rsi) {
-            if(i > period) {
-                result.add(stochRsi(decimal, low, high));
+        for (HistoryUtils.TimestampedChartData rsiPoint : rsi) {
+            if (i > period) {
+                result.add(new HistoryUtils.TimestampedChartData(rsiPoint.date, stochRsi(rsiPoint.value, low, high)));
                 i = 0;
                 high = null;
                 low = null;
             }
-            if(high == null || decimal.compareTo(high) > 0) {
-                high = decimal;
+            if (high == null || rsiPoint.value.compareTo(high) > 0) {
+                high = rsiPoint.value;
             }
-            if(low == null || decimal.compareTo(low) < 0) {
-                low = decimal;
+            if (low == null || rsiPoint.value.compareTo(low) < 0) {
+                low = rsiPoint.value;
             }
             i++;
         }

@@ -12,6 +12,8 @@
 
 package com.archean.TechAnalysis;
 
+import com.archean.jtradeapi.HistoryUtils;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,22 +23,22 @@ public class Stochastic {
         return closePrice.subtract(low).divide(high.subtract(low)).multiply(new BigDecimal(100));
     }
 
-    public static List<BigDecimal> build(List<TAUtils.PriceChange> pricePeriods, int period) {
-        List<BigDecimal> result = new ArrayList<>();
+    public static List<HistoryUtils.TimestampedChartData> build(List<TAUtils.PriceChange> pricePeriods, int period) {
+        List<HistoryUtils.TimestampedChartData> result = new ArrayList<>();
         int i = 0;
         BigDecimal low = null, high = null;
-        for(TAUtils.PriceChange pricePeriod : pricePeriods) {
+        for (TAUtils.PriceChange pricePeriod : pricePeriods) {
             BigDecimal currentPrice = pricePeriod.getSecondPrice();
-            if(i >= period) {
-                result.add(calculateStoch(currentPrice, low, high));
+            if (i >= period) {
+                result.add(new HistoryUtils.TimestampedChartData(pricePeriod.getSecondDate(), calculateStoch(currentPrice, low, high)));
                 i = 0;
                 low = null;
                 high = null;
             }
-            if(high == null || currentPrice.compareTo(high) > 0) {
+            if (high == null || currentPrice.compareTo(high) > 0) {
                 high = currentPrice;
             }
-            if(low == null || currentPrice.compareTo(low) < 0) {
+            if (low == null || currentPrice.compareTo(low) < 0) {
                 low = currentPrice;
             }
             i++;
