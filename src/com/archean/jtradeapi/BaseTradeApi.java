@@ -64,7 +64,7 @@ public abstract class BaseTradeApi {
         }
 
         public HttpResponse getRequest(String url, List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) throws IOException {
-            url = url + "?" + formatGetParamString(urlParameters);
+            if(urlParameters.size() > 0) url = url + "?" + formatGetParamString(urlParameters);
 
             HttpClient client = HttpClientBuilder.create().build();
             HttpGet request = new HttpGet(url);
@@ -76,7 +76,6 @@ public abstract class BaseTradeApi {
         }
 
         public HttpResponse postRequest(String url, List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) throws IOException {
-            url = url + "?";
             HttpClient client = HttpClientBuilder.create().build();
             HttpPost request = new HttpPost(url);
             request.setEntity(new UrlEncodedFormEntity(urlParameters));
@@ -153,7 +152,7 @@ public abstract class BaseTradeApi {
                 this.amount = amount;
             }
 
-            public long id;
+            public Object id;
             public Object pair;
             public double price;
             public double amount;
@@ -338,15 +337,35 @@ public abstract class BaseTradeApi {
     public abstract List<StandartObjects.Order> getAccountHistory(Object pair) throws Exception;
 
     // Consolidated info:
-    public abstract StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception;
+    public StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
+        StandartObjects.MarketInfo marketInfo = new StandartObjects.MarketInfo();
+        marketInfo.price = getMarketPrices(pair);
+        if(retrieveOrders) {
+            marketInfo.depth = getMarketDepth(pair);
+        }
+        if(retrieveHistory) {
+            marketInfo.history = getMarketHistory(pair);
+        }
+        return marketInfo;
+    }
 
-    public abstract StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception;
+    public StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
+        StandartObjects.AccountInfo accountInfo = new StandartObjects.AccountInfo();
+        accountInfo.balance = getAccountBalances();
+        if (retrieveOrders) {
+            accountInfo.orders = getAccountOpenOrders(pair);
+        }
+        if (retrieveHistory) {
+            accountInfo.history = getAccountHistory(pair);
+        }
+        return accountInfo;
+    }
 
     // Misc
     public abstract double getFeePercent(Object pair) throws Exception;
 
     // Trading api:
-    public abstract long createOrder(Object pair, int orderType, double quantity, double price) throws Exception;
+    public abstract Object createOrder(Object pair, int orderType, double quantity, double price) throws Exception;
 
-    public abstract boolean cancelOrder(long orderId) throws Exception;
+    public abstract boolean cancelOrder(Object orderId) throws Exception;
 }

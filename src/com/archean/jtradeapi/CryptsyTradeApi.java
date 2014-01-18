@@ -422,25 +422,12 @@ public class CryptsyTradeApi extends BaseTradeApi {
     }
 
     @Override
-    public StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
-        StandartObjects.AccountInfo accountInfo = new StandartObjects.AccountInfo();
-        accountInfo.balance = getAccountBalances();
-        if (retrieveOrders) {
-            accountInfo.orders = getAccountOpenOrders(pair);
-        }
-        if (retrieveHistory) {
-            accountInfo.history = getAccountHistory(pair);
-        }
-        return accountInfo;
-    }
-
-    @Override
     public double getFeePercent(Object pair) throws Exception {
         return 0.2;
     }
 
     @Override
-    public long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
+    public Object createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
         CryptsyObjects.OrderCreateStatus orderApiStatus = internalCreateOrder((Integer) pair, orderType, quantity, price);
         if (orderApiStatus.success != 1) {
             throw new TradeApiError("Failed to create order (" + orderApiStatus.error + ")");
@@ -448,8 +435,8 @@ public class CryptsyTradeApi extends BaseTradeApi {
     }
 
     @Override
-    public boolean cancelOrder(long orderId) throws Exception {
-        ApiStatus<String> cancelApiStatus = internalCancelOrder(orderId);
+    public boolean cancelOrder(Object orderId) throws Exception {
+        ApiStatus<String> cancelApiStatus = internalCancelOrder((Long)orderId);
         if (cancelApiStatus.success != 1) {
             throw new TradeApiError("Failed to cancel order (" + cancelApiStatus.error + ")");
         } else return true;

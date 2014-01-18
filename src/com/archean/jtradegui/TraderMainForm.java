@@ -124,6 +124,7 @@ public class TraderMainForm extends JPanel {
         for (Thread thread : threadMap.values()) {
             thread.interrupt();
         }
+        threadMap.clear();
     }
 
     public void setSettings(double feePercent, int timeInterval) {
@@ -822,10 +823,8 @@ public class TraderMainForm extends JPanel {
                 public void run() {
                     buttonCommitBuyOrder.setEnabled(false);
                     try {
-                        long orderId = worker.tradeApi.createOrder(pairList.get(comboBoxPair.getSelectedItem()).pairId, BaseTradeApi.Constants.ORDER_BUY, (Double) spinnerBuyOrderAmount.getValue(), (Double) spinnerBuyOrderPrice.getValue());
-                        if (orderId != 0) {
-                            processNotification(String.format(locale.getString("order_created.template"), orderRepresentation, orderId));
-                        }
+                        Object orderId = worker.tradeApi.createOrder(pairList.get(comboBoxPair.getSelectedItem()).pairId, BaseTradeApi.Constants.ORDER_BUY, (Double) spinnerBuyOrderAmount.getValue(), (Double) spinnerBuyOrderPrice.getValue());
+                        processNotification(String.format(locale.getString("order_created.template"), orderRepresentation, orderId.toString()));
                     } catch (Exception e1) {
                         processException(e1);
                     } finally {
@@ -846,10 +845,8 @@ public class TraderMainForm extends JPanel {
                 public void run() {
                     try {
                         buttonCommitSellOrder.setEnabled(false);
-                        long orderId = worker.tradeApi.createOrder(pairList.get(comboBoxPair.getSelectedItem()).pairId, BaseTradeApi.Constants.ORDER_SELL, (Double) spinnerSellOrderAmount.getValue(), (Double) spinnerSellOrderPrice.getValue());
-                        if (orderId != 0) {
-                            processNotification(String.format(locale.getString("order_created.template"), orderRepresentation, orderId));
-                        }
+                        Object orderId = worker.tradeApi.createOrder(pairList.get(comboBoxPair.getSelectedItem()).pairId, BaseTradeApi.Constants.ORDER_SELL, (Double) spinnerSellOrderAmount.getValue(), (Double) spinnerSellOrderPrice.getValue());
+                        processNotification(String.format(locale.getString("order_created.template"), orderRepresentation, orderId.toString()));
                     } catch (Exception e1) {
                         processException(e1);
                     } finally {
@@ -980,9 +977,9 @@ public class TraderMainForm extends JPanel {
     private void buttonAddRuleActionPerformed(ActionEvent e) {
         final RuleAction.TradeAction.Callback tradeCallback = new RuleAction.TradeAction.Callback() {
             @Override
-            public void onSuccess(long orderId, int tradeType, BigDecimal amount, BigDecimal price) {
+            public void onSuccess(Object orderId, int tradeType, BigDecimal amount, BigDecimal price) {
                 final String orderRepresentation = formatOrderRepresentation(tradeType, amount.doubleValue(), price.doubleValue(), getCurrentPrimaryCurrency(), getCurrentSecondaryCurrency());
-                processNotification(String.format(locale.getString("order_created.template"), orderRepresentation, orderId));
+                processNotification(String.format(locale.getString("order_created.template"), orderRepresentation, orderId.toString()));
             }
 
             @Override

@@ -163,8 +163,10 @@ public class Controller extends JFrame {
 
     private void buttonDeleteActionPerformed(ActionEvent e) {
         if (tabbedPaneTraders.getTabCount() > 0 && tabbedPaneTraders.getSelectedIndex() >= 0) {
-            ((TraderMainForm) tabbedPaneTraders.getSelectedComponent()).killThreads();
+            TraderMainForm traderMainForm = (TraderMainForm)tabbedPaneTraders.getSelectedComponent();
+            traderMainForm.killThreads();
             tabbedPaneTraders.remove(tabbedPaneTraders.getSelectedIndex());
+            tabbedPaneTraders.revalidate();
             saveTabs();
         }
     }

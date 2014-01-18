@@ -58,14 +58,7 @@ public class Utils {
             public static final String SHA384 = "SHA384";
             public static final String SHA512 = "SHA512";
 
-            public static String hmacDigest(String msg, String keyString, String algo) throws InvalidKeyException, NoSuchAlgorithmException, UnsupportedEncodingException {
-                algo = "Hmac" + algo;
-                SecretKeySpec key = new SecretKeySpec((keyString).getBytes("UTF-8"), algo);
-                Mac mac = Mac.getInstance(algo);
-                mac.init(key);
-
-                byte[] bytes = mac.doFinal(msg.getBytes("ASCII"));
-
+            public static String bytesToHexString(byte[] bytes) {
                 StringBuilder hash = new StringBuilder();
                 for (byte b : bytes) {
                     String hex = Integer.toHexString(0xFF & b);
@@ -75,6 +68,18 @@ public class Utils {
                     hash.append(hex);
                 }
                 return hash.toString();
+            }
+
+            public static byte[] hmacByteDigest(byte[] dataBytes, byte[] keyBytes, String algo) throws InvalidKeyException, NoSuchAlgorithmException, UnsupportedEncodingException {
+                algo = "Hmac" + algo;
+                SecretKeySpec key = new SecretKeySpec(keyBytes, algo);
+                Mac mac = Mac.getInstance(algo);
+                mac.init(key);
+                return mac.doFinal(dataBytes);
+            }
+
+            public static String hmacDigest(String msg, String keyString, String algo) throws InvalidKeyException, NoSuchAlgorithmException, UnsupportedEncodingException {
+                return bytesToHexString(hmacByteDigest(msg.getBytes("ASCII"), keyString.getBytes("UTF-8"), algo));
             }
         }
     }

@@ -30,7 +30,7 @@ public class RuleAction {
 
     public static class TradeAction extends BaseAction {
         public abstract static class Callback {
-            abstract public void onSuccess(long orderId, int tradeType, BigDecimal amount, BigDecimal price);
+            abstract public void onSuccess(Object orderId, int tradeType, BigDecimal amount, BigDecimal price);
 
             abstract public void onError(Exception e);
         }
@@ -72,7 +72,7 @@ public class RuleAction {
                 }
             }
             try {
-                long orderId = apiWorker.tradeApi.createOrder(apiWorker.getPair(), tradeType, amount.doubleValue(), priceCustom.doubleValue());
+                Object orderId = apiWorker.tradeApi.createOrder(apiWorker.getPair(), tradeType, amount.doubleValue(), priceCustom.doubleValue());
                 ((Callback) callback).onSuccess(orderId, tradeType, amount, priceCustom);
             } catch (Exception e) {
                 e.printStackTrace();

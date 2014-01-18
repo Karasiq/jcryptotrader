@@ -395,7 +395,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
     }
 
     @Override
-    public long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
+    public Object createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
         ApiStatus<BtceObjects.OpenOrderStatus> orderStatus = internalOpenOrder((String) pair, orderType, quantity, price);
         if (orderStatus.success != 1) {
             throw new TradeApiError("Failed to create order (" + orderStatus.error + ")");
@@ -404,8 +404,8 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
     }
 
     @Override
-    public boolean cancelOrder(long orderId) throws Exception {
-        ApiStatus<BtceObjects.CancelOrderStatus> orderStatus = internalCancelOrder(orderId);
+    public boolean cancelOrder(Object orderId) throws Exception {
+        ApiStatus<BtceObjects.CancelOrderStatus> orderStatus = internalCancelOrder((Long)orderId);
         if (orderStatus.success != 1) {
             throw new TradeApiError("Failed to cancel order (" + orderStatus.error + ")");
         }
