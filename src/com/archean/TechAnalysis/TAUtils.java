@@ -10,6 +10,7 @@
 
 package com.archean.TechAnalysis;
 
+import com.archean.jtradeapi.BaseTradeApi;
 import com.archean.jtradeapi.HistoryUtils;
 
 import java.math.BigDecimal;
@@ -58,20 +59,38 @@ public class TAUtils {
             absolute = price2.subtract(price1); // old - new
         }
 
-        public PriceChange(HistoryUtils.Candle candle1, HistoryUtils.Candle candle2) {
-            this(new BigDecimal(candle1.close, MathContext.DECIMAL64), new BigDecimal(candle2.close, MathContext.DECIMAL64));
+        public PriceChange(HistoryUtils.Candle candle) {
+            this(new BigDecimal(candle.open, MathContext.DECIMAL64), new BigDecimal(candle.close, MathContext.DECIMAL64));
         }
     }
-    public static List<PriceChange> buildPriceMovingHistory(List<HistoryUtils.Candle> candles, int period) {
+    public static List<PriceChange> buildPriceMovingHistory(List<HistoryUtils.Candle> candles, int period) { // Only by candle open/close
         List<PriceChange> priceChangeList = new ArrayList<>();
-        for(int i = period; i < candles.size(); i += period) {
-            priceChangeList.add(new PriceChange(candles.get(i - period), candles.get(period)));
+        for(HistoryUtils.Candle candle : candles) {
+            priceChangeList.add(new PriceChange(candle));
         }
         return priceChangeList;
     }
     public static List<PriceChange> buildPriceMovingHistory(List<HistoryUtils.Candle> candles) {
         return buildPriceMovingHistory(candles, 1);
     }
+
+    public static List<PriceChange> buildTickHistory(List<BaseTradeApi.StandartObjects.Order> trades, int period) { // Tick data
+        List<PriceChange> priceChangeList = new ArrayList<>();
+        BigDecimal prev = null;
+        for(int i = 0; i < trades.size(); i += period) {
+            BigDecimal currentPrice = new BigDecimal(trades.get(i).price);
+            if(prev != null) {
+                priceChangeList.add(new PriceChange(prev, currentPrice));
+            }
+            prev = currentPrice;
+        }
+        return priceChangeList;
+    }
+
+    public static List<PriceChange> buildTickHistory(List<BaseTradeApi.StandartObjects.Order> trades) {
+        return buildTickHistory(trades, 1);
+    }
+
     public static List<PriceChange> reducePriceMovingHistory(final List<PriceChange> priceChangeList, int period) {
         List<PriceChange> reducedList = new ArrayList<>();
         for(int i = period; i < priceChangeList.size(); i += period) {
