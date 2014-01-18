@@ -259,11 +259,11 @@ public class MtGoxTradeApi extends BaseTradeApi {
     }
 
     // Trading api:
-    public long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
+    public Object createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
         throw new NotImplementedException();
     }
 
-    public boolean cancelOrder(long orderId) throws Exception {
+    public boolean cancelOrder(Object orderId) throws Exception {
         throw new NotImplementedException();
     }
 }
