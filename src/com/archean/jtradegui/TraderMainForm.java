@@ -327,19 +327,8 @@ public class TraderMainForm extends JPanel {
     }
 
     // GUI MVC functions
-    protected List<OHLCDataItem> makeOHLCData(List<HistoryUtils.Candle> candleList) {
-        List<OHLCDataItem> dataItems = new ArrayList<>();
-        for (HistoryUtils.Candle candle : candleList) {
-            OHLCDataItem item = new OHLCDataItem(candle.start, candle.open, candle.high, candle.low, candle.close, candle.volume);
-            dataItems.add(item);
-        }
-        return dataItems;
-    }
-
-    private AbstractXYDataset getOHLCDataSet(List<OHLCDataItem> dataList) {
-        OHLCDataItem[] chartDataCache = new OHLCDataItem[dataList.size()];
-        dataList.toArray(chartDataCache);
-        return new DefaultOHLCDataset(currentPair, chartDataCache);
+    private AbstractXYDataset getOHLCDataSet(OHLCDataItem[] dataList) {
+        return new DefaultOHLCDataset(currentPair, dataList);
     }
 
     private void drawChart(XYDataset dataset) {
@@ -359,17 +348,34 @@ public class TraderMainForm extends JPanel {
         mainPlot.setRangePannable(true);
         tabbedPaneInfo.setComponentAt(4, chartPanel);
     }
-
+    private OHLCDataItem[] updateOHLCDataArray(OHLCDataItem[] chartDataCache, List<HistoryUtils.Candle> candles) {
+        if(candles == null || candles.size() == 0) {
+            chartDataCache = null;
+        } else if(chartDataCache == null || chartDataCache.length != candles.size() || !chartDataCache[0].getDate().equals(candles.get(0).start)) { // Full
+            int length = candles.size();
+            chartDataCache = new OHLCDataItem[length];
+            for(int i = 0; i < length; i++) {
+                HistoryUtils.Candle candle = candles.get(i);
+                chartDataCache[i] = new OHLCDataItem(candle.start, candle.open, candle.high, candle.low, candle.close, candle.volume);
+            }
+        } else { // Fast
+            HistoryUtils.Candle lastCandle = candles.get(candles.size() - 1);
+            chartDataCache[chartDataCache.length - 1] = new OHLCDataItem(lastCandle.start, lastCandle.open, lastCandle.high, lastCandle.low, lastCandle.close, lastCandle.volume);
+        }
+        return chartDataCache;
+    }
+    private OHLCDataItem[] ohlcDataCache = null;
     private void updateChart(List<HistoryUtils.Candle> candles) {
         if (candles == null || candles.isEmpty()) return;
         HistoryUtils.Candle lastCandle = candles.get(candles.size() - 1);
         if (lastCandle.update == null || !lastChartUpdate.before(lastCandle.update)) {
             return;
+        } else {
+            lastChartUpdate = lastCandle.update;
         }
-
-        List<OHLCDataItem> chartDataListCache = makeOHLCData(candles);
-        XYDataset dataset = getOHLCDataSet(chartDataListCache);
-        if (chartDataListCache.size() > 0 && dataset != null) {
+        ohlcDataCache = updateOHLCDataArray(ohlcDataCache, candles);
+        if (ohlcDataCache != null && ohlcDataCache.length > 0) {
+            XYDataset dataset = getOHLCDataSet(ohlcDataCache);
             if (tabbedPaneInfo.getComponentAt(4) instanceof ChartPanel) {
                 XYPlot mainPlot = ((ChartPanel) tabbedPaneInfo.getComponentAt(4)).getChart().getXYPlot();
                 mainPlot.setDataset(dataset);
