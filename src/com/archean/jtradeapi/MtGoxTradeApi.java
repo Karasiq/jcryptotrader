@@ -11,15 +11,19 @@
 package com.archean.jtradeapi;
 
 import com.google.gson.reflect.TypeToken;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 
 public class MtGoxTradeApi extends BaseTradeApi {
     public MtGoxTradeApi(ApiKeyPair pair) {
@@ -33,7 +37,13 @@ public class MtGoxTradeApi extends BaseTradeApi {
         ReturnType data; // Response
     }
 
-    @Override
+    private static final String MtGoxBaseApiUrl = "http://data.mtgox.com/api/2/";
+
+    protected String makeSign(String url, List<NameValuePair> urlParameters) throws NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
+        String signString = url.split(MtGoxBaseApiUrl)[1] + "\0" + requestSender.formatGetParamString(urlParameters);
+        return Base64.encodeBase64String(Utils.Crypto.Hashing.hmacByteDigest(signString.getBytes("ASCII"), Base64.decodeBase64(apiKeyPair.privateKey), Utils.Crypto.Hashing.SHA512));
+    }
+
     protected void cleanAuth(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
         Iterator<NameValuePair> headerIterator = httpHeaders.iterator();
         while (headerIterator.hasNext()) { // Cleaning
@@ -45,23 +55,43 @@ public class MtGoxTradeApi extends BaseTradeApi {
         Iterator<NameValuePair> paramsIterator = urlParameters.iterator();
         while (paramsIterator.hasNext()) { // Cleaning
             NameValuePair header = paramsIterator.next();
-            if (header.getName().equals("nonce")) {
+            if (header.getName().equals("nonce") || header.getName().equals("tonce")) {
                 paramsIterator.remove();
             }
         }
     }
 
     @Override
-    protected void writeAuthParams(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
+    protected void addNonce(List<NameValuePair> urlParameters) {
+        urlParameters.add(new BasicNameValuePair("tonce", Long.toString(System.currentTimeMillis() * 1000)));
+    }
+
+    protected void writeAuthParams(String url, List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
         if (apiKeyPair == null || apiKeyPair.publicKey.isEmpty() || apiKeyPair.privateKey.isEmpty()) {
             throw new IllegalArgumentException("Invalid API key pair");
         }
         addNonce(urlParameters);
         try {
-            httpHeaders.add(new BasicNameValuePair("Rest-Sign", makeSign(urlParameters)));
+            httpHeaders.add(new BasicNameValuePair("Rest-Sign", makeSign(url, urlParameters)));
             httpHeaders.add(new BasicNameValuePair("Rest-Key", apiKeyPair.publicKey));
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    protected String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
+        if (urlParameters == null) urlParameters = new ArrayList<>(); // empty list
+        List<NameValuePair> httpHeaders = new ArrayList<>();
+        cleanAuth(urlParameters, httpHeaders);
+        if (needAuth) writeAuthParams(url, urlParameters, httpHeaders);
+        switch (httpRequestType) {
+            case Constants.REQUEST_GET:
+                return requestSender.getResponseString(requestSender.getRequest(url, urlParameters, httpHeaders));
+            case Constants.REQUEST_POST:
+                return requestSender.getResponseString(requestSender.postRequest(url, urlParameters, httpHeaders));
+            default:
+                throw new IllegalArgumentException("Unknown httpRequestType value");
         }
     }
 
@@ -111,61 +141,114 @@ public class MtGoxTradeApi extends BaseTradeApi {
             double price;
             double amount;
             long tid; // trade id
-            String price_currency; // USD
-            String item; // BTC
             String trade_type; // "bid"/"ask"
+        }
+        class CurrencyObject {
+            String currency;
+            double value;
+        }
+        class AccountInfo {
+            class Wallet {
+                CurrencyObject Balance;
+                CurrencyObject Open_Orders;
+                int Operations;
+            }
+            double Trade_Fee;
+            List<String> Rights = new ArrayList<>();
+            Map<String, Wallet> Wallets = new HashMap<>();
+        }
+        class Order {
+            String oid;
+            String currency;
+            String item;
+            String type; // bid/ask
+            CurrencyObject amount;
+            CurrencyObject effective_amount;
+            CurrencyObject invalid_amount;
+            CurrencyObject price;
+            String status; // Statuses may be: pending, executing, post-pending, open, stop, and invalid
+            long date;
         }
     }
 
-    private String formatPublicMtGoxApiUrl(String pair, String method) {
+    private String formatMtGoxApiUrl(String pair, String method) {
         if (pair != null && !pair.equals(""))
-            return "http://data.mtgox.com/api/2/" + pair + "/money/" + method;
+            return MtGoxBaseApiUrl + (pair + "/money/" + method).toUpperCase();
         else
-            return "http://data.mtgox.com/api/2/money/" + method;
+            return MtGoxBaseApiUrl + ("money/" + method).toUpperCase();
     }
 
     // Ticker (prices):
     @Deprecated
     private ApiStatus<MtGoxObjects.TickerFast> internalGetFastTicker(String pair) throws Exception {
-        String url = formatPublicMtGoxApiUrl(pair, "ticker_fast");
+        String url = formatMtGoxApiUrl(pair, "ticker_fast");
         return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<MtGoxObjects.TickerFast>>() {
         }.getType());
     }
 
     private ApiStatus<MtGoxObjects.Ticker> internalGetTicker(String pair) throws Exception {
-        String url = formatPublicMtGoxApiUrl(pair, "ticker");
+        String url = formatMtGoxApiUrl(pair, "ticker");
         return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<MtGoxObjects.Ticker>>() {
         }.getType());
     }
 
     // Depth:
     private ApiStatus<MtGoxObjects.Depth> internalGetDepth(String pair) throws Exception {
-        String url = formatPublicMtGoxApiUrl(pair, "depth");
+        String url = formatMtGoxApiUrl(pair, "depth/fetch");
         return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<MtGoxObjects.Depth>>() {
         }.getType());
     }
 
     // History:
     private ApiStatus<List<MtGoxObjects.Trade>> internalGetTrades(String pair) throws Exception {
-        String url = formatPublicMtGoxApiUrl(pair, "trades");
+        String url = formatMtGoxApiUrl(pair, "trades/fetch");
         return jsonParser.fromJson(executeRequest(false, url, null, Constants.REQUEST_GET), new TypeToken<ApiStatus<List<MtGoxObjects.Trade>>>() {
         }.getType());
     }
 
+    // Account info:
+    private ApiStatus<MtGoxObjects.AccountInfo> internalGetAccountInfo(String pair) throws IOException {
+        String url = formatMtGoxApiUrl(pair, "info");
+        return jsonParser.fromJson(executeRequest(true, url, null, Constants.REQUEST_POST), new TypeToken<ApiStatus<MtGoxObjects.AccountInfo>>() {}.getType());
+    }
+
+    // Account orders
+    private ApiStatus<List<MtGoxObjects.Order>> internalGetAccountOrders(String pair) throws IOException {
+        String url = formatMtGoxApiUrl(pair, "orders");
+        return jsonParser.fromJson(executeRequest(true, url, null, Constants.REQUEST_POST), new TypeToken<ApiStatus<List<MtGoxObjects.Order>>>() {}.getType());
+    }
+
+    // Trading:
+    private ApiStatus<String> internalCreateOrder(String pair, int orderType, double amount, double price) throws IOException {
+        List<NameValuePair> httpParameters = new ArrayList<>();
+        httpParameters.add(new BasicNameValuePair("type", orderType == Constants.ORDER_SELL ? "ask" : "bid"));
+        httpParameters.add(new BasicNameValuePair("amount", Utils.Strings.formatNumber(amount)));
+        httpParameters.add(new BasicNameValuePair("price", Utils.Strings.formatNumber(price)));
+        String url = formatMtGoxApiUrl(pair, "order/add");
+        return jsonParser.fromJson(executeRequest(true, url, httpParameters, Constants.REQUEST_POST), new TypeToken<ApiStatus<String>>() {}.getType());
+    }
+
+    private ApiStatus<String> internalCancelOrder(String pair, String orderId) throws IOException {
+        List<NameValuePair> httpParameters = new ArrayList<>();
+        httpParameters.add(new BasicNameValuePair("oid", orderId));
+        String url = formatMtGoxApiUrl(pair, "order/cancel");
+        return jsonParser.fromJson(executeRequest(true, url, httpParameters, Constants.REQUEST_POST), new TypeToken<ApiStatus<String>>() {}.getType());
+    }
+
 
     // Public:
+    private final BaseTradeApi.StandartObjects.CurrencyPairMapper pairMapper = new StandartObjects.CurrencyPairMapper();
     public BaseTradeApi.StandartObjects.CurrencyPairMapper getCurrencyPairs() throws Exception {
-        BaseTradeApi.StandartObjects.CurrencyPairMapper mapper = new BaseTradeApi.StandartObjects.CurrencyPairMapper();
-        BaseTradeApi.StandartObjects.CurrencyPair btcUsd = new BaseTradeApi.StandartObjects.CurrencyPair();
-
-        // Only BTC/USD :(
-        btcUsd.firstCurrency = "BTC";
-        btcUsd.secondCurrency = "USD";
-        btcUsd.pairId = "BTCUSD";
-        btcUsd.pairName = "BTC/USD";
-
-        mapper.put(btcUsd.pairId, btcUsd);
-        return mapper;
+        if(pairMapper.size() == 0) {
+            StandartObjects.CurrencyPair btcUsd = new StandartObjects.CurrencyPair();
+            // Only BTC/USD :(
+            btcUsd.firstCurrency = "BTC";
+            btcUsd.secondCurrency = "USD";
+            btcUsd.pairId = "BTCUSD";
+            btcUsd.pairName = "BTC/USD";
+            pairMapper.put(btcUsd.pairId, btcUsd);
+        }
+        return pairMapper;
     }
 
     // Basic info:
@@ -233,24 +316,36 @@ public class MtGoxTradeApi extends BaseTradeApi {
     }
 
     public BaseTradeApi.StandartObjects.AccountInfo.AccountBalance getAccountBalances() throws Exception {
-        return null;
+        ApiStatus<MtGoxObjects.AccountInfo> accountInfoApiStatus = internalGetAccountInfo((String) getCurrencyPairs().firstEntry().getValue().pairId);
+        BaseTradeApi.StandartObjects.AccountInfo.AccountBalance balances = new BaseTradeApi.StandartObjects.AccountInfo.AccountBalance();
+        if(!accountInfoApiStatus.result.equals("success")) {
+            throw new TradeApiError("Error retrieving account balances data (" + accountInfoApiStatus.error + ")");
+        } else if (accountInfoApiStatus.data != null) for(Map.Entry<String, MtGoxObjects.AccountInfo.Wallet> entry : accountInfoApiStatus.data.Wallets.entrySet()) {
+            balances.put(entry.getKey(), entry.getValue().Balance.value);
+        }
+        return balances;
     }
 
     public List<BaseTradeApi.StandartObjects.Order> getAccountOpenOrders(Object pair) throws Exception {
-        return null;
+        ApiStatus<List<MtGoxObjects.Order>> ordersApiStatus = internalGetAccountOrders((String) pair);
+        List<StandartObjects.Order> orders = new ArrayList<>();
+        if(!ordersApiStatus.result.equals("success")) {
+            throw new TradeApiError("Error retrieving account orders data (" + ordersApiStatus.error + ")");
+        } else if(ordersApiStatus.data != null) for(MtGoxObjects.Order order : ordersApiStatus.data) {
+            StandartObjects.Order stdOrder = new StandartObjects.Order();
+            stdOrder.amount = order.amount.value;
+            stdOrder.id = order.oid;
+            stdOrder.pair = pair;
+            stdOrder.price = order.price.value;
+            stdOrder.time = new Date(order.date * 1000);
+            stdOrder.type = order.type.equals("ask") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
+            orders.add(stdOrder);
+        }
+        return orders;
     }
 
     public List<BaseTradeApi.StandartObjects.Order> getAccountHistory(Object pair) throws Exception {
-        return null;
-    }
-
-    // Consolidated info:
-    public BaseTradeApi.StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
-        return null;
-    }
-
-    public BaseTradeApi.StandartObjects.AccountInfo getAccountInfo(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
-        return null;
+        return null; // I can not find api for this
     }
 
     // Misc
@@ -259,11 +354,21 @@ public class MtGoxTradeApi extends BaseTradeApi {
     }
 
     // Trading api:
-    public long createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
-        throw new NotImplementedException();
+    public Object createOrder(Object pair, int orderType, double quantity, double price) throws IOException, TradeApiError {
+        ApiStatus<String> createOrderApiStatus = internalCreateOrder((String)pair, orderType, quantity, price);
+        if(!createOrderApiStatus.result.equals("success")) {
+            throw new TradeApiError("Failed to create order (" + createOrderApiStatus.error + ")");
+        } else {
+            return createOrderApiStatus.data;
+        }
     }
 
-    public boolean cancelOrder(long orderId) throws Exception {
-        throw new NotImplementedException();
+    public boolean cancelOrder(Object orderId) throws Exception {
+        ApiStatus<String> createOrderApiStatus = internalCancelOrder((String) pairMapper.firstEntry().getValue().pairId, (String) orderId);
+        if(!createOrderApiStatus.result.equals("success")) {
+            throw new TradeApiError("Failed to cancel order (" + createOrderApiStatus.error + ")");
+        } else {
+            return true;
+        }
     }
 }
