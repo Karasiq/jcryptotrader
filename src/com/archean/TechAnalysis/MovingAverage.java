@@ -11,6 +11,8 @@
 package com.archean.TechAnalysis;
 
 import com.archean.jtradeapi.HistoryUtils;
+import lombok.*;
+import lombok.experimental.NonFinal;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -19,53 +21,27 @@ public class MovingAverage {
     public enum MovingAverageType {
         SMA, EMA, SMMA
     }
-
-    private Map<String, Object> parameters = new HashMap<>();
-
-    // Constructor:
-    public MovingAverage() {
-        setPeriod(1);
-        setAlpha(new BigDecimal(0.9));
-        setType(MovingAverageType.SMA);
+    @Value
+    public static class Parameters {
+        private MovingAverageType type;
+        private int period;
+        private BigDecimal alpha;
     }
+    public static final Parameters DEFAULT_PARAMETERS = new Parameters(MovingAverageType.SMA, 1, new BigDecimal(0.9));
 
-    // Setters:
-    public void setPeriod(final int period) {
-        parameters.put("period", new BigDecimal(period));
-    }
-
-    public void setAlpha(final BigDecimal alpha) {
-        parameters.put("alpha", alpha);
-    }
-
-    public void setType(final MovingAverageType type) {
-        parameters.put("type", type);
-    }
-
-    // Getters:
-    public int getPeriod() {
-        return ((BigDecimal) parameters.get("period")).intValue();
-    }
-
-    public BigDecimal getAlpha() {
-        return (BigDecimal) parameters.get("alpha");
-    }
-
-    public MovingAverageType getType() {
-        return (MovingAverageType) parameters.get("type");
-    }
 
     // Functions:
-    public static BigDecimal getMovingAverageValue(TAUtils.PriceChange priceChange, int position, Map<String, Object> parameters, Map<String, Object> cache) {
-        BigDecimal period = (BigDecimal) parameters.get("period"), alpha = (BigDecimal) parameters.get("alpha");
-        switch ((MovingAverageType) parameters.get("type")) {
+    public static BigDecimal getMovingAverageValue(@NonNull TAUtils.PriceChange priceChange, int position, @NonNull Parameters parameters, @NonNull Map<String, Object> cache) {
+        int period = parameters.getPeriod();
+        BigDecimal alpha = parameters.getAlpha(), bigDecimalPeriod = new BigDecimal(period);
+        switch (parameters.getType()) {
             case SMA: // Simple
-                return priceChange.getAbsolute().divide(period);
+                return priceChange.getAbsolute().divide(bigDecimalPeriod);
             case EMA: // Exponential
                 return priceChange.getFirstPrice().add(alpha).multiply(priceChange.getAbsolute());
             case SMMA: // Smoothed
                 if (position == 0) {
-                    BigDecimal smma1 = priceChange.getAbsolute().divide(period);
+                    BigDecimal smma1 = priceChange.getAbsolute().divide(bigDecimalPeriod);
                     cache.put("smma1", smma1);
                     return smma1;
                 } else {
@@ -87,10 +63,10 @@ public class MovingAverage {
         }
     }
 
-    public List<HistoryUtils.TimestampedChartData> build(List<TAUtils.PriceChange> history) {
+    public static List<HistoryUtils.TimestampedChartData> build(@NonNull List<TAUtils.PriceChange> history, @NonNull Parameters parameters) {
         final Map<String, Object> cache = new HashMap<>();
         final List<HistoryUtils.TimestampedChartData> decimals = new ArrayList<>();
-        int period = getPeriod();
+        int period = parameters.getPeriod();
         for (int i = period; i < history.size(); i++) {
             TAUtils.PriceChange firstPeriod = history.get(i - period), secondPeriod = history.get(i);
             decimals.add(new HistoryUtils.TimestampedChartData(secondPeriod.getSecondDate(), getMovingAverageValue(new TAUtils.PriceChange(firstPeriod.getSecondDate(), secondPeriod.getSecondDate(), firstPeriod.getSecondPrice(), secondPeriod.getSecondPrice()), i - period, parameters, cache)));
@@ -98,15 +74,14 @@ public class MovingAverage {
         return decimals;
     }
 
+    @RequiredArgsConstructor
     public static class MovingAverageBuilder {
-        public MovingAverageBuilder(MovingAverageType type, int period, BigDecimal alpha) {
-            parameters.put("period", period);
-            parameters.put("type", type);
-            parameters.put("alpha", alpha);
-        }
+        @Getter
+        @Setter
+        @NonNull
+        private Parameters parameters;
 
         private Map<String, Object> cache = new HashMap<>();
-        private Map<String, Object> parameters = new HashMap<>();
         private List<HistoryUtils.TimestampedChartData> data = new ArrayList<>();
 
         public int put(Date firstDate, Date secondDate, BigDecimal firstValue, BigDecimal secondValue) {

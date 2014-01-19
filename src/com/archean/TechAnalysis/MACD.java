@@ -13,6 +13,7 @@
 package com.archean.TechAnalysis;
 
 import com.archean.jtradeapi.HistoryUtils;
+import lombok.NonNull;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -20,19 +21,15 @@ import java.util.List;
 
 public class MACD {
 
-    public static List<HistoryUtils.TimestampedChartData> build(List<TAUtils.PriceChange> priceChanges, int shortPeriod, int longPeriod, int smaPeriod) {
+    public static List<HistoryUtils.TimestampedChartData> build(@NonNull List<TAUtils.PriceChange> priceChanges, int shortPeriod, int longPeriod, int smaPeriod) {
         List<HistoryUtils.TimestampedChartData> result = new ArrayList<>();
-        MovingAverage shortEMA = new MovingAverage(), longEMA = new MovingAverage();
+        MovingAverage.Parameters shortEMAParameters = new MovingAverage.Parameters(MovingAverage.MovingAverageType.EMA, shortPeriod, MovingAverage.DEFAULT_PARAMETERS.getAlpha()), longEMAParameters = new MovingAverage.Parameters(MovingAverage.MovingAverageType.EMA, longPeriod, MovingAverage.DEFAULT_PARAMETERS.getAlpha());
         MovingAverage.MovingAverageBuilder smaBuilder = null;
         if (smaPeriod != 0) {
-            smaBuilder = new MovingAverage.MovingAverageBuilder(MovingAverage.MovingAverageType.SMA, smaPeriod, null);
+            smaBuilder = new MovingAverage.MovingAverageBuilder(new MovingAverage.Parameters(MovingAverage.MovingAverageType.SMA, smaPeriod, null));
         }
-        shortEMA.setType(MovingAverage.MovingAverageType.EMA);
-        shortEMA.setPeriod(shortPeriod);
-        longEMA.setType(MovingAverage.MovingAverageType.EMA);
-        longEMA.setPeriod(longPeriod);
 
-        List<HistoryUtils.TimestampedChartData> emaS = shortEMA.build(priceChanges), emaL = longEMA.build(priceChanges);
+        List<HistoryUtils.TimestampedChartData> emaS = MovingAverage.build(priceChanges, shortEMAParameters), emaL = MovingAverage.build(priceChanges, longEMAParameters);
         for (int i = 0; i < priceChanges.size(); i++) {
             HistoryUtils.TimestampedChartData emaSdata = emaS.get(i), emaLdata = emaL.get(i);
             TAUtils.PriceChange priceChange = priceChanges.get(i);
@@ -45,7 +42,7 @@ public class MACD {
         return result;
     }
 
-    public static List<HistoryUtils.TimestampedChartData> build(List<TAUtils.PriceChange> priceChanges, boolean signal) {
+    public static List<HistoryUtils.TimestampedChartData> build(@NonNull List<TAUtils.PriceChange> priceChanges, boolean signal) {
         return build(priceChanges, 12, 26, signal ? 9 : 0);
     }
 }

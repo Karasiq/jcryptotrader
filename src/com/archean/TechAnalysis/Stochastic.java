@@ -13,6 +13,7 @@
 package com.archean.TechAnalysis;
 
 import com.archean.jtradeapi.HistoryUtils;
+import lombok.NonNull;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ public class Stochastic {
         return closePrice.subtract(low).divide(high.subtract(low)).multiply(new BigDecimal(100));
     }
 
-    public static List<HistoryUtils.TimestampedChartData> build(List<TAUtils.PriceChange> pricePeriods, int period) {
+    public static List<HistoryUtils.TimestampedChartData> build(@NonNull List<TAUtils.PriceChange> pricePeriods, int period) {
         List<HistoryUtils.TimestampedChartData> result = new ArrayList<>();
         int i = 0;
         BigDecimal low = null, high = null;

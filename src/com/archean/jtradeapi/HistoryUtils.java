@@ -11,6 +11,9 @@
 package com.archean.jtradeapi;
 
 
+import lombok.NonNull;
+import lombok.experimental.NonFinal;
+
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.*;
@@ -68,7 +71,7 @@ public class HistoryUtils {
     public static Date timeDelta(int field, int amount) { // Date = now
         return timeDelta(new Date(), field, amount);
     }
-    public static BaseTradeApi.StandartObjects.Order getNearestTrade(List<BaseTradeApi.StandartObjects.Order> history, Date targetDate) {
+    public static BaseTradeApi.StandartObjects.Order getNearestTrade(@NonNull List<BaseTradeApi.StandartObjects.Order> history, Date targetDate) {
         Collections.sort(history);
         BaseTradeApi.StandartObjects.Order result = history.get(0);
         for (BaseTradeApi.StandartObjects.Order order : history) {
@@ -83,7 +86,7 @@ public class HistoryUtils {
         return result;
     }
 
-    public static Candle getNearestCandle(final List<Candle> candles, Date targetDate) {
+    public static Candle getNearestCandle(@NonNull final List<Candle> candles, Date targetDate) {
         Candle result = candles.get(0);
         for (Candle candle : candles) {
             // if the current iteration's date is "before" the target date
@@ -97,7 +100,7 @@ public class HistoryUtils {
         return result;
     }
 
-    public static List<Candle> buildCandles(List<BaseTradeApi.StandartObjects.Order> history, Date limit, long period) {
+    public static List<Candle> buildCandles(@NonNull List<BaseTradeApi.StandartObjects.Order> history, Date limit, long period) {
         List<Candle> candles = new ArrayList<>();
         Collections.sort(history);
 
@@ -138,7 +141,7 @@ public class HistoryUtils {
         return candles;
     }
 
-    public static void refreshCandles(List<Candle> candles, List<BaseTradeApi.StandartObjects.Order> history, Date limit, long period) { // fast update
+    public static void refreshCandles(@NonFinal List<Candle> candles, @NonNull List<BaseTradeApi.StandartObjects.Order> history, Date limit, long period) { // fast update
 
         // Remove old:
         if(limit != null) {

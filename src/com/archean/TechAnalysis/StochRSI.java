@@ -13,6 +13,7 @@
 package com.archean.TechAnalysis;
 
 import com.archean.jtradeapi.HistoryUtils;
+import lombok.NonNull;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ public class StochRSI {
         return current.subtract(low).divide(high.subtract(low));
     }
 
-    public static List<HistoryUtils.TimestampedChartData> build(List<HistoryUtils.TimestampedChartData> rsi, int period) {
+    public static List<HistoryUtils.TimestampedChartData> build(@NonNull List<HistoryUtils.TimestampedChartData> rsi, int period) {
         List<HistoryUtils.TimestampedChartData> result = new ArrayList<>();
         BigDecimal low = null, high = null;
         int i = 0;

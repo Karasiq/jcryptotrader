@@ -13,13 +13,14 @@
 package com.archean.TechAnalysis;
 
 import com.archean.jtradeapi.HistoryUtils;
+import lombok.NonNull;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 public class RSI {
-    private static List<TAUtils.PriceChange> makeUDChangesList(List<TAUtils.PriceChange> changes, boolean positive) {
+    private static List<TAUtils.PriceChange> makeUDChangesList(@NonNull List<TAUtils.PriceChange> changes, boolean positive) {
         List<TAUtils.PriceChange> result = new ArrayList<>();
         for (TAUtils.PriceChange priceChange : changes)
             if (positive == priceChange.isPositive()) {
@@ -39,13 +40,11 @@ public class RSI {
         return BIG_DECIMAL_ONE_HUNDRED.subtract(BIG_DECIMAL_ONE_HUNDRED.divide(BigDecimal.ONE.add(relativeStrength)));
     }
 
-    public static List<HistoryUtils.TimestampedChartData> build(List<TAUtils.PriceChange> changes, int period) {
+    public static List<HistoryUtils.TimestampedChartData> build(@NonNull List<TAUtils.PriceChange> changes, int period) {
         List<HistoryUtils.TimestampedChartData> result = new ArrayList<>();
         List<TAUtils.PriceChange> positive = makeUDChangesList(changes, true), negative = makeUDChangesList(changes, false);
-        MovingAverage movingAverage = new MovingAverage();
-        movingAverage.setType(MovingAverage.MovingAverageType.EMA);
-        movingAverage.setPeriod(period);
-        List<HistoryUtils.TimestampedChartData> positiveEma = movingAverage.build(positive), negativeEma = movingAverage.build(negative);
+        MovingAverage.Parameters maParams = new MovingAverage.Parameters(MovingAverage.MovingAverageType.EMA, period, null);
+        List<HistoryUtils.TimestampedChartData> positiveEma = MovingAverage.build(positive, maParams), negativeEma = MovingAverage.build(negative, maParams);
         for (int i = 0; i < changes.size(); i++) {
             BigDecimal RS = relativeStrength(positiveEma.get(i).value, negativeEma.get(i).value);
             result.add(new HistoryUtils.TimestampedChartData(changes.get(i).getSecondDate(), relativeStrengthIndex(RS)));
