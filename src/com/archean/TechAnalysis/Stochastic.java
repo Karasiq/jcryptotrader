@@ -31,7 +31,6 @@ public class Stochastic {
         for (TAUtils.PriceChange pricePeriod : pricePeriods) {
             BigDecimal currentPrice = pricePeriod.getSecondPrice();
             if (i >= period) {
-                result.add(new HistoryUtils.TimestampedChartData(pricePeriod.getSecondDate(), calculateStoch(currentPrice, low, high)));
                 i = 0;
                 low = null;
                 high = null;
@@ -42,6 +41,7 @@ public class Stochastic {
             if (low == null || currentPrice.compareTo(low) < 0) {
                 low = currentPrice;
             }
+            result.add(new HistoryUtils.TimestampedChartData(pricePeriod.getSecondDate(), calculateStoch(currentPrice, low, high)));
             i++;
         }
         return result;

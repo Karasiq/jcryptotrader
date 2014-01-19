@@ -29,8 +29,7 @@ public class StochRSI {
         BigDecimal low = null, high = null;
         int i = 0;
         for (HistoryUtils.TimestampedChartData rsiPoint : rsi) {
-            if (i > period) {
-                result.add(new HistoryUtils.TimestampedChartData(rsiPoint.date, stochRsi(rsiPoint.value, low, high)));
+            if (i >= period) {
                 i = 0;
                 high = null;
                 low = null;
@@ -41,6 +40,7 @@ public class StochRSI {
             if (low == null || rsiPoint.value.compareTo(low) < 0) {
                 low = rsiPoint.value;
             }
+            result.add(new HistoryUtils.TimestampedChartData(rsiPoint.date, stochRsi(rsiPoint.value, low, high)));
             i++;
         }
         return result;

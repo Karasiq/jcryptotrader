@@ -12,7 +12,6 @@ package com.archean.TechAnalysis;
 
 import com.archean.jtradeapi.HistoryUtils;
 import lombok.*;
-import lombok.experimental.NonFinal;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -21,12 +20,14 @@ public class MovingAverage {
     public enum MovingAverageType {
         SMA, EMA, SMMA
     }
+
     @Value
     public static class Parameters {
         private MovingAverageType type;
         private int period;
         private BigDecimal alpha;
     }
+
     public static final Parameters DEFAULT_PARAMETERS = new Parameters(MovingAverageType.SMA, 1, new BigDecimal(0.9));
 
 
@@ -67,7 +68,7 @@ public class MovingAverage {
         final Map<String, Object> cache = new HashMap<>();
         final List<HistoryUtils.TimestampedChartData> decimals = new ArrayList<>();
         int period = parameters.getPeriod();
-        for (int i = period; i < history.size(); i++) {
+        for (int i = period; i < history.size(); i += period) {
             TAUtils.PriceChange firstPeriod = history.get(i - period), secondPeriod = history.get(i);
             decimals.add(new HistoryUtils.TimestampedChartData(secondPeriod.getSecondDate(), getMovingAverageValue(new TAUtils.PriceChange(firstPeriod.getSecondDate(), secondPeriod.getSecondDate(), firstPeriod.getSecondPrice(), secondPeriod.getSecondPrice()), i - period, parameters, cache)));
         }

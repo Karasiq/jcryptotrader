@@ -12,7 +12,6 @@ package com.archean.TechAnalysis;
 
 import com.archean.jtradeapi.BaseTradeApi;
 import com.archean.jtradeapi.HistoryUtils;
-import lombok.Data;
 import lombok.NonNull;
 import lombok.Value;
 
