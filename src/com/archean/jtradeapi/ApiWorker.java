@@ -106,7 +106,7 @@ public class ApiWorker implements AutoCloseable {
     volatile public BaseTradeApi.StandartObjects.AccountInfo accountInfo = new BaseTradeApi.StandartObjects.AccountInfo();
     volatile public BaseTradeApi.StandartObjects.MarketInfo marketInfo = new BaseTradeApi.StandartObjects.MarketInfo();
     volatile public BaseTradeApi tradeApi = null;
-    volatile int timeInterval = 200;
+    volatile int timeInterval = 500;
     volatile Object pair = null;
     volatile public Callback callback = null;
     private Map<ApiDataType, Thread> threadMap = new HashMap<>();

@@ -826,7 +826,7 @@ new FormModel {
 						} )
 						add( new FormComponent( "javax.swing.JSpinner" ) {
 							name: "spinnerUpdateInterval"
-							"model": new javax.swing.SpinnerNumberModel( 100, 0, 30000, 50 )
+							"model": new javax.swing.SpinnerNumberModel( 500, 0, 30000, 50 )
 							addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "settingsChanged", true ) )
 						}, new FormLayoutConstraints( class com.jgoodies.forms.layout.CellConstraints ) {
 							"gridX": 5
