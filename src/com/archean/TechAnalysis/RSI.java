@@ -16,38 +16,48 @@ import com.archean.jtradeapi.HistoryUtils;
 import lombok.NonNull;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
 public class RSI {
     private static List<TAUtils.PriceChange> makeUDChangesList(@NonNull List<TAUtils.PriceChange> changes, boolean positive) {
         List<TAUtils.PriceChange> result = new ArrayList<>();
-        for (TAUtils.PriceChange priceChange : changes)
+        for (TAUtils.PriceChange priceChange : changes) {
             if (positive == priceChange.isPositive()) {
                 result.add(priceChange);
-            } else {
-                result.add(new TAUtils.PriceChange(priceChange.getFirstDate(), priceChange.getSecondDate(), priceChange.getFirstPrice(), priceChange.getFirstPrice())); // absolute = 0
             }
+        }
         return result;
     }
 
     private static BigDecimal relativeStrength(BigDecimal u, BigDecimal d) {
-        return u.divide(d);
+        return u.divide(d, TAUtils.ROUNDING_PRECISION, TAUtils.ROUNDING_MODE);
     }
-
+    private final static BigDecimal BIG_DECIMAL_ONE_HUNDRED = new BigDecimal(100.0, MathContext.DECIMAL64);
     private static BigDecimal relativeStrengthIndex(BigDecimal relativeStrength) {
-        final BigDecimal BIG_DECIMAL_ONE_HUNDRED = new BigDecimal(100);
-        return BIG_DECIMAL_ONE_HUNDRED.subtract(BIG_DECIMAL_ONE_HUNDRED.divide(BigDecimal.ONE.add(relativeStrength)));
+        return BIG_DECIMAL_ONE_HUNDRED.subtract(BIG_DECIMAL_ONE_HUNDRED.divide(relativeStrength.add(BigDecimal.ONE), TAUtils.ROUNDING_PRECISION, TAUtils.ROUNDING_MODE));
     }
 
+    private static final BigDecimal emaAlpha = new BigDecimal(0.9, MathContext.DECIMAL64);
     public static List<HistoryUtils.TimestampedChartData> build(@NonNull List<TAUtils.PriceChange> changes, int period) {
         List<HistoryUtils.TimestampedChartData> result = new ArrayList<>();
-        List<TAUtils.PriceChange> positive = makeUDChangesList(changes, true), negative = makeUDChangesList(changes, false);
-        MovingAverage.Parameters maParams = new MovingAverage.Parameters(MovingAverage.MovingAverageType.EMA, period, null);
-        List<HistoryUtils.TimestampedChartData> positiveEma = MovingAverage.build(positive, maParams), negativeEma = MovingAverage.build(negative, maParams);
-        for (int i = 0; i < changes.size(); i++) {
-            BigDecimal RS = relativeStrength(positiveEma.get(i).value, negativeEma.get(i).value);
-            result.add(new HistoryUtils.TimestampedChartData(changes.get(i).getSecondDate(), relativeStrengthIndex(RS)));
+        MovingAverage.Parameters maParams = new MovingAverage.Parameters(MovingAverage.MovingAverageType.EMA, period, emaAlpha);
+        MovingAverage.MovingAverageBuilder positiveEma = new MovingAverage.MovingAverageBuilder(maParams), negativeEma = new MovingAverage.MovingAverageBuilder(maParams);
+
+        BigDecimal uValue, dValue;
+        for (TAUtils.PriceChange change : changes) {
+            if(change.isPositive()) {
+                positiveEma.put(change.getSecondDate(), change.getSecondPrice());
+            } else {
+                negativeEma.put(change.getSecondDate(), change.getSecondPrice());
+            }
+            HistoryUtils.TimestampedChartData uLast = positiveEma.getLast(), dLast = negativeEma.getLast();
+            uValue = uLast != null && uLast.value.compareTo(BigDecimal.ZERO) != 0 ? uLast.value : BIG_DECIMAL_ONE_HUNDRED;
+            dValue = dLast != null && dLast.value.compareTo(BigDecimal.ZERO) != 0 ? dLast.value : BIG_DECIMAL_ONE_HUNDRED;
+            BigDecimal RS = relativeStrength(uValue, dValue);
+            result.add(new HistoryUtils.TimestampedChartData(change.getSecondDate(), relativeStrengthIndex(RS)));
         }
         return result;
     }

@@ -12,17 +12,21 @@ package com.archean.TechAnalysis;
 
 import com.archean.jtradeapi.BaseTradeApi;
 import com.archean.jtradeapi.HistoryUtils;
+import lombok.Data;
 import lombok.NonNull;
 import lombok.Value;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 public class TAUtils {
-    @Value
+    public static final int ROUNDING_PRECISION = 8;
+    public static final RoundingMode ROUNDING_MODE = RoundingMode.HALF_EVEN;
+    @Data
     public static class PriceChange {
         private BigDecimal absolute;
         private BigDecimal firstPrice; // "yesterday"
@@ -62,6 +66,14 @@ public class TAUtils {
         public PriceChange(HistoryUtils.Candle candle) {
             this(candle.start, candle.end, new BigDecimal(candle.open, MathContext.DECIMAL64), new BigDecimal(candle.close, MathContext.DECIMAL64));
         }
+    }
+
+    public static BigDecimal priceSum(final @NonNull List<PriceChange> priceChanges, int start, int end) { // Closing prices
+        BigDecimal result = new BigDecimal(0.0, MathContext.DECIMAL64);
+        for (int i = start; i < end; i++) {
+            result = result.add(priceChanges.get(i).secondPrice);
+        }
+        return result;
     }
 
     public static List<PriceChange> buildPriceMovingHistory(@NonNull List<HistoryUtils.Candle> candles, int period) { // Only by candle open/close

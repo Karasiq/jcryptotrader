@@ -18,80 +18,133 @@ import java.util.*;
 
 public class MovingAverage {
     public enum MovingAverageType {
-        SMA, EMA, SMMA
+        SMA, EMA, SMMA, LWMA
     }
 
-    @Value
+    @Data
+    @AllArgsConstructor
+    @RequiredArgsConstructor
     public static class Parameters {
-        private MovingAverageType type;
-        private int period;
+        private final MovingAverageType type;
+        private final int period;
         private BigDecimal alpha;
     }
 
-    public static final Parameters DEFAULT_PARAMETERS = new Parameters(MovingAverageType.SMA, 1, new BigDecimal(0.9));
+    public static final Parameters DEFAULT_PARAMETERS = new Parameters(MovingAverageType.SMA, 1);
+
+    public static BigDecimal getEMAMultiplier(int period) {
+        return new BigDecimal(2).divide(new BigDecimal(period + 1), TAUtils.ROUNDING_PRECISION, TAUtils.ROUNDING_MODE);
+    }
 
 
     // Functions:
-    public static BigDecimal getMovingAverageValue(@NonNull TAUtils.PriceChange priceChange, int position, @NonNull Parameters parameters, @NonNull Map<String, Object> cache) {
+    public static BigDecimal getMovingAverageValue(BigDecimal priceSum, @NonNull TAUtils.PriceChange currentPeriod, int position, @NonNull Parameters parameters, @NonNull Map<String, Object> cache) {
         int period = parameters.getPeriod();
         BigDecimal alpha = parameters.getAlpha(), bigDecimalPeriod = new BigDecimal(period);
         switch (parameters.getType()) {
             case SMA: // Simple
-                return priceChange.getAbsolute().divide(bigDecimalPeriod);
+                return priceSum.divide(bigDecimalPeriod, TAUtils.ROUNDING_PRECISION, TAUtils.ROUNDING_MODE);
             case EMA: // Exponential
-                return priceChange.getFirstPrice().add(alpha).multiply(priceChange.getAbsolute());
+                BigDecimal prevEma = (BigDecimal) cache.get("prevEma");
+                if(prevEma == null) {
+                    prevEma = priceSum.divide(bigDecimalPeriod, TAUtils.ROUNDING_PRECISION, TAUtils.ROUNDING_MODE);
+                }
+                BigDecimal emaValue = currentPeriod.getSecondPrice().subtract(prevEma).multiply(alpha).add(prevEma);
+                cache.put("prevEma", emaValue);
+                return emaValue;
             case SMMA: // Smoothed
                 if (position == 0) {
-                    BigDecimal smma1 = priceChange.getAbsolute().divide(bigDecimalPeriod);
+                    BigDecimal smma1 = priceSum.divide(bigDecimalPeriod);
                     cache.put("smma1", smma1);
                     return smma1;
                 } else {
                     BigDecimal smma1 = (BigDecimal) cache.get("smma1");
                     BigDecimal prevSum = (BigDecimal) cache.get("smmaPrevSum");
                     if (prevSum != null) {
-                        BigDecimal smmaI = prevSum.multiply(new BigDecimal(position)).subtract(prevSum).add(priceChange.getSecondPrice()).divide(alpha);
+                        BigDecimal smmaI = prevSum.multiply(new BigDecimal(position)).subtract(prevSum).add(currentPeriod.getSecondPrice()).divide(bigDecimalPeriod);
                         cache.put("smmaPrevSum", smmaI);
                         return smmaI;
                     } else {
-                        prevSum = smma1.multiply(alpha.subtract(BigDecimal.ONE)).add(priceChange.getSecondPrice()).divide(alpha);
+                        prevSum = smma1.multiply(bigDecimalPeriod.subtract(BigDecimal.ONE)).add(currentPeriod.getSecondPrice()).divide(bigDecimalPeriod);
                         cache.put("smmaPrevSum", prevSum);
                         return prevSum;
                     }
                 }
-
+            case LWMA: // Linear Weighted
+                BigDecimal weight = (BigDecimal) cache.get("weight");
+                if (weight == null) weight = new BigDecimal(position);
+                else weight = weight.add(new BigDecimal(position));
+                cache.put("weight", weight);
+                return priceSum.divide(weight.add(bigDecimalPeriod), TAUtils.ROUNDING_PRECISION, TAUtils.ROUNDING_MODE);
             default:
                 throw new IllegalArgumentException();
         }
     }
 
     public static List<HistoryUtils.TimestampedChartData> build(@NonNull List<TAUtils.PriceChange> history, @NonNull Parameters parameters) {
+        if(parameters.getAlpha() == null) {
+            switch (parameters.getType()) {
+                case EMA:
+                    parameters.setAlpha(getEMAMultiplier(parameters.getPeriod()));
+                    break;
+                case SMMA:
+                    parameters.setAlpha(new BigDecimal(0.9));
+                    break;
+            }
+        }
         final Map<String, Object> cache = new HashMap<>();
         final List<HistoryUtils.TimestampedChartData> decimals = new ArrayList<>();
         int period = parameters.getPeriod();
         for (int i = period; i < history.size(); i += period) {
-            TAUtils.PriceChange firstPeriod = history.get(i - period), secondPeriod = history.get(i);
-            decimals.add(new HistoryUtils.TimestampedChartData(secondPeriod.getSecondDate(), getMovingAverageValue(new TAUtils.PriceChange(firstPeriod.getSecondDate(), secondPeriod.getSecondDate(), firstPeriod.getSecondPrice(), secondPeriod.getSecondPrice()), i - period, parameters, cache)));
+            final TAUtils.PriceChange priceChange = history.get(i);
+            decimals.add(new HistoryUtils.TimestampedChartData(priceChange.getSecondDate(), getMovingAverageValue(TAUtils.priceSum(history, i - period, i), priceChange, i - 1, parameters, cache)));
         }
         return decimals;
     }
 
     @RequiredArgsConstructor
     public static class MovingAverageBuilder {
-        @Getter
-        @Setter
+        private
         @NonNull
-        private Parameters parameters;
+        @Getter
+        Parameters parameters;
 
         private Map<String, Object> cache = new HashMap<>();
         private List<HistoryUtils.TimestampedChartData> data = new ArrayList<>();
+        private final List<TAUtils.PriceChange> periodList = new ArrayList<>();
+        private int currentPos = 0;
 
-        public int put(Date firstDate, Date secondDate, BigDecimal firstValue, BigDecimal secondValue) {
-            data.add(new HistoryUtils.TimestampedChartData(secondDate, getMovingAverageValue(new TAUtils.PriceChange(firstDate, secondDate, firstValue, secondValue), data.size(), parameters, cache)));
+        public int put(Date date, BigDecimal value) {
+            Date firstDate;
+            BigDecimal firstValue;
+            if (periodList.size() > 0) {
+                TAUtils.PriceChange prevPeriod = periodList.get(periodList.size() - 1);
+                firstDate = prevPeriod.getSecondDate();
+                firstValue = prevPeriod.getSecondPrice();
+            } else {
+                firstDate = date;
+                firstValue = BigDecimal.ZERO;
+            }
+            TAUtils.PriceChange period = new TAUtils.PriceChange(firstDate, date, firstValue, value);
+            periodList.add(period);
+
+            data.add(new HistoryUtils.TimestampedChartData(date, getMovingAverageValue(TAUtils.priceSum(periodList, currentPos, periodList.size()), period, data.size(), parameters, cache)));
+
+            if (currentPos > parameters.getPeriod()) {
+                currentPos = 0;
+            } else {
+                currentPos++;
+            }
+
             return data.size() - 1;
         }
 
         public HistoryUtils.TimestampedChartData get(int index) {
             return data.get(index);
+        }
+
+        public HistoryUtils.TimestampedChartData getLast() {
+            return data.size() > 0 ? data.get(data.size() - 1) : null;
         }
 
         public List<HistoryUtils.TimestampedChartData> getData() {

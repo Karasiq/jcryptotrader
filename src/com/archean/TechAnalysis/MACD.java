@@ -35,7 +35,7 @@ public class MACD {
             TAUtils.PriceChange priceChange = priceChanges.get(i);
             HistoryUtils.TimestampedChartData decimal = new HistoryUtils.TimestampedChartData(priceChange.getSecondDate(), emaSdata.value.subtract(emaLdata.value));
             if (smaBuilder != null) {
-                decimal = smaBuilder.get(smaBuilder.put(priceChange.getFirstDate(), priceChange.getSecondDate(), BigDecimal.ZERO, decimal.value));
+                decimal = smaBuilder.get(smaBuilder.put(priceChange.getSecondDate(), decimal.value));
             }
             result.add(decimal);
         }
