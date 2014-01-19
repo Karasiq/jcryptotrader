@@ -10,14 +10,61 @@
 
 package com.archean.jtradeapi;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.*;
 
-public class ApiWorker implements AutoCloseable {
-    public abstract static class Callback {
-        public abstract void onUpdate(final ApiWorker.ApiDataType dataType, final Object data);
+public
+@NoArgsConstructor
+class ApiWorker extends Utils.Threads.UniqueHandlerObserver<ApiWorker.ApiDataUpdateEvent> implements AutoCloseable {
+    public interface ApiDataUpdateEvent {
+        public void onMarketPricesUpdate(BaseTradeApi.StandartObjects.Prices data);
 
-        public void onError(Exception exc) {
-            exc.printStackTrace();
+        public void onMarketDepthUpdate(BaseTradeApi.StandartObjects.Depth data);
+
+        public void onMarketHistoryUpdate(List<BaseTradeApi.StandartObjects.Order> data);
+
+        public void onAccountBalancesUpdate(BaseTradeApi.StandartObjects.AccountInfo.AccountBalance data);
+
+        public void onAccountOrdersUpdate(List<BaseTradeApi.StandartObjects.Order> data);
+
+        public void onAccountHistoryUpdate(List<BaseTradeApi.StandartObjects.Order> data);
+
+        public void onError(Exception e);
+    }
+
+    private void onErrorEvent(Exception e) {
+        for (ApiDataUpdateEvent event : eventHandlers.values()) {
+            event.onError(e);
+        }
+    }
+
+    private void onUpdateEvent(ApiDataType type, Object data) {
+        for (ApiDataUpdateEvent event : eventHandlers.values()) {
+            switch (type) {
+                case MARKET_PRICES:
+                    event.onMarketPricesUpdate((BaseTradeApi.StandartObjects.Prices) data);
+                    break;
+                case MARKET_DEPTH:
+                    event.onMarketDepthUpdate((BaseTradeApi.StandartObjects.Depth) data);
+                    break;
+                case MARKET_HISTORY:
+                    event.onMarketHistoryUpdate((List<BaseTradeApi.StandartObjects.Order>) data);
+                    break;
+                case ACCOUNT_BALANCES:
+                    event.onAccountBalancesUpdate((BaseTradeApi.StandartObjects.AccountInfo.AccountBalance) data);
+                    break;
+                case ACCOUNT_ORDERS:
+                    event.onAccountOrdersUpdate((List<BaseTradeApi.StandartObjects.Order>) data);
+                    break;
+                case ACCOUNT_HISTORY:
+                    event.onAccountHistoryUpdate((List<BaseTradeApi.StandartObjects.Order>) data);
+                    break;
+                default:
+                    throw new IllegalArgumentException();
+            }
         }
     }
 
@@ -79,10 +126,8 @@ public class ApiWorker implements AutoCloseable {
 
         @Override
         protected int onError(Exception e) {
-            if (callback != null)
-                callback.onError(new Exception("ApiWorker error: " + e.getLocalizedMessage(), e));
-            else
-                e.printStackTrace();
+            e.printStackTrace();
+            onErrorEvent(new Exception("ApiWorker error: " + e.getLocalizedMessage(), e));
             return 10 * 1000; // 10s
         }
 
@@ -93,9 +138,7 @@ public class ApiWorker implements AutoCloseable {
             data = retrieveData();
             if (data != null && !Thread.currentThread().isInterrupted()) {
                 updateWorkerData(data);
-                if (callback != null) {
-                    callback.onUpdate(apiDataType, data);
-                }
+                onUpdateEvent(apiDataType, data);
                 return timeInterval;
             } else {
                 return STOP_CYCLE;
@@ -106,9 +149,14 @@ public class ApiWorker implements AutoCloseable {
     volatile public BaseTradeApi.StandartObjects.AccountInfo accountInfo = new BaseTradeApi.StandartObjects.AccountInfo();
     volatile public BaseTradeApi.StandartObjects.MarketInfo marketInfo = new BaseTradeApi.StandartObjects.MarketInfo();
     volatile public BaseTradeApi tradeApi = null;
-    volatile int timeInterval = 200;
-    volatile Object pair = null;
-    volatile public Callback callback = null;
+    volatile private
+    @Getter
+    @Setter
+    int timeInterval = 500;
+    volatile private
+    @Getter
+    @Setter
+    Object pair = null;
     private Map<ApiDataType, Thread> threadMap = new HashMap<>();
 
     synchronized public boolean isThreadRunning(final ApiDataType dataType) {
@@ -166,30 +214,6 @@ public class ApiWorker implements AutoCloseable {
         stopAllThreads();
     }
 
-    // Construction:
-    public ApiWorker() {
-        // do nothing
-    }
-
-    public ApiWorker setCallBack(Callback callback) {
-        this.callback = callback;
-        return this;
-    }
-
-    public ApiWorker setPair(Object pair) {
-        this.pair = pair;
-        return this;
-    }
-
-    public final Object getPair() {
-        return this.pair;
-    }
-
-    public ApiWorker setTradeApi(BaseTradeApi tradeApi) {
-        this.tradeApi = tradeApi;
-        return this;
-    }
-
     public ApiWorker initTradeApiInstance(int accountType, BaseTradeApi.ApiKeyPair apiKeyPair) {
         this.tradeApi = AccountManager.tradeApiInstance(accountType, apiKeyPair);
         return this;
@@ -197,11 +221,6 @@ public class ApiWorker implements AutoCloseable {
 
     public ApiWorker initTradeApiInstance(AccountManager.Account account) {
         this.tradeApi = AccountManager.tradeApiInstance(account);
-        return this;
-    }
-
-    public ApiWorker setTimeInterval(int ms) {
-        this.timeInterval = ms;
         return this;
     }
 }

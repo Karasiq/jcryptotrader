@@ -18,16 +18,7 @@ import com.archean.jtradeapi.*;
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
 import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.DateAxis;
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.labels.HighLowItemLabelGenerator;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.xy.CandlestickRenderer;
-import org.jfree.data.xy.AbstractXYDataset;
-import org.jfree.data.xy.DefaultOHLCDataset;
 import org.jfree.data.xy.OHLCDataItem;
-import org.jfree.data.xy.XYDataset;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.swing.*;
@@ -47,7 +38,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
@@ -78,21 +68,6 @@ public class TraderMainForm extends JPanel {
     private final Object candlesLock = new Object();
     private Date lastChartUpdate = new Date(0);
     private volatile Map<String, Thread> threadMap = new HashMap<>();
-    private Runnable marketCapUpdateTask = new Utils.Threads.CycledRunnable() {
-        private CoinMarketCapParser parser = new CoinMarketCapParser();
-
-        @Override
-        protected int onError(Exception e) {
-            processException(new Exception("Error retrieving market cap data", e));
-            return 30 * 1000;
-        }
-
-        @Override
-        protected int cycle() throws Exception {
-            updateMarketCap(parser.getData());
-            return 2 * 60 * 1000; // 2m
-        }
-    };
 
     private void stopThreads(String[] threadNames) {
         for (String t : threadNames) {
@@ -113,10 +88,17 @@ public class TraderMainForm extends JPanel {
     public void startWorker() {
         initialized = true;
         setUpdateOptions();
-        stopThreads(new String[]{"marketCap"});
-        Thread marketCapThread = new Thread(marketCapUpdateTask);
-        threadMap.put("marketCap", marketCapThread);
-        marketCapThread.start();
+        CoinMarketCapParser.coinMarketCapRetriever.addEventHandler(System.identityHashCode(this), new CoinMarketCapParser.CoinMarketCapEvent() {
+            @Override
+            public void onDataUpdate(List<CoinMarketCapParser.CoinCapitalization> data) {
+                updateMarketCap(data);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                processException(e);
+            }
+        });
     }
 
     public void killThreads() {
@@ -125,6 +107,7 @@ public class TraderMainForm extends JPanel {
             thread.interrupt();
         }
         threadMap.clear();
+        CoinMarketCapParser.coinMarketCapRetriever.removeEventHandler(System.identityHashCode(this));
     }
 
     public void setSettings(double feePercent, int timeInterval) {
@@ -328,43 +311,17 @@ public class TraderMainForm extends JPanel {
     }
 
     // GUI MVC functions
-    private AbstractXYDataset getOHLCDataSet(OHLCDataItem[] dataList) {
-        return new DefaultOHLCDataset(currentPair, dataList);
-    }
-
-    private void drawChart(XYDataset dataset) {
-        final DateAxis domainAxis = new DateAxis(locale.getString("Chart.legend.time.string"));
-        NumberAxis rangeAxis = new NumberAxis(locale.getString("Chart.legend.price.string"));
-        CandlestickRenderer renderer = new CandlestickRenderer();
-        XYPlot mainPlot = new XYPlot(dataset, domainAxis, rangeAxis, renderer);
-        renderer.setSeriesPaint(0, Color.BLACK);
-        renderer.setDrawVolume(true);
-        rangeAxis.setAutoRangeIncludesZero(false);
-        NumberFormat numberFormat = Utils.Strings.moneyFormat.toDecimalFormat();
-        renderer.setBaseToolTipGenerator(new HighLowItemLabelGenerator(new SimpleDateFormat(), numberFormat));
-        JFreeChart chart = new JFreeChart(currentPair, null, mainPlot, false);
-        ChartPanel chartPanel = new ChartPanel(chart, false);
-        chartPanel.setPreferredSize(new Dimension(600, 300));
-        mainPlot.setDomainPannable(true);
-        mainPlot.setRangePannable(true);
+    private void drawChart(OHLCDataItem[] dataset) {
+        ChartPanel chartPanel = CandleChart.initOHLCChart(CandleChart.Parameters.builder()
+                .numberFormat(Utils.Strings.moneyFormat.toDecimalFormat())
+                .dateFormat(new SimpleDateFormat())
+                .labelX(locale.getString("Chart.legend.time.string"))
+                .labelY(locale.getString("Chart.legend.price.string"))
+                .title(currentPair).build(), dataset);
+        // chartPanel.setPreferredSize(new Dimension(600, 300));
         tabbedPaneInfo.setComponentAt(4, chartPanel);
     }
-    private OHLCDataItem[] updateOHLCDataArray(OHLCDataItem[] chartDataCache, List<HistoryUtils.Candle> candles) {
-        if(candles == null || candles.size() == 0) {
-            chartDataCache = null;
-        } else if(chartDataCache == null || chartDataCache.length != candles.size() || !chartDataCache[0].getDate().equals(candles.get(0).start)) { // Full
-            int length = candles.size();
-            chartDataCache = new OHLCDataItem[length];
-            for(int i = 0; i < length; i++) {
-                HistoryUtils.Candle candle = candles.get(i);
-                chartDataCache[i] = new OHLCDataItem(candle.start, candle.open, candle.high, candle.low, candle.close, candle.volume);
-            }
-        } else { // Fast
-            HistoryUtils.Candle lastCandle = candles.get(candles.size() - 1);
-            chartDataCache[chartDataCache.length - 1] = new OHLCDataItem(lastCandle.start, lastCandle.open, lastCandle.high, lastCandle.low, lastCandle.close, lastCandle.volume);
-        }
-        return chartDataCache;
-    }
+
     private OHLCDataItem[] ohlcDataCache = null;
     private void updateChart(List<HistoryUtils.Candle> candles) {
         if (candles == null || candles.isEmpty()) return;
@@ -374,15 +331,12 @@ public class TraderMainForm extends JPanel {
         } else {
             lastChartUpdate = lastCandle.update;
         }
-        ohlcDataCache = updateOHLCDataArray(ohlcDataCache, candles);
+        ohlcDataCache = CandleChart.updateOHLCDataArray(ohlcDataCache, candles);
         if (ohlcDataCache != null && ohlcDataCache.length > 0) {
-            XYDataset dataset = getOHLCDataSet(ohlcDataCache);
             if (tabbedPaneInfo.getComponentAt(4) instanceof ChartPanel) {
-                XYPlot mainPlot = ((ChartPanel) tabbedPaneInfo.getComponentAt(4)).getChart().getXYPlot();
-                mainPlot.setDataset(dataset);
-                ((ChartPanel) tabbedPaneInfo.getComponentAt(4)).getChart().setTitle(currentPair);
+                CandleChart.updateOHLCChart((ChartPanel) tabbedPaneInfo.getComponentAt(4), currentPair, ohlcDataCache);
             } else {
-                drawChart(dataset);
+                drawChart(ohlcDataCache);
             }
         }
     }
@@ -592,33 +546,42 @@ public class TraderMainForm extends JPanel {
         });
     }
 
-
-    public void fillGui(ApiWorker.ApiDataType dataType, Object data) {
-        if (!initialized) return; // reject data
-        switch (dataType) {
-            case MARKET_PRICES:
-                updatePrices((BaseTradeApi.StandartObjects.Prices) data);
-                break;
-            case MARKET_DEPTH:
-                updateDepth((BaseTradeApi.StandartObjects.Depth) data);
-                break;
-            case MARKET_HISTORY:
-                updateMarketHistory((List<BaseTradeApi.StandartObjects.Order>) data);
-                break;
-            case ACCOUNT_BALANCES:
-                updateAccountBalances((Map<String, Double>) data);
-                break;
-            case ACCOUNT_ORDERS:
-                updateOpenOrders((List<BaseTradeApi.StandartObjects.Order>) data);
-                break;
-            case ACCOUNT_HISTORY:
-                updateAccountHistory((List<BaseTradeApi.StandartObjects.Order>) data);
-                break;
-            default:
-                throw new IllegalArgumentException();
+    private final ApiWorker.ApiDataUpdateEvent apiWorkerEventHandler = new ApiWorker.ApiDataUpdateEvent() {
+        @Override
+        public void onMarketPricesUpdate(BaseTradeApi.StandartObjects.Prices data) {
+            updatePrices(data);
         }
-        revalidate();
-    }
+
+        @Override
+        public void onMarketDepthUpdate(BaseTradeApi.StandartObjects.Depth data) {
+            updateDepth(data);
+        }
+
+        @Override
+        public void onMarketHistoryUpdate(List<BaseTradeApi.StandartObjects.Order> data) {
+            updateMarketHistory(data);
+        }
+
+        @Override
+        public void onAccountBalancesUpdate(BaseTradeApi.StandartObjects.AccountInfo.AccountBalance data) {
+            updateAccountBalances(data);
+        }
+
+        @Override
+        public void onAccountOrdersUpdate(List<BaseTradeApi.StandartObjects.Order> data) {
+            updateOpenOrders(data);
+        }
+
+        @Override
+        public void onAccountHistoryUpdate(List<BaseTradeApi.StandartObjects.Order> data) {
+            updateAccountHistory(data);
+        }
+
+        @Override
+        public void onError(Exception e) {
+            processException(e);
+        }
+    };
 
     public TraderMainForm(AccountManager.Account account) {
         initComponents();
@@ -728,17 +691,7 @@ public class TraderMainForm extends JPanel {
             model.getColumn(1).setCellRenderer(moneyAmountCellRenderer);
         }
 
-        worker.setCallBack(new ApiWorker.Callback() {
-            @Override
-            public void onUpdate(final ApiWorker.ApiDataType dataType, final Object data) {
-                fillGui(dataType, data);
-            }
-
-            @Override
-            public void onError(Exception e) {
-                processException(e);
-            }
-        });
+        worker.addEventHandler(System.identityHashCode(this), apiWorkerEventHandler);
         initMarket(account);
 
         Thread apiLagThread = new Thread(new Utils.Threads.CycledRunnable() {
@@ -1811,7 +1764,7 @@ public class TraderMainForm extends JPanel {
                     panelSettings.add(labelUpdateInterval, CC.xy(3, 3));
 
                     //---- spinnerUpdateInterval ----
-                    spinnerUpdateInterval.setModel(new SpinnerNumberModel(100, 0, 30000, 50));
+                    spinnerUpdateInterval.setModel(new SpinnerNumberModel(500, 0, 30000, 50));
                     spinnerUpdateInterval.addChangeListener(new ChangeListener() {
                         @Override
                         public void stateChanged(ChangeEvent e) {

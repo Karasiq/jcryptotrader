@@ -127,27 +127,27 @@ public class SkinDlg extends JDialog {
             //======== contentPanel ========
             {
                 contentPanel.setLayout(new FormLayout(
-                    "default:grow",
-                    "2*(default, $lgap), default"));
+                        "default:grow",
+                        "2*(default, $lgap), default"));
 
                 //---- comboBox1 ----
-                comboBox1.setModel(new DefaultComboBoxModel<>(new String[] {
-                    "System",
-                    "Metal",
-                    "Motif",
-                    "GTK",
-                    "Acryl",
-                    "Aero",
-                    "Aluminium",
-                    "Bernstein",
-                    "Fast",
-                    "HiFi",
-                    "McWin",
-                    "Mint",
-                    "Noire",
-                    "Smart",
-                    "Luna",
-                    "Texture"
+                comboBox1.setModel(new DefaultComboBoxModel<>(new String[]{
+                        "System",
+                        "Metal",
+                        "Motif",
+                        "GTK",
+                        "Acryl",
+                        "Aero",
+                        "Aluminium",
+                        "Bernstein",
+                        "Fast",
+                        "HiFi",
+                        "McWin",
+                        "Mint",
+                        "Noire",
+                        "Smart",
+                        "Luna",
+                        "Texture"
                 }));
                 contentPanel.add(comboBox1, CC.xy(1, 1));
             }
@@ -157,8 +157,8 @@ public class SkinDlg extends JDialog {
             {
                 buttonBar.setBorder(Borders.createEmptyBorder("5dlu, 0dlu, 0dlu, 0dlu"));
                 buttonBar.setLayout(new FormLayout(
-                    "[50dlu,pref]:grow, $rgap, [50dlu,pref]:grow",
-                    "pref"));
+                        "[50dlu,pref]:grow, $rgap, [50dlu,pref]:grow",
+                        "pref"));
 
                 //---- okButton ----
                 okButton.setText(bundle.getString("SkinDlg.okButton.text"));

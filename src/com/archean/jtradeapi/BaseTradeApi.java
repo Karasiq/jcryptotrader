@@ -64,7 +64,7 @@ public abstract class BaseTradeApi {
         }
 
         public HttpResponse getRequest(String url, List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) throws IOException {
-            if(urlParameters.size() > 0) url = url + "?" + formatGetParamString(urlParameters);
+            if (urlParameters.size() > 0) url = url + "?" + formatGetParamString(urlParameters);
 
             HttpClient client = HttpClientBuilder.create().build();
             HttpGet request = new HttpGet(url);
@@ -340,10 +340,10 @@ public abstract class BaseTradeApi {
     public StandartObjects.MarketInfo getMarketData(Object pair, boolean retrieveOrders, boolean retrieveHistory) throws Exception {
         StandartObjects.MarketInfo marketInfo = new StandartObjects.MarketInfo();
         marketInfo.price = getMarketPrices(pair);
-        if(retrieveOrders) {
+        if (retrieveOrders) {
             marketInfo.depth = getMarketDepth(pair);
         }
-        if(retrieveHistory) {
+        if (retrieveHistory) {
             marketInfo.history = getMarketHistory(pair);
         }
         return marketInfo;

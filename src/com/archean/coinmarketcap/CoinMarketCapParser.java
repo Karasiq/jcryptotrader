@@ -11,6 +11,7 @@
 package com.archean.coinmarketcap;
 
 import com.archean.jtradeapi.BaseTradeApi;
+import com.archean.jtradeapi.Utils;
 import org.apache.http.NameValuePair;
 
 import java.io.IOException;
@@ -60,5 +61,57 @@ public class CoinMarketCapParser {
             coinCapitalizationList.add(capitalization);
         }
         return coinCapitalizationList;
+    }
+
+    // Worker:
+    public interface CoinMarketCapEvent {
+        public void onDataUpdate(final List<CoinCapitalization> data);
+        public void onError(final Exception e);
+    }
+
+    public static class CoinMarketCapWorker extends Utils.Threads.UniqueHandlerObserver<CoinMarketCapEvent> implements AutoCloseable {
+        private void onErrorEvent(final Exception e) {
+            for(CoinMarketCapEvent event : eventHandlers.values()) {
+                event.onError(e);
+            }
+        }
+        private void onDataUpdateEvent(final List<CoinCapitalization> data) {
+            for(CoinMarketCapEvent event : eventHandlers.values()) {
+                event.onDataUpdate(data);
+            }
+        }
+        private final Runnable marketCapUpdateTask = new Utils.Threads.CycledRunnable() {
+            private CoinMarketCapParser parser = new CoinMarketCapParser();
+
+            @Override
+            protected int onError(Exception e) {
+                onErrorEvent(new Exception("Error retrieving market cap data", e));
+                return 10 * 1000;
+            }
+
+            @Override
+            protected int cycle() throws Exception {
+                onDataUpdateEvent(parser.getData());
+                return 2 * 60 * 1000; // 2m
+            }
+        };
+        private Thread marketCapUpdateThread;
+        public void start() {
+            stop();
+            marketCapUpdateThread = new Thread(marketCapUpdateTask);
+            marketCapUpdateThread.start();
+        }
+        public void stop() {
+            if(marketCapUpdateThread != null && marketCapUpdateThread.isAlive())
+                marketCapUpdateThread.interrupt();
+        }
+        public void close() {
+            stop();
+        }
+    }
+
+    public static final CoinMarketCapWorker coinMarketCapRetriever = new CoinMarketCapWorker(); // Singleton
+    static {
+        coinMarketCapRetriever.start();
     }
 }

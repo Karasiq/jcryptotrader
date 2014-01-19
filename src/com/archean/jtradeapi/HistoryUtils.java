@@ -105,7 +105,7 @@ public class HistoryUtils {
         Collections.sort(history);
 
         int i = 0;
-        if(limit != null) while (i < history.size()) {
+        if (limit != null) while (i < history.size()) {
             if (history.get(i).time.before(limit)) {
                 i++;
             } else {
@@ -144,11 +144,11 @@ public class HistoryUtils {
     public static void refreshCandles(@NonFinal List<Candle> candles, @NonNull List<BaseTradeApi.StandartObjects.Order> history, Date limit, long period) { // fast update
 
         // Remove old:
-        if(limit != null) {
+        if (limit != null) {
             Iterator<Candle> candleIterator = candles.listIterator();
-            while(candleIterator.hasNext()) {
+            while (candleIterator.hasNext()) {
                 Candle candle = candleIterator.next();
-                if(candle.start.before(limit)) {
+                if (candle.start.before(limit)) {
                     candleIterator.remove();
                 }
             }
