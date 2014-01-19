@@ -18,16 +18,7 @@ import com.archean.jtradeapi.*;
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
 import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.DateAxis;
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.labels.HighLowItemLabelGenerator;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.xy.CandlestickRenderer;
-import org.jfree.data.xy.AbstractXYDataset;
-import org.jfree.data.xy.DefaultOHLCDataset;
 import org.jfree.data.xy.OHLCDataItem;
-import org.jfree.data.xy.XYDataset;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import javax.swing.*;
@@ -47,7 +38,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
@@ -556,33 +546,42 @@ public class TraderMainForm extends JPanel {
         });
     }
 
-
-    public void fillGui(ApiWorker.ApiDataType dataType, Object data) {
-        if (!initialized) return; // reject data
-        switch (dataType) {
-            case MARKET_PRICES:
-                updatePrices((BaseTradeApi.StandartObjects.Prices) data);
-                break;
-            case MARKET_DEPTH:
-                updateDepth((BaseTradeApi.StandartObjects.Depth) data);
-                break;
-            case MARKET_HISTORY:
-                updateMarketHistory((List<BaseTradeApi.StandartObjects.Order>) data);
-                break;
-            case ACCOUNT_BALANCES:
-                updateAccountBalances((Map<String, Double>) data);
-                break;
-            case ACCOUNT_ORDERS:
-                updateOpenOrders((List<BaseTradeApi.StandartObjects.Order>) data);
-                break;
-            case ACCOUNT_HISTORY:
-                updateAccountHistory((List<BaseTradeApi.StandartObjects.Order>) data);
-                break;
-            default:
-                throw new IllegalArgumentException();
+    private final ApiWorker.ApiDataUpdateEvent apiWorkerEventHandler = new ApiWorker.ApiDataUpdateEvent() {
+        @Override
+        public void onMarketPricesUpdate(BaseTradeApi.StandartObjects.Prices data) {
+            updatePrices(data);
         }
-        revalidate();
-    }
+
+        @Override
+        public void onMarketDepthUpdate(BaseTradeApi.StandartObjects.Depth data) {
+            updateDepth(data);
+        }
+
+        @Override
+        public void onMarketHistoryUpdate(List<BaseTradeApi.StandartObjects.Order> data) {
+            updateMarketHistory(data);
+        }
+
+        @Override
+        public void onAccountBalancesUpdate(BaseTradeApi.StandartObjects.AccountInfo.AccountBalance data) {
+            updateAccountBalances(data);
+        }
+
+        @Override
+        public void onAccountOrdersUpdate(List<BaseTradeApi.StandartObjects.Order> data) {
+            updateOpenOrders(data);
+        }
+
+        @Override
+        public void onAccountHistoryUpdate(List<BaseTradeApi.StandartObjects.Order> data) {
+            updateAccountHistory(data);
+        }
+
+        @Override
+        public void onError(Exception e) {
+            processException(e);
+        }
+    };
 
     public TraderMainForm(AccountManager.Account account) {
         initComponents();
@@ -692,17 +691,7 @@ public class TraderMainForm extends JPanel {
             model.getColumn(1).setCellRenderer(moneyAmountCellRenderer);
         }
 
-        worker.setCallBack(new ApiWorker.Callback() {
-            @Override
-            public void onUpdate(final ApiWorker.ApiDataType dataType, final Object data) {
-                fillGui(dataType, data);
-            }
-
-            @Override
-            public void onError(Exception e) {
-                processException(e);
-            }
-        });
+        worker.addEventHandler(System.identityHashCode(this), apiWorkerEventHandler);
         initMarket(account);
 
         Thread apiLagThread = new Thread(new Utils.Threads.CycledRunnable() {

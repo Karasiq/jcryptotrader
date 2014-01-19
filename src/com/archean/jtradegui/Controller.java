@@ -163,7 +163,7 @@ public class Controller extends JFrame {
 
     private void buttonDeleteActionPerformed(ActionEvent e) {
         if (tabbedPaneTraders.getTabCount() > 0 && tabbedPaneTraders.getSelectedIndex() >= 0) {
-            TraderMainForm traderMainForm = (TraderMainForm)tabbedPaneTraders.getSelectedComponent();
+            TraderMainForm traderMainForm = (TraderMainForm) tabbedPaneTraders.getSelectedComponent();
             traderMainForm.killThreads();
             tabbedPaneTraders.remove(tabbedPaneTraders.getSelectedIndex());
             tabbedPaneTraders.revalidate();
@@ -233,8 +233,8 @@ public class Controller extends JFrame {
         });
         Container contentPane = getContentPane();
         contentPane.setLayout(new FormLayout(
-            "[350dlu,default]:grow",
-            "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
+                "[350dlu,default]:grow",
+                "top:16dlu, $lgap, fill:[420dlu,default]:grow"));
 
         //======== toolBar1 ========
         {

@@ -43,14 +43,17 @@ public class HistoryUtils {
     }
 
     private final static Calendar calendar = Calendar.getInstance();
+
     public static Date timeDelta(Date date, int field, int amount) {
         calendar.setTime(date);
         calendar.add(field, amount);
         return calendar.getTime();
     }
+
     public static Date timeDelta(int field, int amount) { // Date = now
         return timeDelta(new Date(), field, amount);
     }
+
     public static BaseTradeApi.StandartObjects.Order getNearestTrade(List<BaseTradeApi.StandartObjects.Order> history, Date targetDate) {
         Collections.sort(history);
         BaseTradeApi.StandartObjects.Order result = history.get(0);
@@ -85,7 +88,7 @@ public class HistoryUtils {
         Collections.sort(history);
 
         int i = 0;
-        if(limit != null) while (i < history.size()) {
+        if (limit != null) while (i < history.size()) {
             if (history.get(i).time.before(limit)) {
                 i++;
             } else {
@@ -124,11 +127,11 @@ public class HistoryUtils {
     public static void refreshCandles(List<Candle> candles, List<BaseTradeApi.StandartObjects.Order> history, Date limit, long period) { // fast update
 
         // Remove old:
-        if(limit != null) {
+        if (limit != null) {
             Iterator<Candle> candleIterator = candles.listIterator();
-            while(candleIterator.hasNext()) {
+            while (candleIterator.hasNext()) {
                 Candle candle = candleIterator.next();
-                if(candle.start.before(limit)) {
+                if (candle.start.before(limit)) {
                     candleIterator.remove();
                 }
             }

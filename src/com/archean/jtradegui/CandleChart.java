@@ -11,7 +11,6 @@
 package com.archean.jtradegui;
 
 import com.archean.jtradeapi.HistoryUtils;
-import com.archean.jtradeapi.Utils;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.experimental.Builder;
@@ -31,7 +30,6 @@ import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
 import java.util.List;
 
 public class CandleChart {
@@ -44,9 +42,11 @@ public class CandleChart {
         private DateFormat dateFormat = new SimpleDateFormat();
         private NumberFormat numberFormat = new DecimalFormat();
     }
+
     public static AbstractXYDataset getOHLCDataSet(String title, OHLCDataItem[] dataList) {
         return new DefaultOHLCDataset(title, dataList);
     }
+
     public static ChartPanel initOHLCChart(Parameters parameters, OHLCDataItem[] dataList) {
         final DateAxis domainAxis = new DateAxis(parameters.getLabelX());
         NumberAxis rangeAxis = new NumberAxis(parameters.getLabelY());
@@ -61,6 +61,7 @@ public class CandleChart {
         mainPlot.setRangePannable(true);
         return new ChartPanel(chart, false);
     }
+
     public static void updateOHLCChart(ChartPanel chartPanel, String title, OHLCDataItem[] dataList) {
         JFreeChart chart = chartPanel.getChart();
         XYPlot mainPlot = chart.getXYPlot();
@@ -69,12 +70,12 @@ public class CandleChart {
     }
 
     public static OHLCDataItem[] updateOHLCDataArray(OHLCDataItem[] chartDataCache, @NonNull List<HistoryUtils.Candle> candles) {
-        if(candles == null || candles.size() == 0) {
+        if (candles == null || candles.size() == 0) {
             chartDataCache = null;
-        } else if(chartDataCache == null || chartDataCache.length != candles.size() || !chartDataCache[0].getDate().equals(candles.get(0).start)) { // Full
+        } else if (chartDataCache == null || chartDataCache.length != candles.size() || !chartDataCache[0].getDate().equals(candles.get(0).start)) { // Full
             int length = candles.size();
             chartDataCache = new OHLCDataItem[length];
-            for(int i = 0; i < length; i++) {
+            for (int i = 0; i < length; i++) {
                 HistoryUtils.Candle candle = candles.get(i);
                 chartDataCache[i] = new OHLCDataItem(candle.start, candle.open, candle.high, candle.low, candle.close, candle.volume);
             }

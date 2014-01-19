@@ -48,6 +48,18 @@ public class Utils {
                 }
             }
         }
+
+        public static class UniqueHandlerObserver<T> {
+            protected Map<Integer, T> eventHandlers = new HashMap<>();
+
+            public void addEventHandler(int id, T event) {
+                eventHandlers.put(id, event);
+            }
+
+            public void removeEventHandler(int id) {
+                eventHandlers.remove(id);
+            }
+        }
     }
 
     public static class Crypto {

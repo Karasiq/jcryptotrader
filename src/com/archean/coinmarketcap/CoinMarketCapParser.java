@@ -16,9 +16,7 @@ import org.apache.http.NameValuePair;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -71,8 +69,7 @@ public class CoinMarketCapParser {
         public void onError(final Exception e);
     }
 
-    public static class CoinMarketCapWorker implements AutoCloseable {
-        Map<Integer, CoinMarketCapEvent> eventHandlers = new HashMap<>();
+    public static class CoinMarketCapWorker extends Utils.Threads.UniqueHandlerObserver<CoinMarketCapEvent> implements AutoCloseable {
         private void onErrorEvent(final Exception e) {
             for(CoinMarketCapEvent event : eventHandlers.values()) {
                 event.onError(e);
@@ -82,12 +79,6 @@ public class CoinMarketCapParser {
             for(CoinMarketCapEvent event : eventHandlers.values()) {
                 event.onDataUpdate(data);
             }
-        }
-        public void addEventHandler(int id, CoinMarketCapEvent event) {
-            eventHandlers.put(id, event);
-        }
-        public void removeEventHandler(int id) {
-            eventHandlers.remove(id);
         }
         private final Runnable marketCapUpdateTask = new Utils.Threads.CycledRunnable() {
             private CoinMarketCapParser parser = new CoinMarketCapParser();

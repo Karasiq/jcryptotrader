@@ -405,7 +405,7 @@ public class BtceTradeApi extends BaseTradeApi { // BTC-E trade api
 
     @Override
     public boolean cancelOrder(Object orderId) throws Exception {
-        ApiStatus<BtceObjects.CancelOrderStatus> orderStatus = internalCancelOrder((Long)orderId);
+        ApiStatus<BtceObjects.CancelOrderStatus> orderStatus = internalCancelOrder((Long) orderId);
         if (orderStatus.success != 1) {
             throw new TradeApiError("Failed to cancel order (" + orderStatus.error + ")");
         }

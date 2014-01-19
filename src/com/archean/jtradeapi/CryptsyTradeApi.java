@@ -436,7 +436,7 @@ public class CryptsyTradeApi extends BaseTradeApi {
 
     @Override
     public boolean cancelOrder(Object orderId) throws Exception {
-        ApiStatus<String> cancelApiStatus = internalCancelOrder((Long)orderId);
+        ApiStatus<String> cancelApiStatus = internalCancelOrder((Long) orderId);
         if (cancelApiStatus.success != 1) {
             throw new TradeApiError("Failed to cancel order (" + cancelApiStatus.error + ")");
         } else return true;
