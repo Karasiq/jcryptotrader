@@ -12,6 +12,8 @@ package com.archean.jtradeapi;
 
 
 import lombok.NonNull;
+import lombok.ToString;
+import lombok.Value;
 import lombok.experimental.NonFinal;
 
 import java.math.BigDecimal;
@@ -46,6 +48,8 @@ public class HistoryUtils {
             return start.compareTo(candle.start);
         }
     }
+
+    @ToString
     public static class TimestampedChartData implements Comparable<TimestampedChartData> {
         public Date date;
         public BigDecimal value;

@@ -14,7 +14,6 @@ import com.archean.jtradeapi.BaseTradeApi;
 import com.archean.jtradeapi.HistoryUtils;
 import lombok.Data;
 import lombok.NonNull;
-import lombok.Value;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -24,8 +23,10 @@ import java.util.Date;
 import java.util.List;
 
 public class TAUtils {
+    public final static BigDecimal BIG_DECIMAL_ONE_HUNDRED = new BigDecimal(100.0, MathContext.DECIMAL64);
     public static final int ROUNDING_PRECISION = 8;
-    public static final RoundingMode ROUNDING_MODE = RoundingMode.HALF_EVEN;
+    public static final RoundingMode ROUNDING_MODE = RoundingMode.FLOOR;
+
     @Data
     public static class PriceChange {
         private BigDecimal absolute;
@@ -68,7 +69,7 @@ public class TAUtils {
         }
     }
 
-    public static BigDecimal priceSum(final @NonNull List<PriceChange> priceChanges, int start, int end) { // Closing prices
+    public static BigDecimal priceSum(@NonNull final List<PriceChange> priceChanges, int start, int end) { // Closing prices
         BigDecimal result = new BigDecimal(0.0, MathContext.DECIMAL64);
         for (int i = start; i < end; i++) {
             result = result.add(priceChanges.get(i).secondPrice);
@@ -76,7 +77,7 @@ public class TAUtils {
         return result;
     }
 
-    public static List<PriceChange> buildPriceMovingHistory(@NonNull List<HistoryUtils.Candle> candles, int period) { // Only by candle open/close
+    public static List<PriceChange> buildPriceMovingHistory(@NonNull final List<HistoryUtils.Candle> candles, int period) { // Only by candle open/close
         List<PriceChange> priceChangeList = new ArrayList<>();
         for (HistoryUtils.Candle candle : candles) {
             priceChangeList.add(new PriceChange(candle));
@@ -84,11 +85,11 @@ public class TAUtils {
         return priceChangeList;
     }
 
-    public static List<PriceChange> buildPriceMovingHistory(@NonNull List<HistoryUtils.Candle> candles) {
+    public static List<PriceChange> buildPriceMovingHistory(@NonNull final List<HistoryUtils.Candle> candles) {
         return buildPriceMovingHistory(candles, 1);
     }
 
-    public static List<PriceChange> buildTickHistory(@NonNull List<BaseTradeApi.StandartObjects.Order> trades, int period) { // Tick data
+    public static List<PriceChange> buildTickHistory(@NonNull final List<BaseTradeApi.StandartObjects.Order> trades, int period) { // Tick data
         List<PriceChange> priceChangeList = new ArrayList<>();
         for (int i = period; i < trades.size(); i++) {
             BaseTradeApi.StandartObjects.Order firstTrade = trades.get(i - period), secondTrade = trades.get(i);
@@ -97,7 +98,7 @@ public class TAUtils {
         return priceChangeList;
     }
 
-    public static List<PriceChange> buildTickHistory(@NonNull List<BaseTradeApi.StandartObjects.Order> trades) {
+    public static List<PriceChange> buildTickHistory(@NonNull final List<BaseTradeApi.StandartObjects.Order> trades) {
         return buildTickHistory(trades, 1);
     }
 

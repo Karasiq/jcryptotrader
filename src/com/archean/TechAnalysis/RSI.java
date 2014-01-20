@@ -17,11 +17,12 @@ import lombok.NonNull;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
 public class RSI {
+    public static final int DEFAULT_PERIOD = 14;
+
     private static List<TAUtils.PriceChange> makeUDChangesList(@NonNull List<TAUtils.PriceChange> changes, boolean positive) {
         List<TAUtils.PriceChange> result = new ArrayList<>();
         for (TAUtils.PriceChange priceChange : changes) {
@@ -35,9 +36,8 @@ public class RSI {
     private static BigDecimal relativeStrength(BigDecimal u, BigDecimal d) {
         return u.divide(d, TAUtils.ROUNDING_PRECISION, TAUtils.ROUNDING_MODE);
     }
-    private final static BigDecimal BIG_DECIMAL_ONE_HUNDRED = new BigDecimal(100.0, MathContext.DECIMAL64);
     private static BigDecimal relativeStrengthIndex(BigDecimal relativeStrength) {
-        return BIG_DECIMAL_ONE_HUNDRED.subtract(BIG_DECIMAL_ONE_HUNDRED.divide(relativeStrength.add(BigDecimal.ONE), TAUtils.ROUNDING_PRECISION, TAUtils.ROUNDING_MODE));
+        return TAUtils.BIG_DECIMAL_ONE_HUNDRED.subtract(TAUtils.BIG_DECIMAL_ONE_HUNDRED.divide(relativeStrength.add(BigDecimal.ONE), TAUtils.ROUNDING_PRECISION, TAUtils.ROUNDING_MODE));
     }
 
     private static final BigDecimal emaAlpha = new BigDecimal(0.9, MathContext.DECIMAL64);
@@ -48,14 +48,11 @@ public class RSI {
 
         BigDecimal uValue, dValue;
         for (TAUtils.PriceChange change : changes) {
-            if(change.isPositive()) {
-                positiveEma.put(change.getSecondDate(), change.getSecondPrice());
-            } else {
-                negativeEma.put(change.getSecondDate(), change.getSecondPrice());
-            }
+            positiveEma.put(change.getSecondDate(), change.getLoss());
+            negativeEma.put(change.getSecondDate(), change.getGain());
             HistoryUtils.TimestampedChartData uLast = positiveEma.getLast(), dLast = negativeEma.getLast();
-            uValue = uLast != null && uLast.value.compareTo(BigDecimal.ZERO) != 0 ? uLast.value : BIG_DECIMAL_ONE_HUNDRED;
-            dValue = dLast != null && dLast.value.compareTo(BigDecimal.ZERO) != 0 ? dLast.value : BIG_DECIMAL_ONE_HUNDRED;
+            uValue = uLast != null && uLast.value.compareTo(BigDecimal.ZERO) != 0 ? uLast.value : TAUtils.BIG_DECIMAL_ONE_HUNDRED;
+            dValue = dLast != null && dLast.value.compareTo(BigDecimal.ZERO) != 0 ? dLast.value : TAUtils.BIG_DECIMAL_ONE_HUNDRED;
             BigDecimal RS = relativeStrength(uValue, dValue);
             result.add(new HistoryUtils.TimestampedChartData(change.getSecondDate(), relativeStrengthIndex(RS)));
         }

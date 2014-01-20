@@ -21,7 +21,7 @@ import java.util.List;
 
 public class StochRSI {
     private static BigDecimal stochRsi(BigDecimal current, BigDecimal low, BigDecimal high) {
-        return current.subtract(low).divide(high.subtract(low));
+        return current.subtract(low).divide(high.subtract(low), TAUtils.ROUNDING_PRECISION, TAUtils.ROUNDING_MODE).multiply(TAUtils.BIG_DECIMAL_ONE_HUNDRED);
     }
 
     public static List<HistoryUtils.TimestampedChartData> build(@NonNull List<HistoryUtils.TimestampedChartData> rsi, int period) {
@@ -29,7 +29,7 @@ public class StochRSI {
         BigDecimal low = null, high = null;
         int i = 0;
         for (HistoryUtils.TimestampedChartData rsiPoint : rsi) {
-            if (i >= period) {
+            if (i > period) {
                 i = 0;
                 high = null;
                 low = null;
@@ -40,7 +40,9 @@ public class StochRSI {
             if (low == null || rsiPoint.value.compareTo(low) < 0) {
                 low = rsiPoint.value;
             }
-            result.add(new HistoryUtils.TimestampedChartData(rsiPoint.date, stochRsi(rsiPoint.value, low, high)));
+            if (low != null && high != null && !low.equals(high)) {
+                result.add(new HistoryUtils.TimestampedChartData(rsiPoint.date, stochRsi(rsiPoint.value, low, high)));
+            }
             i++;
         }
         return result;

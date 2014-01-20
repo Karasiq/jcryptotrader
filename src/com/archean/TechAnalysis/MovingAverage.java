@@ -97,7 +97,7 @@ public class MovingAverage {
         int period = parameters.getPeriod();
         for (int i = period; i < history.size(); i += period) {
             final TAUtils.PriceChange priceChange = history.get(i);
-            decimals.add(new HistoryUtils.TimestampedChartData(priceChange.getSecondDate(), getMovingAverageValue(TAUtils.priceSum(history, i - period, i), priceChange, i - 1, parameters, cache)));
+            decimals.add(new HistoryUtils.TimestampedChartData(priceChange.getSecondDate(), getMovingAverageValue(TAUtils.priceSum(history, i - period, i), priceChange, i - period, parameters, cache)));
         }
         return decimals;
     }

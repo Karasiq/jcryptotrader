@@ -15,7 +15,6 @@ package com.archean.TechAnalysis;
 import com.archean.jtradeapi.HistoryUtils;
 import lombok.NonNull;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
