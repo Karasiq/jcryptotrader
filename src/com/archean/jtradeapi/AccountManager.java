@@ -22,12 +22,14 @@ public class AccountManager {
         public static final int ACCOUNT_CRYPTSY = 0;
         public static final int ACCOUNT_BTCE = 1;
         public static final int ACCOUNT_MTGOX = 2;
+        public static final int ACCOUNT_COINEX = 3;
 
         public static Map<String, Integer> listAccountTypes() {
             Map<String, Integer> map = new TreeMap<>();
             map.put("Cryptsy", ACCOUNT_CRYPTSY);
             map.put("BTC-E", ACCOUNT_BTCE);
             map.put("MtGox", ACCOUNT_MTGOX);
+            map.put("CoinEX", ACCOUNT_COINEX);
             return map;
         }
     }
@@ -69,6 +71,8 @@ public class AccountManager {
                 return new BtceTradeApi(pair);
             case AccountType.ACCOUNT_MTGOX:
                 return new MtGoxTradeApi(pair);
+            case AccountType.ACCOUNT_COINEX:
+                return new CoinExTradeApi(pair);
             default:
                 throw new IllegalArgumentException("Unknown trade account type");
         }
