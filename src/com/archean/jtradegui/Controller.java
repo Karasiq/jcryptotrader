@@ -10,6 +10,7 @@
 
 package com.archean.jtradegui;
 
+import com.archean.coinmarketcap.CoinMarketCapParser;
 import com.archean.jautotrading.MarketRule;
 import com.archean.jtradeapi.AccountManager;
 import com.jgoodies.forms.factories.CC;
@@ -104,7 +105,7 @@ public class Controller extends JFrame {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        boolean success = new File(settingsDir).mkdirs();
+        new File(settingsDir).mkdirs();
 
         final Controller controller = new Controller();
         controller.loadAccountDb();
@@ -132,6 +133,7 @@ public class Controller extends JFrame {
                 }
             }
         });
+        CoinMarketCapParser.coinMarketCapRetriever.start();
         controller.loadTabs();
     }
 
@@ -146,19 +148,11 @@ public class Controller extends JFrame {
     }
 
     private void buttonAddActionPerformed(ActionEvent e) {
-        final Controller frame = this;
-        SwingWorker swingWorker = new SwingWorker() {
-            @Override
-            protected Object doInBackground() throws Exception {
-                AccountManagerDlg accountManagerDlg = new AccountManagerDlg(frame, accountDb);
-                accountManagerDlg.setVisible(true); // modal
-                saveAccountDb();
-                frame.addTab(accountManagerDlg.selectedAccount, accountDb.get(accountManagerDlg.selectedAccount));
-                saveTabs();
-                return null;
-            }
-        };
-        swingWorker.execute();
+        AccountManagerDlg accountManagerDlg = new AccountManagerDlg(this, accountDb);
+        accountManagerDlg.setVisible(true); // modal
+        saveAccountDb();
+        addTab(accountManagerDlg.selectedAccount, accountDb.get(accountManagerDlg.selectedAccount));
+        saveTabs();
     }
 
     private void buttonDeleteActionPerformed(ActionEvent e) {

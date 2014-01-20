@@ -82,7 +82,7 @@ public class TraderMainForm extends JPanel {
     public void stopWorker() {
         initialized = false;
         worker.stopAllThreads();
-        stopThreads(new String[]{"marketCap"});
+        CoinMarketCapParser.coinMarketCapRetriever.removeEventHandler(System.identityHashCode(this));
     }
 
     public void startWorker() {
@@ -107,7 +107,6 @@ public class TraderMainForm extends JPanel {
             thread.interrupt();
         }
         threadMap.clear();
-        CoinMarketCapParser.coinMarketCapRetriever.removeEventHandler(System.identityHashCode(this));
     }
 
     public void setSettings(double feePercent, int timeInterval) {
@@ -150,7 +149,7 @@ public class TraderMainForm extends JPanel {
 
             @Override
             public void onError(Exception e) {
-                processError("Rule execution error: " + e.getMessage());
+                processException(new Exception("Rule execution error: " + e.getMessage()));
             }
         };
         clearMarketData();
@@ -771,7 +770,7 @@ public class TraderMainForm extends JPanel {
         final String orderRepresentation = formatOrderRepresentation(BaseTradeApi.Constants.ORDER_BUY, (Double) spinnerBuyOrderAmount.getValue(), (Double) spinnerBuyOrderPrice.getValue(), getCurrentPrimaryCurrency(), getCurrentSecondaryCurrency());
 
         if (JOptionPane.showConfirmDialog(this, String.format(locale.getString("order_confirmation.template"), orderRepresentation), locale.getString("order_confirmation.caption"), JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            SwingUtilities.invokeLater(new Runnable() {
+            Thread orderCreateThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
                     buttonCommitBuyOrder.setEnabled(false);
@@ -785,6 +784,8 @@ public class TraderMainForm extends JPanel {
                     }
                 }
             });
+            threadMap.put(String.format("createOrderBuy%d", System.identityHashCode(orderCreateThread)), orderCreateThread);
+            orderCreateThread.start();
         }
     }
 
@@ -793,7 +794,7 @@ public class TraderMainForm extends JPanel {
 
 
         if (JOptionPane.showConfirmDialog(this, String.format(locale.getString("order_confirmation.template"), orderRepresentation), locale.getString("order_confirmation.caption"), JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            SwingUtilities.invokeLater(new Runnable() {
+            Thread orderCreateThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -807,6 +808,8 @@ public class TraderMainForm extends JPanel {
                     }
                 }
             });
+            threadMap.put(String.format("createOrderSell%d", System.identityHashCode(orderCreateThread)), orderCreateThread);
+            orderCreateThread.start();
         }
     }
 
@@ -820,20 +823,27 @@ public class TraderMainForm extends JPanel {
 
     private void menuItemCancelOrderActionPerformed(ActionEvent e) {
         if (tableOpenOrders.getSelectedRow() == -1) return;
+        final long orderId;
         synchronized (tableOpenOrders) {
-            final long orderId = (Long) tableOpenOrders.getValueAt(tableOpenOrders.getSelectedRow(), 0);
-            if (JOptionPane.showConfirmDialog(this, String.format(locale.getString("order_cancel_confirmation.template"), orderId), locale.getString("order_cancel_confirmation.caption"), JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-                tableOpenOrders.setEnabled(false);
-                try {
-                    worker.tradeApi.cancelOrder(orderId);
-                    processNotification(String.format(locale.getString("order_cancelled.template"), orderId));
-                    ((DefaultTableModel) tableOpenOrders.getModel()).removeRow(tableOpenOrders.getSelectedRow());
-                } catch (Exception e1) {
-                    processException(e1);
-                } finally {
-                    tableOpenOrders.setEnabled(true);
+            orderId = (Long) tableOpenOrders.getValueAt(tableOpenOrders.getSelectedRow(), 0);
+        }
+        final String threadId = String.format("cancelOrder%d", orderId);
+        if(!threadMap.containsKey(threadId)) {
+            Thread cancelOrderThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    if (JOptionPane.showConfirmDialog(TraderMainForm.this, String.format(locale.getString("order_cancel_confirmation.template"), orderId), locale.getString("order_cancel_confirmation.caption"), JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                        try {
+                            worker.tradeApi.cancelOrder(orderId);
+                            processNotification(String.format(locale.getString("order_cancelled.template"), orderId));
+                        } catch (Exception e1) {
+                            processException(e1);
+                        }
+                    }
                 }
-            }
+            });
+            threadMap.put(threadId, cancelOrderThread);
+            cancelOrderThread.start();
         }
     }
 
@@ -937,7 +947,7 @@ public class TraderMainForm extends JPanel {
 
             @Override
             public void onError(Exception e) {
-                processError("RuleAction error: " + e.getMessage());
+                processException(new Exception("RuleAction error: " + e.getMessage()));
             }
         };
         RuleSettingsDlg ruleSettingsDlg = new RuleSettingsDlg((JFrame) SwingUtilities.getWindowAncestor(this));

@@ -36,34 +36,38 @@ class ApiWorker extends Utils.Threads.UniqueHandlerObserver<ApiWorker.ApiDataUpd
     }
 
     private void onErrorEvent(Exception e) {
-        for (ApiDataUpdateEvent event : eventHandlers.values()) {
-            event.onError(e);
+        synchronized (eventHandlers) {
+            for (ApiDataUpdateEvent event : eventHandlers.values()) {
+                event.onError(e);
+            }
         }
     }
 
     private void onUpdateEvent(ApiDataType type, Object data) {
-        for (ApiDataUpdateEvent event : eventHandlers.values()) {
-            switch (type) {
-                case MARKET_PRICES:
-                    event.onMarketPricesUpdate((BaseTradeApi.StandartObjects.Prices) data);
-                    break;
-                case MARKET_DEPTH:
-                    event.onMarketDepthUpdate((BaseTradeApi.StandartObjects.Depth) data);
-                    break;
-                case MARKET_HISTORY:
-                    event.onMarketHistoryUpdate((List<BaseTradeApi.StandartObjects.Order>) data);
-                    break;
-                case ACCOUNT_BALANCES:
-                    event.onAccountBalancesUpdate((BaseTradeApi.StandartObjects.AccountInfo.AccountBalance) data);
-                    break;
-                case ACCOUNT_ORDERS:
-                    event.onAccountOrdersUpdate((List<BaseTradeApi.StandartObjects.Order>) data);
-                    break;
-                case ACCOUNT_HISTORY:
-                    event.onAccountHistoryUpdate((List<BaseTradeApi.StandartObjects.Order>) data);
-                    break;
-                default:
-                    throw new IllegalArgumentException();
+        synchronized (eventHandlers) {
+            for (ApiDataUpdateEvent event : eventHandlers.values()) {
+                switch (type) {
+                    case MARKET_PRICES:
+                        event.onMarketPricesUpdate((BaseTradeApi.StandartObjects.Prices) data);
+                        break;
+                    case MARKET_DEPTH:
+                        event.onMarketDepthUpdate((BaseTradeApi.StandartObjects.Depth) data);
+                        break;
+                    case MARKET_HISTORY:
+                        event.onMarketHistoryUpdate((List<BaseTradeApi.StandartObjects.Order>) data);
+                        break;
+                    case ACCOUNT_BALANCES:
+                        event.onAccountBalancesUpdate((BaseTradeApi.StandartObjects.AccountInfo.AccountBalance) data);
+                        break;
+                    case ACCOUNT_ORDERS:
+                        event.onAccountOrdersUpdate((List<BaseTradeApi.StandartObjects.Order>) data);
+                        break;
+                    case ACCOUNT_HISTORY:
+                        event.onAccountHistoryUpdate((List<BaseTradeApi.StandartObjects.Order>) data);
+                        break;
+                    default:
+                        throw new IllegalArgumentException();
+                }
             }
         }
     }

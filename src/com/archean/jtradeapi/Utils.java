@@ -50,14 +50,18 @@ public class Utils {
         }
 
         public static class UniqueHandlerObserver<T> {
-            protected Map<Integer, T> eventHandlers = new HashMap<>();
+            protected final Map<Integer, T> eventHandlers = new HashMap<>();
 
             public void addEventHandler(int id, T event) {
-                eventHandlers.put(id, event);
+                synchronized (eventHandlers) {
+                    eventHandlers.put(id, event);
+                }
             }
 
             public void removeEventHandler(int id) {
-                eventHandlers.remove(id);
+                synchronized (eventHandlers) {
+                    eventHandlers.remove(id);
+                }
             }
         }
     }

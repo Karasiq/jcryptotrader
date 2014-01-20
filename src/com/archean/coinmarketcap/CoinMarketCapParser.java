@@ -71,28 +71,33 @@ public class CoinMarketCapParser {
 
     public static class CoinMarketCapWorker extends Utils.Threads.UniqueHandlerObserver<CoinMarketCapEvent> implements AutoCloseable {
         private void onErrorEvent(final Exception e) {
-            for(CoinMarketCapEvent event : eventHandlers.values()) {
-                event.onError(e);
+            synchronized (eventHandlers) {
+                for(CoinMarketCapEvent event : eventHandlers.values()) {
+                    event.onError(e);
+                }
             }
         }
         private void onDataUpdateEvent(final List<CoinCapitalization> data) {
-            for(CoinMarketCapEvent event : eventHandlers.values()) {
-                event.onDataUpdate(data);
+            synchronized (eventHandlers) {
+                for(CoinMarketCapEvent event : eventHandlers.values()) {
+                    event.onDataUpdate(data);
+                }
             }
         }
         private final Runnable marketCapUpdateTask = new Utils.Threads.CycledRunnable() {
+            private final static int UPDATE_INTERVAL = 10 * 1000; // 10 sec
             private CoinMarketCapParser parser = new CoinMarketCapParser();
 
             @Override
             protected int onError(Exception e) {
                 onErrorEvent(new Exception("Error retrieving market cap data", e));
-                return 10 * 1000;
+                return UPDATE_INTERVAL;
             }
 
             @Override
             protected int cycle() throws Exception {
                 onDataUpdateEvent(parser.getData());
-                return 2 * 60 * 1000; // 2m
+                return UPDATE_INTERVAL;
             }
         };
         private Thread marketCapUpdateThread;
@@ -111,7 +116,4 @@ public class CoinMarketCapParser {
     }
 
     public static final CoinMarketCapWorker coinMarketCapRetriever = new CoinMarketCapWorker(); // Singleton
-    static {
-        coinMarketCapRetriever.start();
-    }
 }
