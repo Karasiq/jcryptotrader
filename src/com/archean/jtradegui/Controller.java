@@ -141,10 +141,17 @@ public class Controller extends JFrame {
         initComponents();
     }
 
-    public void addTab(String label, AccountManager.Account account) {
-        TraderMainForm panel = new TraderMainForm(account);
-        tabbedPaneTraders.addTab(label, panel);
-        panel.startWorker();
+    public void addTab(final String label, final AccountManager.Account account) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                TraderMainForm panel = new TraderMainForm(account);
+                synchronized (tabbedPaneTraders) {
+                    tabbedPaneTraders.addTab(label, panel);
+                }
+                panel.startWorker();
+            }
+        }).start();
     }
 
     private void buttonAddActionPerformed(ActionEvent e) {
@@ -156,12 +163,14 @@ public class Controller extends JFrame {
     }
 
     private void buttonDeleteActionPerformed(ActionEvent e) {
-        if (tabbedPaneTraders.getTabCount() > 0 && tabbedPaneTraders.getSelectedIndex() >= 0) {
-            TraderMainForm traderMainForm = (TraderMainForm) tabbedPaneTraders.getSelectedComponent();
-            traderMainForm.killThreads();
-            tabbedPaneTraders.remove(tabbedPaneTraders.getSelectedIndex());
-            tabbedPaneTraders.revalidate();
-            saveTabs();
+        synchronized (tabbedPaneTraders) {
+            if (tabbedPaneTraders.getTabCount() > 0 && tabbedPaneTraders.getSelectedIndex() >= 0) {
+                TraderMainForm traderMainForm = (TraderMainForm) tabbedPaneTraders.getSelectedComponent();
+                traderMainForm.killThreads();
+                tabbedPaneTraders.remove(tabbedPaneTraders.getSelectedIndex());
+                tabbedPaneTraders.revalidate();
+                saveTabs();
+            }
         }
     }
 
