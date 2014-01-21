@@ -11,27 +11,18 @@
 package com.archean.jautotrading;
 
 import com.archean.jtradeapi.ApiWorker;
+import lombok.Data;
+import lombok.NonNull;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.ListIterator;
-import java.util.Map;
+import java.util.*;
 
+@Data
 public class MarketRule implements Serializable {
-    public RuleCondition.BaseCondition condition = null;
-    public RuleAction.BaseAction action = null;
-
-    public MarketRule(RuleCondition.BaseCondition condition, RuleAction.BaseAction action) {
-        this.condition = condition;
-        this.action = action;
-    }
-
-    public MarketRule(RuleCondition.BaseCondition condition) {
-        this(condition, null);
-    }
+    private @NonNull RuleCondition.ConditionList conditions;
+    private @NonNull RuleAction.BaseAction action;
 
     public static class MarketRuleList extends ArrayList<MarketRule> { // Batch checker
 
@@ -49,15 +40,8 @@ public class MarketRule implements Serializable {
 
         MarketRuleExecutionType executionType = MarketRuleExecutionType.PARALLEL;
         public transient MarketRuleListCallback callback = null;
-        private transient Map<Object, Object> ruleData = new HashMap<>(); // Cache
-
-        private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-            in.defaultReadObject();
-            ruleData = new HashMap<>();
-        }
 
         public void checkRules(final ApiWorker worker) {
-            RuleCondition.makeConditionData(ruleData, worker);
             ListIterator<MarketRule> ruleIterator = this.listIterator();
             while (ruleIterator.hasNext()) {
                 try {
@@ -65,7 +49,7 @@ public class MarketRule implements Serializable {
                         break;
                     }
                     MarketRule rule = ruleIterator.next();
-                    if (rule.condition.isSatisfied(ruleData)) {
+                    if (rule.conditions.isSatisfied(worker)) {
                         if (rule.action != null) {
                             rule.action.apiWorker = worker;
                             Thread actionThread = new Thread(rule.action);

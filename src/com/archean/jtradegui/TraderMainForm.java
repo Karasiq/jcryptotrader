@@ -43,8 +43,8 @@ import java.util.*;
 import java.util.List;
 
 public class TraderMainForm extends JPanel {
-    public volatile Map<String, MarketRule.MarketRuleList> ruleListDb = new HashMap<>();
-    private volatile MarketRule.MarketRuleList ruleList;
+    public volatile Map<String, List<MarketRule.MarketRuleList>> ruleListDb = new HashMap<>();
+    private volatile List<MarketRule.MarketRuleList> ruleList;
     private volatile String currentPair = "";
     private double feePercent = 0.2;
 
@@ -116,11 +116,12 @@ public class TraderMainForm extends JPanel {
         spinnerFeePercent.setValue(feePercent);
     }
 
-    public void setRuleListDb(Map<String, MarketRule.MarketRuleList> ruleListDb) {
+    public void setRuleListDb(Map<String, List<MarketRule.MarketRuleList>> ruleListDb) {
         this.ruleListDb = ruleListDb;
         this.ruleList = ruleListDb.get(currentPair);
         if (ruleList == null) {
-            ruleList = new MarketRule.MarketRuleList();
+            ruleList = new ArrayList<>();
+            ruleList.set(0, new MarketRule.MarketRuleList());
             ruleListDb.put(currentPair, ruleList);
         }
         refreshRulesTable();
@@ -132,13 +133,14 @@ public class TraderMainForm extends JPanel {
         worker.setPair(pairId);
         ruleList = ruleListDb.get(pairName);
         if (ruleList == null) {
-            ruleList = new MarketRule.MarketRuleList();
+            ruleList = new ArrayList<>();
+            ruleList.set(0, new MarketRule.MarketRuleList());
             ruleListDb.put(pairName, ruleList);
         }
-        ruleList.callback = new MarketRule.MarketRuleList.MarketRuleListCallback() {
+        ruleList.get(0).callback = new MarketRule.MarketRuleList.MarketRuleListCallback() {
             @Override
             public void onSuccess(MarketRule rule) {
-                processNotification(String.format(locale.getString("RuleExecuted.notification.template"), formatMarketConditionString(rule.condition), formatMarketActionString(rule.action)));
+                processNotification(String.format(locale.getString("RuleExecuted.notification.template"), formatMarketConditionString(rule.getConditions().get(0)), formatMarketActionString(rule.getAction())));
                 SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
@@ -388,7 +390,7 @@ public class TraderMainForm extends JPanel {
                 }
             }
         });
-        ruleList.checkRules(worker);
+        ruleList.get(0).checkRules(worker);
     }
 
     private void updateDepth(final BaseTradeApi.StandartObjects.Depth depth) {
@@ -932,11 +934,12 @@ public class TraderMainForm extends JPanel {
     private void refreshRulesTable() {
         DefaultTableModel model = (DefaultTableModel) tableRules.getModel();
         int i = 0;
-        model.setRowCount(ruleList.size());
-        for (MarketRule rule : ruleList) {
+        MarketRule.MarketRuleList list = ruleList.get(0);
+        model.setRowCount(list.size());
+        for (MarketRule rule : list) {
             model.setValueAt(i, i, 0); // Index
-            model.setValueAt(formatMarketConditionString(rule.condition), i, 1); // Condition
-            model.setValueAt(formatMarketActionString(rule.action), i, 2); // Action
+            model.setValueAt(formatMarketConditionString(rule.getConditions().get(0)), i, 1); // Condition
+            model.setValueAt(formatMarketActionString(rule.getAction()), i, 2); // Action
         }
         model.fireTableDataChanged();
         ruleListDb.put(currentPair, ruleList);
@@ -959,10 +962,10 @@ public class TraderMainForm extends JPanel {
         ruleSettingsDlg.setVisible(true);
         if (ruleSettingsDlg.result != null) {
             MarketRule rule = ruleSettingsDlg.result;
-            if (rule.action instanceof RuleAction.TradeAction) {
-                rule.action.setCallback(tradeCallback);
+            if (rule.getAction() instanceof RuleAction.TradeAction) {
+                rule.getAction().setCallback(tradeCallback);
             }
-            ruleList.add(rule);
+            ruleList.get(0).add(rule);
             refreshRulesTable();
         }
     }

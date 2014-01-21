@@ -13,10 +13,12 @@ package com.archean.jautotrading;
 import com.archean.jtradeapi.ApiWorker;
 import com.archean.jtradeapi.BaseTradeApi;
 import com.archean.jtradeapi.Calculator;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Map;
+import java.util.*;
 
 public class RuleCondition {
     public static void makeConditionData(Map<Object, Object> mapData, ApiWorker apiWorker) {
@@ -35,6 +37,39 @@ public class RuleCondition {
         }
 
         abstract boolean isSatisfied(Map<Object, Object> data) throws Exception;
+    }
+
+    public enum ConditionSatisfyingType {
+        ONLY_ONE, ALL, QUEUE
+    }
+    public static class ConditionList extends ArrayList<BaseCondition> {
+        private @Getter @Setter ConditionSatisfyingType conditionSatisfyingType = ConditionSatisfyingType.ALL;
+        private final Map<Object, Object> data = new HashMap<>();
+        public boolean isSatisfied(ApiWorker apiWorker) throws Exception {
+            makeConditionData(data, apiWorker); // Refresh data
+            int satisfied = 0;
+            ListIterator<BaseCondition> iterator = this.listIterator();
+            while(iterator.hasNext()) {
+                BaseCondition condition = iterator.next();
+                if(condition.isSatisfied(data)) switch (conditionSatisfyingType) {
+                    case ONLY_ONE: // first rule satisfied
+                        return true;
+                    case ALL:
+                        satisfied++;
+                        break;
+                    case QUEUE:
+                        iterator.remove();
+                        break;
+                } else switch (conditionSatisfyingType) {
+                    case ALL:
+                    case QUEUE:
+                        return false;
+                    default:
+                        break;
+                }
+            }
+            return conditionSatisfyingType == ConditionSatisfyingType.ALL ? satisfied == this.size() : this.size() == 0; // ALL/QUEUE
+        }
     }
 
     public static class PriceCondition extends BaseCondition {

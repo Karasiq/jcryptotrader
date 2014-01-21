@@ -28,6 +28,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 
 public class RuleSettingsDlg extends JDialog {
@@ -159,7 +161,10 @@ public class RuleSettingsDlg extends JDialog {
                 action = tradeAction;
                 break;
         }
-        this.result = new MarketRule(condition, action);
+        RuleCondition.ConditionList conditionList = new RuleCondition.ConditionList();
+        conditionList.add(condition);
+        conditionList.setConditionSatisfyingType(RuleCondition.ConditionSatisfyingType.ONLY_ONE);
+        this.result = new MarketRule(conditionList, action);
         dispose();
     }
 
