@@ -70,6 +70,7 @@ public class HistoryUtils {
     }
 
     public static Candle getNearestCandle(final List<Candle> candles, Date targetDate) {
+        if(candles.size() < 1) return null;
         Candle result = candles.get(0);
         for (Candle candle : candles) {
             // if the current iteration's date is "before" the target date
@@ -96,6 +97,7 @@ public class HistoryUtils {
             }
         }
 
+        if(i >= history.size()) return candles; // empty
         Candle candle = new Candle();
         candle.start = candle.update = history.get(i).time; // first
         candle.open = candle.close = candle.high = candle.low = history.get(i).price;
@@ -137,6 +139,7 @@ public class HistoryUtils {
             }
         }
 
+        if(candles.size() < 1) return;
         // Refresh/add new:
         Candle candle = candles.get(candles.size() - 1);
         for (BaseTradeApi.StandartObjects.Order order : history) {

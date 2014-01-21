@@ -450,13 +450,18 @@ public class TraderMainForm extends JPanel {
 
             // Price change 1h %:
             HistoryUtils.Candle candle = HistoryUtils.getNearestCandle(candles, HistoryUtils.timeDelta(Calendar.HOUR_OF_DAY, -1));
-            labelPriceChangePercent.setToolTipText(String.format("%s -> %s", Utils.Strings.formatNumber(candle.open), Utils.Strings.formatNumber(worker.marketInfo.price.last)));
-            double percent = Calculator.priceChangePercent(candle.open, worker.marketInfo.price.last);
-            labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, Utils.Strings.percentDecimalFormat) + "%");
-            if (percent > 0)
-                labelPriceChangePercent.setForeground(Color.GREEN);
-            else
-                labelPriceChangePercent.setForeground(Color.RED);
+            if(candle == null) {
+                labelPriceChangePercent.setText("???");
+                labelPriceChangePercent.setForeground(Color.BLUE);
+            } else {
+                labelPriceChangePercent.setToolTipText(String.format("%s -> %s", Utils.Strings.formatNumber(candle.open), Utils.Strings.formatNumber(worker.marketInfo.price.last)));
+                double percent = Calculator.priceChangePercent(candle.open, worker.marketInfo.price.last);
+                labelPriceChangePercent.setText(Utils.Strings.formatNumber(percent, Utils.Strings.percentDecimalFormat) + "%");
+                if (percent > 0)
+                    labelPriceChangePercent.setForeground(Color.GREEN);
+                else
+                    labelPriceChangePercent.setForeground(Color.RED);
+            }
         }
     }
 
