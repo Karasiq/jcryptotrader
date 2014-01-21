@@ -11,14 +11,18 @@
 package com.archean.jtradeapi;
 
 import com.google.gson.reflect.TypeToken;
+import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -28,14 +32,77 @@ public class CoinExTradeApi extends BaseTradeApi {
     public CoinExTradeApi(ApiKeyPair keyPair) {
         super(keyPair);
     }
+
+    // Fixes:
+    private String nameValuePairToJson(List<NameValuePair> nameValuePairList) {
+        String result = "{";
+        ListIterator<NameValuePair> iterator = nameValuePairList.listIterator();
+        while (iterator.hasNext()) {
+            NameValuePair pair = iterator.next();
+            result += String.format("\"%s\":\"%s\"", pair.getName(), pair.getValue());
+            if(iterator.hasNext()) result += ", ";
+        }
+        return result + "}";
+    }
+    protected String makeSign(List<NameValuePair> urlParameters) throws NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
+        String signString = urlParameters.size() == 0 ? "" : nameValuePairToJson(urlParameters);
+        return Utils.Crypto.Hashing.hmacDigest(signString, apiKeyPair.privateKey, Utils.Crypto.Hashing.SHA512);
+    }
+
+    protected String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
+        if (urlParameters == null) urlParameters = new ArrayList<>(); // empty list
+        List<NameValuePair> httpHeaders = new ArrayList<>();
+        httpHeaders.add(new BasicNameValuePair("Content-type", "application/json"));
+        cleanAuth(urlParameters, httpHeaders);
+        if (needAuth) writeAuthParams(httpRequestType, urlParameters, httpHeaders);
+        switch (httpRequestType) {
+            case Constants.REQUEST_GET:
+                return requestSender.getResponseString(requestSender.getRequest(url, urlParameters, httpHeaders));
+            case Constants.REQUEST_POST:
+                return requestSender.getResponseString(requestSender.postRequest(url, urlParameters, httpHeaders));
+            default:
+                throw new IllegalArgumentException("Unknown httpRequestType value");
+        }
+    }
+
+    protected void cleanAuth(List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
+        Iterator<NameValuePair> headerIterator = httpHeaders.iterator();
+        while (headerIterator.hasNext()) { // Cleaning
+            NameValuePair header = headerIterator.next();
+            if (header.getName().equals("API-Key") || header.getName().equals("API-Sign")) {
+                headerIterator.remove();
+            }
+        }
+        Iterator<NameValuePair> paramsIterator = urlParameters.iterator();
+        while (paramsIterator.hasNext()) { // Cleaning
+            NameValuePair header = paramsIterator.next();
+            if (header.getName().equals("nonce")) {
+                paramsIterator.remove();
+            }
+        }
+    }
+
+    protected void writeAuthParams(int httpRequestType, List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
+        if (apiKeyPair == null || apiKeyPair.publicKey.isEmpty() || apiKeyPair.privateKey.isEmpty()) {
+            throw new IllegalArgumentException("Invalid API key pair");
+        }
+        if(httpRequestType == Constants.REQUEST_POST) addNonce(urlParameters);
+        try {
+            httpHeaders.add(new BasicNameValuePair("API-Sign", makeSign(urlParameters)));
+            httpHeaders.add(new BasicNameValuePair("API-Key", apiKeyPair.publicKey));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     // Internal:
     private static class CoinExObjects {
         public static class CurrencyPair {
-            // int id;
+            int id;
             // double buy_fee;
             // double sell_fee;
             long last_price;
-            int currency_id;
+            // int currency_id;
             // int market_id;
             String url_slug;
             long rate_min;
@@ -59,13 +126,13 @@ public class CoinExTradeApi extends BaseTradeApi {
             // Date updated_at;
         }
         public static class Balance {
-            int id;
-            int currency_id;
+            // int id;
+            // int currency_id;
             String currency_name;
             long amount;
-            long held;
-            String deposit_address;
-            Date updated_at;
+            // long held;
+            // String deposit_address;
+            // Date updated_at;
         }
     }
     private static final String COINEX_BASE_API_URL = "https://coinex.pw/api/v2/";
@@ -81,13 +148,23 @@ public class CoinExTradeApi extends BaseTradeApi {
             return new Date();
         }
     }
-    private static final BigDecimal shitNormalizer = new BigDecimal(0.000001, MathContext.DECIMAL64);
-    private static final BigDecimal priceShitNormalizer = new BigDecimal(0.00000001, MathContext.DECIMAL64);
+    private static final BigDecimal shitNormalizer = new BigDecimal(0.00000001, MathContext.DECIMAL64);
     private double getNormalNumberNotShit(long shit) {
         return new BigDecimal(shit, MathContext.DECIMAL64).multiply(shitNormalizer).doubleValue();
     }
-    private double getNormalPriceNotShit(long shit) {
-        return new BigDecimal(shit, MathContext.DECIMAL64).multiply(priceShitNormalizer).doubleValue();
+
+    private List<StandartObjects.Order> internalConvertOrders(List<CoinExObjects.Order> orderList, int marketId) {
+        List<StandartObjects.Order> orders = new ArrayList<>();
+        for(CoinExObjects.Order order : orderList) if(!order.cancelled && !order.complete) {
+            StandartObjects.Order stdOrder = new StandartObjects.Order();
+            stdOrder.amount = getNormalNumberNotShit(order.amount);
+            stdOrder.price = getNormalNumberNotShit(order.rate);
+            stdOrder.type = order.bid ? Constants.ORDER_BUY : Constants.ORDER_SELL;
+            stdOrder.pair = marketId;
+            stdOrder.time = getNormalDateNotShit(order.created_at);
+            orders.add(stdOrder);
+        }
+        return orders;
     }
     private List<CoinExObjects.CurrencyPair> internalGetCurrencyPairs() throws IOException {
         String url = formatCoinExApiUrl("trade_pairs");
@@ -95,12 +172,15 @@ public class CoinExTradeApi extends BaseTradeApi {
         return (((HashMap<String, List<CoinExObjects.CurrencyPair>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.CurrencyPair>>>(){}.getType())).get("trade_pairs"));
     }
 
+    private List<CoinExObjects.Order> internalGetOrders(String url, List<NameValuePair> urlParameters, boolean authNeeded) throws IOException {
+        String response = executeRequest(authNeeded, url, urlParameters, Constants.REQUEST_GET);
+        return (((HashMap<String, List<CoinExObjects.Order>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Order>>>(){}.getType())).get("orders"));
+    }
     private List<CoinExObjects.Order> internalGetMarketOrders(int marketId) throws IOException {
         String url = formatCoinExApiUrl("orders");
         List<NameValuePair> urlParameters = new ArrayList<>();
         urlParameters.add(new BasicNameValuePair("tradePair", Integer.toString(marketId)));
-        String response = executeRequest(false, url, urlParameters, Constants.REQUEST_GET);
-        return (((HashMap<String, List<CoinExObjects.Order>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Order>>>(){}.getType())).get("orders"));
+        return internalGetOrders(url, urlParameters, false);
     }
 
     private List<CoinExObjects.Trade> internalGetMarketHistory(int marketId) throws IOException {
@@ -109,6 +189,17 @@ public class CoinExTradeApi extends BaseTradeApi {
         urlParameters.add(new BasicNameValuePair("tradePair", Integer.toString(marketId)));
         String response = executeRequest(false, url, urlParameters, Constants.REQUEST_GET);
         return (((HashMap<String, List<CoinExObjects.Trade>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Trade>>>(){}.getType())).get("trades"));
+    }
+
+    private List<CoinExObjects.Balance> internalGetAccountBalances() throws IOException {
+        String url = formatCoinExApiUrl("balances");
+        String response = executeRequest(true, url, null, Constants.REQUEST_GET);
+        return (((HashMap<String, List<CoinExObjects.Balance>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Balance>>>(){}.getType())).get("balances"));
+    }
+
+    private List<CoinExObjects.Order> internalGetAccountOrders(int marketId) throws IOException {
+        String url = formatCoinExApiUrl(String.format("orders/own?tradePair=%d", marketId));
+        return internalGetOrders(url, null, true);
     }
 
 
@@ -123,7 +214,7 @@ public class CoinExTradeApi extends BaseTradeApi {
                 String[] urlSlugSplit = currencyPair.url_slug.split("_");
                 stdCurrencyPair.firstCurrency = urlSlugSplit[0].toUpperCase();
                 stdCurrencyPair.secondCurrency = urlSlugSplit[1].toUpperCase();
-                stdCurrencyPair.pairId = currencyPair.currency_id;
+                stdCurrencyPair.pairId = currencyPair.id;
                 stdCurrencyPair.pairName = String.format("%s/%s", stdCurrencyPair.firstCurrency, stdCurrencyPair.secondCurrency);
                 pairMapper.put(stdCurrencyPair.pairId, stdCurrencyPair);
             }
@@ -135,11 +226,11 @@ public class CoinExTradeApi extends BaseTradeApi {
     public StandartObjects.Prices getMarketPrices(Object pair) throws Exception {
         StandartObjects.Prices prices = new StandartObjects.Prices();
         List<CoinExObjects.CurrencyPair> currencyPairs = internalGetCurrencyPairs();
-        for(CoinExObjects.CurrencyPair currencyPair : currencyPairs) if(pair.equals(currencyPair.currency_id)) {
-            prices.average = getNormalPriceNotShit((currencyPair.rate_max + currencyPair.rate_min) / 2);
-            prices.buy = prices.sell = prices.last = getNormalPriceNotShit(currencyPair.last_price);
-            prices.low = getNormalPriceNotShit(currencyPair.rate_min);
-            prices.high = getNormalPriceNotShit(currencyPair.rate_max);
+        for(CoinExObjects.CurrencyPair currencyPair : currencyPairs) if(pair.equals(currencyPair.id)) {
+            prices.average = getNormalNumberNotShit((currencyPair.rate_max + currencyPair.rate_min) / 2);
+            prices.buy = prices.sell = prices.last = getNormalNumberNotShit(currencyPair.last_price);
+            prices.low = getNormalNumberNotShit(currencyPair.rate_min);
+            prices.high = getNormalNumberNotShit(currencyPair.rate_max);
             prices.volume = currencyPair.market_volume;
             break;
         }
@@ -148,18 +239,12 @@ public class CoinExTradeApi extends BaseTradeApi {
 
     public StandartObjects.Depth getMarketDepth(Object pair) throws Exception {
         StandartObjects.Depth depth = new StandartObjects.Depth();
-        List<CoinExObjects.Order> orderList = internalGetMarketOrders((Integer)pair);
-        for(CoinExObjects.Order order : orderList) if(!order.cancelled && !order.complete) {
-            StandartObjects.Order stdOrder = new StandartObjects.Order();
-            stdOrder.amount = getNormalNumberNotShit(order.amount);
-            stdOrder.price = getNormalNumberNotShit(order.rate);
-            stdOrder.type = order.bid ? Constants.ORDER_BUY : Constants.ORDER_SELL;
-            stdOrder.pair = pair;
-            stdOrder.time = getNormalDateNotShit(order.created_at);
-            if(order.bid) {
-                depth.buyOrders.add(stdOrder);
+        List<StandartObjects.Order> orderList = internalConvertOrders(internalGetMarketOrders((Integer) pair), (Integer) pair);
+        for(StandartObjects.Order order : orderList) {
+            if(order.type == Constants.ORDER_SELL) {
+                depth.sellOrders.add(order);
             } else {
-                depth.sellOrders.add(stdOrder);
+                depth.buyOrders.add(order);
             }
         }
         return depth;
@@ -182,11 +267,16 @@ public class CoinExTradeApi extends BaseTradeApi {
     }
 
     public StandartObjects.AccountInfo.AccountBalance getAccountBalances() throws Exception {
-        return null;
+        StandartObjects.AccountInfo.AccountBalance stdBalanceList = new StandartObjects.AccountInfo.AccountBalance();
+        List<CoinExObjects.Balance> balances = internalGetAccountBalances();
+        for(CoinExObjects.Balance balance : balances) {
+            stdBalanceList.put(balance.currency_name, getNormalNumberNotShit(balance.amount));
+        }
+        return stdBalanceList;
     }
 
     public List<StandartObjects.Order> getAccountOpenOrders(Object pair) throws Exception {
-        return null;
+        return internalConvertOrders(internalGetAccountOrders((Integer) pair), (Integer) pair);
     }
 
     public List<StandartObjects.Order> getAccountHistory(Object pair) throws Exception {
