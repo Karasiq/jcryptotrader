@@ -342,6 +342,7 @@ public class TraderMainForm extends JPanel {
         synchronized (candlesLock) {
             candles = null;
             ohlcDataCache = null;
+            lastChartUpdate = new Date(0);
         }
     }
     private void setChartPeriod(long newPeriod) {
