@@ -11,16 +11,23 @@
 package com.archean.jtradeapi;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 
 public class Calculator {
     public static final double MINIMAL_AMOUNT = 0.00000001; // 1 Satoshi
+    public static final BigDecimal ONE_HUNDRED = new BigDecimal(100.0, MathContext.DECIMAL64);
+    public static final RoundingMode ROUNDING_MODE = RoundingMode.FLOOR;
+    public static final int ROUNDING_PRECISION = 8;
 
     public static double totalWithFee(int orderType, double price, double amount, double feePercent) {
-        return orderType == BaseTradeApi.Constants.ORDER_BUY ? amount * price * ((100.0 + feePercent) / 100.0) : amount * price / ((100.0 + feePercent) / 100.0);
+        BigDecimal bigDecimalPrice = new BigDecimal(price, MathContext.DECIMAL64), bigDecimalAmount = new BigDecimal(amount, MathContext.DECIMAL64), bigDecimalFeePercent = new BigDecimal(feePercent, MathContext.DECIMAL64);
+        return orderType == BaseTradeApi.Constants.ORDER_BUY ? bigDecimalAmount.multiply(bigDecimalPrice).multiply(ONE_HUNDRED.add(bigDecimalFeePercent).divide(ONE_HUNDRED, ROUNDING_PRECISION, ROUNDING_MODE)).doubleValue() : bigDecimalAmount.multiply(bigDecimalPrice).divide(ONE_HUNDRED.add(bigDecimalFeePercent).divide(ONE_HUNDRED, ROUNDING_PRECISION, ROUNDING_MODE), ROUNDING_PRECISION, ROUNDING_MODE).doubleValue();
     }
 
     public static double balancePercentAmount(double balance, double balancePercent, int orderType, double price, double feePercent) {
-        return orderType == BaseTradeApi.Constants.ORDER_BUY ? (balance / price) * (balancePercent * 1.0 / 100.0) / ((100.0 + feePercent) / 100.0) : (balance * balancePercent * 1.0 / 100.0);
+        BigDecimal bigDecimalBalance = new BigDecimal(balance, MathContext.DECIMAL64), bigDecimalPrice = new BigDecimal(price, MathContext.DECIMAL64), bigDecimalBalancePercent = new BigDecimal(balancePercent, MathContext.DECIMAL64), bigDecimalFeePercent = new BigDecimal(feePercent, MathContext.DECIMAL64);
+        return orderType == BaseTradeApi.Constants.ORDER_BUY ? bigDecimalBalance.divide(bigDecimalPrice, ROUNDING_PRECISION, ROUNDING_MODE).multiply(bigDecimalBalancePercent.divide(ONE_HUNDRED, ROUNDING_PRECISION, ROUNDING_MODE)).divide(ONE_HUNDRED.add(bigDecimalFeePercent).divide(ONE_HUNDRED, ROUNDING_PRECISION, ROUNDING_MODE), ROUNDING_PRECISION, ROUNDING_MODE).doubleValue() : bigDecimalBalance.multiply(bigDecimalBalancePercent).divide(ONE_HUNDRED, ROUNDING_PRECISION, ROUNDING_MODE).doubleValue();
     }
 
     public static double priceChangePercent(double p1, double p2) {
