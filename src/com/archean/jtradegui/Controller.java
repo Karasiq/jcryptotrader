@@ -157,9 +157,11 @@ public class Controller extends JFrame {
     private void buttonAddActionPerformed(ActionEvent e) {
         AccountManagerDlg accountManagerDlg = new AccountManagerDlg(this, accountDb);
         accountManagerDlg.setVisible(true); // modal
-        saveAccountDb();
-        addTab(accountManagerDlg.selectedAccount, accountDb.get(accountManagerDlg.selectedAccount));
-        saveTabs();
+        if(accountManagerDlg.selectedAccount != null) {
+            saveAccountDb();
+            addTab(accountManagerDlg.selectedAccount, accountDb.get(accountManagerDlg.selectedAccount));
+            saveTabs();
+        }
     }
 
     private void buttonDeleteActionPerformed(ActionEvent e) {
