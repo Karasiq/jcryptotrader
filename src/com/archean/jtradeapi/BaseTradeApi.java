@@ -13,6 +13,7 @@ package com.archean.jtradeapi;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
@@ -76,9 +77,13 @@ public abstract class BaseTradeApi {
         }
 
         public HttpResponse postRequest(String url, List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) throws IOException {
+            return rawPostRequest(url, new UrlEncodedFormEntity(urlParameters), httpHeaders);
+        }
+
+        public HttpResponse rawPostRequest(String url, HttpEntity entity, List<NameValuePair> httpHeaders) throws IOException {
             HttpClient client = HttpClientBuilder.create().build();
             HttpPost request = new HttpPost(url);
-            request.setEntity(new UrlEncodedFormEntity(urlParameters));
+            request.setEntity(entity);
 
             for (NameValuePair header : httpHeaders) { // Adding headers
                 request.addHeader(header.getName(), header.getValue());
