@@ -17,6 +17,8 @@ import com.archean.jautotrading.RuleCondition;
 import com.archean.jtradeapi.*;
 import com.jgoodies.forms.factories.CC;
 import com.jgoodies.forms.layout.FormLayout;
+import org.jfree.chart.ChartMouseEvent;
+import org.jfree.chart.ChartMouseListener;
 import org.jfree.chart.ChartPanel;
 import org.jfree.data.xy.OHLCDataItem;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -311,17 +313,41 @@ public class TraderMainForm extends JPanel {
 
     // GUI MVC functions
     private void drawChart(OHLCDataItem[] dataset) {
-        ChartPanel chartPanel = CandleChart.initOHLCChart(CandleChart.Parameters.builder()
+        final ChartPanel chartPanel = CandleChart.initOHLCChart(CandleChart.Parameters.builder()
                 .numberFormat(Utils.Strings.moneyFormat.toDecimalFormat())
                 .dateFormat(new SimpleDateFormat())
                 .labelX(locale.getString("Chart.legend.time.string"))
                 .labelY(locale.getString("Chart.legend.price.string"))
                 .title(currentPair).build(), dataset);
         // chartPanel.setPreferredSize(new Dimension(600, 300));
+        chartPanel.addChartMouseListener(new ChartMouseListener() {
+            @Override
+            public void chartMouseClicked(ChartMouseEvent chartMouseEvent) {
+                if(chartMouseEvent.getTrigger().getClickCount() >= 2) {
+                    popupMenuTimeframe.show((Component) chartMouseEvent.getTrigger().getSource(), chartMouseEvent.getTrigger().getX(), chartMouseEvent.getTrigger().getY());
+                }
+            }
+
+            @Override
+            public void chartMouseMoved(ChartMouseEvent chartMouseEvent) {
+                // nothing
+            }
+        });
         tabbedPaneInfo.setComponentAt(4, chartPanel);
     }
 
     private OHLCDataItem[] ohlcDataCache = null;
+    private volatile long chartPeriod = HistoryUtils.PERIOD_30M;
+    private void clearChartData() {
+        synchronized (candlesLock) {
+            candles = null;
+            ohlcDataCache = null;
+        }
+    }
+    private void setChartPeriod(long newPeriod) {
+        chartPeriod = newPeriod;
+        clearChartData();
+    }
     private void updateChart(List<HistoryUtils.Candle> candles) {
         if (candles == null || candles.isEmpty()) return;
         HistoryUtils.Candle lastCandle = candles.get(candles.size() - 1);
@@ -442,9 +468,9 @@ public class TraderMainForm extends JPanel {
         synchronized (candlesLock) {
             // Update chart:
             if (candles == null) {
-                candles = HistoryUtils.buildCandles(history, HistoryUtils.timeDelta(Calendar.DAY_OF_MONTH, -1), HistoryUtils.PERIOD_30M);
+                candles = HistoryUtils.buildCandles(history, HistoryUtils.timeDelta(Calendar.DAY_OF_MONTH, -1), chartPeriod);
             } else {
-                HistoryUtils.refreshCandles(candles, history, HistoryUtils.timeDelta(Calendar.DAY_OF_MONTH, -1), HistoryUtils.PERIOD_30M);
+                HistoryUtils.refreshCandles(candles, history, HistoryUtils.timeDelta(Calendar.DAY_OF_MONTH, -1), chartPeriod);
             }
             if (tabbedPaneInfo.getComponentAt(4).isVisible()) updateChart(candles);
 
@@ -972,6 +998,22 @@ public class TraderMainForm extends JPanel {
         refreshRulesTable();
     }
 
+    private void radioButtonMenuItem1MActionPerformed(ActionEvent e) {
+        setChartPeriod(HistoryUtils.PERIOD_1M);
+    }
+
+    private void radioButtonMenuItem15MActionPerformed(ActionEvent e) {
+        setChartPeriod(HistoryUtils.PERIOD_15M);
+    }
+
+    private void radioButtonMenuItem30MActionPerformed(ActionEvent e) {
+        setChartPeriod(HistoryUtils.PERIOD_30M);
+    }
+
+    private void radioButtonMenuItem1HActionPerformed(ActionEvent e) {
+        setChartPeriod(HistoryUtils.PERIOD_1H);
+    }
+
 
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
@@ -1063,6 +1105,11 @@ public class TraderMainForm extends JPanel {
         textPaneLog = new JTextPane();
         popupMenuOrders = new JPopupMenu();
         menuItemCancelOrder = new JMenuItem();
+        popupMenuTimeframe = new JPopupMenu();
+        radioButtonMenuItem1M = new JRadioButtonMenuItem();
+        radioButtonMenuItem15M = new JRadioButtonMenuItem();
+        radioButtonMenuItem30M = new JRadioButtonMenuItem();
+        radioButtonMenuItem1H = new JRadioButtonMenuItem();
 
         //======== this ========
         setLayout(new FormLayout(
@@ -1833,6 +1880,59 @@ public class TraderMainForm extends JPanel {
             });
             popupMenuOrders.add(menuItemCancelOrder);
         }
+
+        //======== popupMenuTimeframe ========
+        {
+
+            //---- radioButtonMenuItem1M ----
+            radioButtonMenuItem1M.setText("1M");
+            radioButtonMenuItem1M.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    radioButtonMenuItem1MActionPerformed(e);
+                }
+            });
+            popupMenuTimeframe.add(radioButtonMenuItem1M);
+
+            //---- radioButtonMenuItem15M ----
+            radioButtonMenuItem15M.setText("15M");
+            radioButtonMenuItem15M.setFont(radioButtonMenuItem15M.getFont().deriveFont(radioButtonMenuItem15M.getFont().getStyle() & ~Font.BOLD));
+            radioButtonMenuItem15M.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    radioButtonMenuItem15MActionPerformed(e);
+                }
+            });
+            popupMenuTimeframe.add(radioButtonMenuItem15M);
+
+            //---- radioButtonMenuItem30M ----
+            radioButtonMenuItem30M.setText("30M");
+            radioButtonMenuItem30M.setSelected(true);
+            radioButtonMenuItem30M.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    radioButtonMenuItem30MActionPerformed(e);
+                }
+            });
+            popupMenuTimeframe.add(radioButtonMenuItem30M);
+
+            //---- radioButtonMenuItem1H ----
+            radioButtonMenuItem1H.setText("1H");
+            radioButtonMenuItem1H.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    radioButtonMenuItem1HActionPerformed(e);
+                }
+            });
+            popupMenuTimeframe.add(radioButtonMenuItem1H);
+        }
+
+        //---- buttonGroupTimeframe ----
+        ButtonGroup buttonGroupTimeframe = new ButtonGroup();
+        buttonGroupTimeframe.add(radioButtonMenuItem1M);
+        buttonGroupTimeframe.add(radioButtonMenuItem15M);
+        buttonGroupTimeframe.add(radioButtonMenuItem30M);
+        buttonGroupTimeframe.add(radioButtonMenuItem1H);
         // JFormDesigner - End of component initialization  //GEN-END:initComponents
     }
 
@@ -1924,5 +2024,10 @@ public class TraderMainForm extends JPanel {
     private JTextPane textPaneLog;
     private JPopupMenu popupMenuOrders;
     private JMenuItem menuItemCancelOrder;
+    private JPopupMenu popupMenuTimeframe;
+    private JRadioButtonMenuItem radioButtonMenuItem1M;
+    private JRadioButtonMenuItem radioButtonMenuItem15M;
+    private JRadioButtonMenuItem radioButtonMenuItem30M;
+    private JRadioButtonMenuItem radioButtonMenuItem1H;
     // JFormDesigner - End of variables declaration  //GEN-END:variables
 }

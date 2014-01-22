@@ -17,6 +17,7 @@ public class HistoryUtils {
     public static final long PERIOD_1M = 60 * 1000;
     public static final long PERIOD_15M = PERIOD_1M * 15;
     public static final long PERIOD_30M = PERIOD_15M * 2;
+    public static final long PERIOD_1H = PERIOD_30M * 2;
 
     public static class Candle implements Comparable<Candle> {
         public enum CandleType {

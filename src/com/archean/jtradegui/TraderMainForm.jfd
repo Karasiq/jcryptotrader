@@ -887,5 +887,41 @@ new FormModel {
 		}, new FormLayoutConstraints( null ) {
 			"location": new java.awt.Point( 520, 185 )
 		} )
+		add( new FormContainer( "javax.swing.JPopupMenu", new FormLayoutManager( class javax.swing.JPopupMenu ) ) {
+			name: "popupMenuTimeframe"
+			add( new FormComponent( "javax.swing.JRadioButtonMenuItem" ) {
+				name: "radioButtonMenuItem1M"
+				"text": "1M"
+				"$buttonGroup": new FormReference( "buttonGroupTimeframe" )
+				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "radioButtonMenuItem1MActionPerformed", true ) )
+			} )
+			add( new FormComponent( "javax.swing.JRadioButtonMenuItem" ) {
+				name: "radioButtonMenuItem15M"
+				"text": "15M"
+				"font": new com.jformdesigner.model.SwingDerivedFont( null, 65536, 0, false )
+				"$buttonGroup": new FormReference( "buttonGroupTimeframe" )
+				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "radioButtonMenuItem15MActionPerformed", true ) )
+			} )
+			add( new FormComponent( "javax.swing.JRadioButtonMenuItem" ) {
+				name: "radioButtonMenuItem30M"
+				"text": "30M"
+				"selected": true
+				"$buttonGroup": new FormReference( "buttonGroupTimeframe" )
+				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "radioButtonMenuItem30MActionPerformed", true ) )
+			} )
+			add( new FormComponent( "javax.swing.JRadioButtonMenuItem" ) {
+				name: "radioButtonMenuItem1H"
+				"text": "1H"
+				"$buttonGroup": new FormReference( "buttonGroupTimeframe" )
+				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "radioButtonMenuItem1HActionPerformed", true ) )
+			} )
+		}, new FormLayoutConstraints( null ) {
+			"location": new java.awt.Point( 525, 270 )
+		} )
+		add( new FormNonVisual( "javax.swing.ButtonGroup" ) {
+			name: "buttonGroupTimeframe"
+		}, new FormLayoutConstraints( null ) {
+			"location": new java.awt.Point( 0, 580 )
+		} )
 	}
 }
