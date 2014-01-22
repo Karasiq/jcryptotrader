@@ -13,6 +13,8 @@ package com.archean.jtradeapi;
 import com.google.gson.reflect.TypeToken;
 import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import org.apache.http.NameValuePair;
+import org.apache.http.entity.BasicHttpEntity;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicNameValuePair;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -34,32 +36,32 @@ public class CoinExTradeApi extends BaseTradeApi {
     }
 
     // Fixes:
-    private String nameValuePairToJson(List<NameValuePair> nameValuePairList) {
-        String result = "{";
-        ListIterator<NameValuePair> iterator = nameValuePairList.listIterator();
-        while (iterator.hasNext()) {
-            NameValuePair pair = iterator.next();
-            result += String.format("\"%s\":\"%s\"", pair.getName(), pair.getValue());
-            if(iterator.hasNext()) result += ", ";
-        }
-        return result + "}";
-    }
-    protected String makeSign(List<NameValuePair> urlParameters) throws NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
-        String signString = urlParameters.size() == 0 ? "" : nameValuePairToJson(urlParameters);
+
+    protected String makeSign(String signString) throws NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
         return Utils.Crypto.Hashing.hmacDigest(signString, apiKeyPair.privateKey, Utils.Crypto.Hashing.SHA512);
     }
 
+    protected String executePostJsonRequest(String url, String jsonEntity) {
+        List<NameValuePair> httpHeaders = new ArrayList<>();
+        httpHeaders.add(new BasicNameValuePair("Content-Type", "application/json"));
+        writeAuthParams(jsonEntity, httpHeaders);
+        try {
+            return requestSender.getResponseString(requestSender.rawPostRequest(url, new StringEntity(jsonEntity), httpHeaders));
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
     protected String executeRequest(boolean needAuth, String url, List<NameValuePair> urlParameters, int httpRequestType) throws IOException {
         if (urlParameters == null) urlParameters = new ArrayList<>(); // empty list
         List<NameValuePair> httpHeaders = new ArrayList<>();
-        httpHeaders.add(new BasicNameValuePair("Content-type", "application/json"));
         cleanAuth(urlParameters, httpHeaders);
-        if (needAuth) writeAuthParams(httpRequestType, urlParameters, httpHeaders);
+        if (needAuth) writeAuthParams("", httpHeaders);
         switch (httpRequestType) {
             case Constants.REQUEST_GET:
                 return requestSender.getResponseString(requestSender.getRequest(url, urlParameters, httpHeaders));
             case Constants.REQUEST_POST:
-                return requestSender.getResponseString(requestSender.postRequest(url, urlParameters, httpHeaders));
+                throw new NotImplementedException();
             default:
                 throw new IllegalArgumentException("Unknown httpRequestType value");
         }
@@ -82,13 +84,12 @@ public class CoinExTradeApi extends BaseTradeApi {
         }
     }
 
-    protected void writeAuthParams(int httpRequestType, List<NameValuePair> urlParameters, List<NameValuePair> httpHeaders) {
+    protected void writeAuthParams(String signString, List<NameValuePair> httpHeaders) {
         if (apiKeyPair == null || apiKeyPair.publicKey.isEmpty() || apiKeyPair.privateKey.isEmpty()) {
             throw new IllegalArgumentException("Invalid API key pair");
         }
-        if(httpRequestType == Constants.REQUEST_POST) addNonce(urlParameters);
         try {
-            httpHeaders.add(new BasicNameValuePair("API-Sign", makeSign(urlParameters)));
+            httpHeaders.add(new BasicNameValuePair("API-Sign", makeSign(signString)));
             httpHeaders.add(new BasicNameValuePair("API-Key", apiKeyPair.publicKey));
         } catch (Exception e) {
             e.printStackTrace();
@@ -202,6 +203,16 @@ public class CoinExTradeApi extends BaseTradeApi {
         return internalGetOrders(url, null, true);
     }
 
+    private static String formatSubmitOrderRequest(int marketId, int orderType, double amount, double price) {
+        final String template = "\"order\":{\"trade_pair_id\": %d, \"amount\": %d, \"bid\": %s, \"rate\": %d}";
+        return String.format(template, marketId, new BigDecimal(amount).divide(new BigDecimal(Calculator.MINIMAL_AMOUNT), 8, RoundingMode.FLOOR).intValue(), orderType == Constants.ORDER_BUY ? "true" : "false", new BigDecimal(price).divide(new BigDecimal(Calculator.MINIMAL_AMOUNT), 8, RoundingMode.FLOOR).intValue());
+    }
+
+    private List<CoinExObjects.Order> internalSubmitOrder(int marketId, int orderType, double amount, double price) {
+        String response = executePostJsonRequest(formatCoinExApiUrl("orders"), formatSubmitOrderRequest(marketId, orderType, amount, price));
+        return (((HashMap<String, List<CoinExObjects.Order>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Order>>>(){}.getType())).get("orders"));
+    }
+
 
     // Public:
     private StandartObjects.CurrencyPairMapper pairMapper = null;
@@ -290,7 +301,10 @@ public class CoinExTradeApi extends BaseTradeApi {
 
     // Trading api:
     public Object createOrder(Object pair, int orderType, double quantity, double price) throws Exception {
-        throw new NotImplementedException();
+        List<CoinExObjects.Order> orderList = internalSubmitOrder((Integer) pair, orderType, quantity, price);
+        if(orderList == null || orderList.isEmpty()) {
+            return 0;
+        } else return orderList.get(0).id;
     }
 
     public boolean cancelOrder(Object orderId) throws Exception {
