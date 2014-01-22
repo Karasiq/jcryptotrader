@@ -10,6 +10,7 @@
 
 package com.archean.jtradeapi;
 
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import org.apache.http.NameValuePair;
@@ -167,50 +168,71 @@ public class CoinExTradeApi extends BaseTradeApi {
         }
         return orders;
     }
-    private List<CoinExObjects.CurrencyPair> internalGetCurrencyPairs() throws IOException {
+    private List<CoinExObjects.CurrencyPair> internalGetCurrencyPairs() throws IOException, TradeApiError {
         String url = formatCoinExApiUrl("trade_pairs");
         String response = executeRequest(false, url, null, Constants.REQUEST_GET);
-        return (((HashMap<String, List<CoinExObjects.CurrencyPair>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.CurrencyPair>>>(){}.getType())).get("trade_pairs"));
+        try{return (((HashMap<String, List<CoinExObjects.CurrencyPair>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.CurrencyPair>>>(){}.getType())).get("trade_pairs")); }
+        catch(JsonSyntaxException e) {
+            throw new TradeApiError(response);
+        }
     }
 
-    private List<CoinExObjects.Order> internalGetOrders(String url, List<NameValuePair> urlParameters, boolean authNeeded) throws IOException {
+    private List<CoinExObjects.Order> internalGetOrders(String url, List<NameValuePair> urlParameters, boolean authNeeded) throws IOException, TradeApiError {
         String response = executeRequest(authNeeded, url, urlParameters, Constants.REQUEST_GET);
-        return (((HashMap<String, List<CoinExObjects.Order>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Order>>>(){}.getType())).get("orders"));
+        try {return (((HashMap<String, List<CoinExObjects.Order>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Order>>>(){}.getType())).get("orders"));}
+        catch(JsonSyntaxException e) {
+            throw new TradeApiError(response);
+        }
     }
-    private List<CoinExObjects.Order> internalGetMarketOrders(int marketId) throws IOException {
+    private List<CoinExObjects.Order> internalGetMarketOrders(int marketId) throws IOException, TradeApiError {
         String url = formatCoinExApiUrl("orders");
         List<NameValuePair> urlParameters = new ArrayList<>();
         urlParameters.add(new BasicNameValuePair("tradePair", Integer.toString(marketId)));
         return internalGetOrders(url, urlParameters, false);
     }
 
-    private List<CoinExObjects.Trade> internalGetMarketHistory(int marketId) throws IOException {
+    private List<CoinExObjects.Trade> internalGetMarketHistory(int marketId) throws IOException, TradeApiError {
         String url = formatCoinExApiUrl("trades");
         List<NameValuePair> urlParameters = new ArrayList<>();
         urlParameters.add(new BasicNameValuePair("tradePair", Integer.toString(marketId)));
         String response = executeRequest(false, url, urlParameters, Constants.REQUEST_GET);
-        return (((HashMap<String, List<CoinExObjects.Trade>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Trade>>>(){}.getType())).get("trades"));
+        try {return (((HashMap<String, List<CoinExObjects.Trade>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Trade>>>(){}.getType())).get("trades")); }
+        catch(JsonSyntaxException e) {
+            throw new TradeApiError(response);
+        }
     }
 
-    private List<CoinExObjects.Balance> internalGetAccountBalances() throws IOException {
+    private List<CoinExObjects.Balance> internalGetAccountBalances() throws IOException, TradeApiError {
         String url = formatCoinExApiUrl("balances");
         String response = executeRequest(true, url, null, Constants.REQUEST_GET);
-        return (((HashMap<String, List<CoinExObjects.Balance>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Balance>>>(){}.getType())).get("balances"));
+        try{return (((HashMap<String, List<CoinExObjects.Balance>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Balance>>>(){}.getType())).get("balances"));}
+        catch(JsonSyntaxException e) {
+            throw new TradeApiError(response);
+        }
     }
 
-    private List<CoinExObjects.Order> internalGetAccountOrders(int marketId) throws IOException {
+    private List<CoinExObjects.Order> internalGetAccountOrders(int marketId) throws IOException, TradeApiError {
         String url = formatCoinExApiUrl(String.format("orders/own?tradePair=%d", marketId));
         return internalGetOrders(url, null, true);
     }
 
     private static String formatSubmitOrderRequest(int marketId, int orderType, double amount, double price) {
-        final String template = "\"order\":{\"trade_pair_id\": %d, \"amount\": %d, \"bid\": %s, \"rate\": %d}";
+        final String template = "{\"order\":{\"trade_pair_id\": %d, \"amount\": %d, \"bid\": %s, \"rate\": %d}}";
         return String.format(template, marketId, new BigDecimal(amount).divide(new BigDecimal(Calculator.MINIMAL_AMOUNT), 8, RoundingMode.FLOOR).intValue(), orderType == Constants.ORDER_BUY ? "true" : "false", new BigDecimal(price).divide(new BigDecimal(Calculator.MINIMAL_AMOUNT), 8, RoundingMode.FLOOR).intValue());
     }
 
-    private List<CoinExObjects.Order> internalSubmitOrder(int marketId, int orderType, double amount, double price) {
+    private List<CoinExObjects.Order> internalSubmitOrder(int marketId, int orderType, double amount, double price) throws TradeApiError {
         String response = executePostJsonRequest(formatCoinExApiUrl("orders"), formatSubmitOrderRequest(marketId, orderType, amount, price));
-        return (((HashMap<String, List<CoinExObjects.Order>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Order>>>(){}.getType())).get("orders"));
+
+        try{return (((HashMap<String, List<CoinExObjects.Order>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Order>>>(){}.getType())).get("orders"));}
+        catch(Exception e) {
+            throw new TradeApiError(response);
+        }
+    }
+
+    private List<CoinExObjects.Order> internalCancelOrder(int orderId) throws IOException, TradeApiError {
+        String url = formatCoinExApiUrl(String.format("orders/%d/cancel", orderId));
+        return internalGetOrders(url, null, true);
     }
 
 
@@ -308,6 +330,7 @@ public class CoinExTradeApi extends BaseTradeApi {
     }
 
     public boolean cancelOrder(Object orderId) throws Exception {
-        throw new NotImplementedException();
+        List<CoinExObjects.Order> orderList = internalCancelOrder((Integer) orderId);
+        return true; // How the fuck i know that query is executed?! Who written this retarded api?
     }
 }
