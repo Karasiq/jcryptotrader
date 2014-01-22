@@ -9,7 +9,7 @@ Java crypto-currency exchanges trading client
 * Real time capitalization info from http://coinmarketcap.com/
 
 # Supported exchanges
-jCryptoTrader currently supports Cryptsy, BTC-E and partially MtGox (only public api).
+jCryptoTrader currently supports Cryptsy, BTC-E, CoinEx (very unstable) and partially MtGox (only public api).
 
 # Todo:
 * Add more exchanges
