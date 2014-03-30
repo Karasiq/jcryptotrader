@@ -84,13 +84,13 @@ public class TraderMainForm extends JPanel {
     public void stopWorker() {
         initialized = false;
         worker.stopAllThreads();
-        CoinMarketCapParser.coinMarketCapRetriever.removeEventHandler(System.identityHashCode(this));
+        CoinMarketCapParser.getWorker().removeEventHandler(System.identityHashCode(this));
     }
 
     public void startWorker() {
         initialized = true;
         setUpdateOptions();
-        CoinMarketCapParser.coinMarketCapRetriever.addEventHandler(System.identityHashCode(this), new CoinMarketCapParser.CoinMarketCapEvent() {
+        CoinMarketCapParser.getWorker().addEventHandler(System.identityHashCode(this), new CoinMarketCapParser.CoinMarketCapEvent() {
             @Override
             public void onDataUpdate(List<CoinMarketCapParser.CoinCapitalization> data) {
                 updateMarketCap(data);
@@ -622,6 +622,7 @@ public class TraderMainForm extends JPanel {
         spinnerSellOrderAmount.setEditor(new JSpinner.NumberEditor(spinnerSellOrderAmount, "##############.########"));
 
         TableCellRenderer capCellRenderer = new DefaultTableCellRenderer() {
+            @Override
             public Component getTableCellRendererComponent(JTable table,
                                                            Object value, boolean isSelected, boolean hasFocus,
                                                            int row, int column) {
@@ -653,6 +654,7 @@ public class TraderMainForm extends JPanel {
             }
         };
         TableCellRenderer moneyPriceCellRenderer = new DefaultTableCellRenderer() {
+            @Override
             public Component getTableCellRendererComponent(JTable table,
                                                            Object value, boolean isSelected, boolean hasFocus,
                                                            int row, int column) {
@@ -663,6 +665,7 @@ public class TraderMainForm extends JPanel {
             }
         };
         TableCellRenderer moneyTotalCellRenderer = new DefaultTableCellRenderer() {
+            @Override
             public Component getTableCellRendererComponent(JTable table,
                                                            Object value, boolean isSelected, boolean hasFocus,
                                                            int row, int column) {
@@ -675,6 +678,7 @@ public class TraderMainForm extends JPanel {
 
         final SimpleDateFormat tableDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
         TableCellRenderer dateCellRenderer = new DefaultTableCellRenderer() {
+            @Override
             public Component getTableCellRendererComponent(JTable table,
                                                            Object value, boolean isSelected, boolean hasFocus,
                                                            int row, int column) {

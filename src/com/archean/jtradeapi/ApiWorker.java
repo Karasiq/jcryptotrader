@@ -204,7 +204,7 @@ class ApiWorker extends Utils.Threads.UniqueHandlerObserver<ApiWorker.ApiDataUpd
     }
 
     synchronized public void setActiveThreads(final ApiDataType[] activeThreads) {
-        setActiveThreads(new ArrayList<>(Arrays.asList(activeThreads)));
+        setActiveThreads(Arrays.asList(activeThreads));
     }
 
     synchronized public void stopAllThreads() {

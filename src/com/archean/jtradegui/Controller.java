@@ -64,7 +64,7 @@ public class Controller extends JFrame {
     }
 
     private void saveTabs() {
-        List<SavedTab> savedTabList = new ArrayList<>();
+        List<SavedTab> savedTabList = new ArrayList<>(tabbedPaneTraders.getTabCount());
         for (int i = 0; i < tabbedPaneTraders.getTabCount(); i++) {
             TraderMainForm traderMainForm = (TraderMainForm) tabbedPaneTraders.getComponentAt(i);
             savedTabList.add(new SavedTab(tabbedPaneTraders.getTitleAt(i), traderMainForm));
@@ -133,7 +133,7 @@ public class Controller extends JFrame {
                 }
             }
         });
-        CoinMarketCapParser.coinMarketCapRetriever.start();
+        CoinMarketCapParser.getWorker().start();
         controller.loadTabs();
     }
 

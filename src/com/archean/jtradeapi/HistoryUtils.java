@@ -86,7 +86,7 @@ public class HistoryUtils {
     }
 
     public static List<Candle> buildCandles(List<BaseTradeApi.StandartObjects.Order> history, Date limit, long period) {
-        List<Candle> candles = new ArrayList<>();
+        List<Candle> candles = new ArrayList<>(history.size());
         Collections.sort(history);
 
         int i = 0;

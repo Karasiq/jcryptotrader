@@ -216,10 +216,11 @@ public class MtGoxTradeApi extends BaseTradeApi {
 
     public List<BaseTradeApi.StandartObjects.Order> getMarketHistory(Object pair) throws Exception {
         ApiStatus<List<MtGoxObjects.Trade>> historyApiStatus = internalGetTrades((String) pair);
-        List<StandartObjects.Order> history = new ArrayList<>();
+        if (historyApiStatus.data == null) return null;
+        final List<StandartObjects.Order> history = new ArrayList<>(historyApiStatus.data.size());
         if (!historyApiStatus.result.equals("success")) {
             throw new TradeApiError("Error retrieving history data (" + historyApiStatus.error + ")");
-        } else if (historyApiStatus.data != null) for (MtGoxObjects.Trade entry : historyApiStatus.data) {
+        } else historyApiStatus.data.forEach(entry -> {
             StandartObjects.Order trade = new StandartObjects.Order();
             trade.amount = entry.amount;
             trade.price = entry.price;
@@ -228,7 +229,7 @@ public class MtGoxTradeApi extends BaseTradeApi {
             trade.type = entry.trade_type.equals("ask") ? Constants.ORDER_SELL : Constants.ORDER_BUY;
             trade.time = new Date(entry.date * 1000);
             history.add(trade);
-        }
+        });
         return history;
     }
 

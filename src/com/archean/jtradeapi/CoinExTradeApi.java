@@ -43,7 +43,7 @@ public class CoinExTradeApi extends BaseTradeApi {
     }
 
     protected String executePostJsonRequest(String url, String jsonEntity) {
-        List<NameValuePair> httpHeaders = new ArrayList<>();
+        List<NameValuePair> httpHeaders = new ArrayList<>(1);
         httpHeaders.add(new BasicNameValuePair("Content-Type", "application/json"));
         writeAuthParams(jsonEntity, httpHeaders);
         try {
@@ -156,8 +156,8 @@ public class CoinExTradeApi extends BaseTradeApi {
     }
 
     private List<StandartObjects.Order> internalConvertOrders(List<CoinExObjects.Order> orderList, int marketId) {
-        List<StandartObjects.Order> orders = new ArrayList<>();
-        for(CoinExObjects.Order order : orderList) if(!order.cancelled && !order.complete) {
+        final List<StandartObjects.Order> orders = new ArrayList<>(orderList.size());
+        orderList.forEach(order -> {
             StandartObjects.Order stdOrder = new StandartObjects.Order();
             stdOrder.amount = getNormalNumberNotShit(order.amount);
             stdOrder.price = getNormalNumberNotShit(order.rate);
@@ -165,9 +165,11 @@ public class CoinExTradeApi extends BaseTradeApi {
             stdOrder.pair = marketId;
             stdOrder.time = getNormalDateNotShit(order.created_at);
             orders.add(stdOrder);
-        }
+        });
         return orders;
     }
+
+    @SuppressWarnings("unchecked")
     private List<CoinExObjects.CurrencyPair> internalGetCurrencyPairs() throws IOException, TradeApiError {
         String url = formatCoinExApiUrl("trade_pairs");
         String response = executeRequest(false, url, null, Constants.REQUEST_GET);
@@ -177,6 +179,7 @@ public class CoinExTradeApi extends BaseTradeApi {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private List<CoinExObjects.Order> internalGetOrders(String url, List<NameValuePair> urlParameters, boolean authNeeded) throws IOException, TradeApiError {
         String response = executeRequest(authNeeded, url, urlParameters, Constants.REQUEST_GET);
         try {return (((HashMap<String, List<CoinExObjects.Order>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Order>>>(){}.getType())).get("orders"));}
@@ -186,14 +189,15 @@ public class CoinExTradeApi extends BaseTradeApi {
     }
     private List<CoinExObjects.Order> internalGetMarketOrders(int marketId) throws IOException, TradeApiError {
         String url = formatCoinExApiUrl("orders");
-        List<NameValuePair> urlParameters = new ArrayList<>();
+        List<NameValuePair> urlParameters = new ArrayList<>(1);
         urlParameters.add(new BasicNameValuePair("tradePair", Integer.toString(marketId)));
         return internalGetOrders(url, urlParameters, false);
     }
 
+    @SuppressWarnings("unchecked")
     private List<CoinExObjects.Trade> internalGetMarketHistory(int marketId) throws IOException, TradeApiError {
         String url = formatCoinExApiUrl("trades");
-        List<NameValuePair> urlParameters = new ArrayList<>();
+        List<NameValuePair> urlParameters = new ArrayList<>(1);
         urlParameters.add(new BasicNameValuePair("tradePair", Integer.toString(marketId)));
         String response = executeRequest(false, url, urlParameters, Constants.REQUEST_GET);
         try {return (((HashMap<String, List<CoinExObjects.Trade>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Trade>>>(){}.getType())).get("trades")); }
@@ -202,6 +206,7 @@ public class CoinExTradeApi extends BaseTradeApi {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private List<CoinExObjects.Balance> internalGetAccountBalances() throws IOException, TradeApiError {
         String url = formatCoinExApiUrl("balances");
         String response = executeRequest(true, url, null, Constants.REQUEST_GET);
@@ -221,9 +226,9 @@ public class CoinExTradeApi extends BaseTradeApi {
         return String.format(template, marketId, new BigDecimal(amount).divide(new BigDecimal(Calculator.MINIMAL_AMOUNT), 8, RoundingMode.FLOOR).intValue(), orderType == Constants.ORDER_BUY ? "true" : "false", new BigDecimal(price).divide(new BigDecimal(Calculator.MINIMAL_AMOUNT), 8, RoundingMode.FLOOR).intValue());
     }
 
+    @SuppressWarnings("unchecked")
     private List<CoinExObjects.Order> internalSubmitOrder(int marketId, int orderType, double amount, double price) throws TradeApiError {
         String response = executePostJsonRequest(formatCoinExApiUrl("orders"), formatSubmitOrderRequest(marketId, orderType, amount, price));
-
         try{return (((HashMap<String, List<CoinExObjects.Order>>)jsonParser.fromJson(response, new TypeToken<HashMap<String, List<CoinExObjects.Order>>>(){}.getType())).get("orders"));}
         catch(Exception e) {
             throw new TradeApiError(response);
@@ -284,8 +289,8 @@ public class CoinExTradeApi extends BaseTradeApi {
     }
 
     public List<StandartObjects.Order> getMarketHistory(Object pair) throws Exception {
-        List<StandartObjects.Order> history = new ArrayList<>();
         List<CoinExObjects.Trade> trades = internalGetMarketHistory((Integer) pair);
+        List<StandartObjects.Order> history = new ArrayList<>(trades.size());
         for(CoinExObjects.Trade trade : trades) {
             StandartObjects.Order order = new StandartObjects.Order();
             order.amount = getNormalNumberNotShit(trade.amount);
